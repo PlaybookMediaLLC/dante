@@ -7,6 +7,9 @@
 **Reuses:** [RFC 003](003-claim-evidence-and-verification.md), RFC 011/015 release intake, RFC 018 capture history, RFC 029 deployment signals, Go/Ent, Temporal, private R2, existing campaign and editor domains
 **Scope:** Finish Verifier capture-to-draft validation; correct sign-in diagnostics and stale live-view recovery; specify the next managed AI agent evaluation.
 
+**Execution companion:** [Four-day authenticated capture focus](../plans/authenticated-capture-focus.md)
+records market evidence, daily gates, measurements and the provider decision.
+
 ## 1. Decision and scope
 
 Use managed browser infrastructure now. Evaluate a **managed AI browser agent**,
