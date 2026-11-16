@@ -74,3 +74,20 @@ test('the Go checks never replay a cached test result', () => {
   const goChecks = workflow.slice(workflow.indexOf('\n  go-checks:\n'))
   assert.match(goChecks.slice(0, goChecks.indexOf('\n    steps:\n')), /^ {6}GOFLAGS: -count=1$/m)
 })
+
+test('every Go check runs in exactly one leg, and every leg exists', () => {
+  const goChecks = workflow.slice(workflow.indexOf('\n  go-checks:\n') + 1)
+  const job = goChecks.slice(0, goChecks.search(/\n {2}[a-z][a-z0-9-]*:\n/))
+  const suites = job
+    .match(/^ {8}suite: \[([^\]]+)\]$/m)![1]!
+    .split(',')
+    .map((s) => s.trim())
+  // A leg named in a step's condition but missing from the matrix, or the
+  // reverse, would report success having run nothing.
+  const referenced = new Set([...job.matchAll(/matrix\.suite [!=]= '([a-z]+)'/g)].map((m) => m[1]))
+  assert.deepEqual([...referenced].sort(), [...suites].sort())
+  for (const target of ['generate', 'fmt-check', 'vet', 'test', 'race']) {
+    const runs = job.match(new RegExp(`run: make ${target}$`, 'gm')) ?? []
+    assert.equal(runs.length, 1, `make ${target} must run once`)
+  }
+})

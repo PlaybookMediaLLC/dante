@@ -316,8 +316,10 @@ jobs:
       # can read. A pull request's own save was readable by that pull request
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
-      # Each leg builds different packages (race builds differ), so each keeps
-      # its own entry.
+      # Race builds share nothing with the others, so the race leg keeps its
+      # own entry. The static leg reads the test leg's and saves none: three
+      # multi-GB entries per push would crowd the Docker layer caches out of
+      # the repository's 10 GB again.
       - name: Restore the Go module and build output
         id: go-cache
         uses: actions/cache/restore@v4
@@ -325,11 +327,10 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ matrix.suite }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
+          key: go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
           restore-keys: |
-            go-${{ runner.os }}-${{ matrix.suite }}-${{ hashFiles('server/go.sum') }}-
-            go-${{ runner.os }}-${{ matrix.suite }}-
-            go-${{ runner.os }}-
+            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-
+            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
@@ -385,7 +386,7 @@ jobs:
       - if: matrix.suite == 'race'
         run: make race
       - name: Save the Go module and build output
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: matrix.suite != 'static' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@v4
         with:
           path: |
