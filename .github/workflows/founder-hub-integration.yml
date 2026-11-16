@@ -58,7 +58,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: founder-hub-backend-${{ github.event.pull_request.number || github.ref }}
+  # Pull request runs supersede each other; a push run on develop never is.
+  group: founder-hub-backend-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:

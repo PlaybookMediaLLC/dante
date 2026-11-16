@@ -11,8 +11,10 @@ permissions:
   contents: read
 
 concurrency:
-  # A merged PR's ref becomes its base; its close event must still cancel only that PR.
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A new commit cancels its pull request's run, and a merged PR's close event
+  # cancels only that PR. A push run is never cancelled: each gets its own
+  # group, so a newer push cannot cancel it running or replace it pending.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
