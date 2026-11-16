@@ -7,6 +7,11 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 
 type Redirect = Awaited<ReturnType<NonNullable<NextConfig['redirects']>>>[number]
 
+const FOUNDER_HUB_APT_FILES =
+  'https://raw.githubusercontent.com/PlaybookMediaLLC/shots-founder-hub/main/apps/web/public/apt'
+const FOUNDER_HUB_RELEASES =
+  'https://github.com/PlaybookMediaLLC/shots-founder-hub/releases/download'
+
 /** Pages that moved to their section's address; bookmarks and sent links keep working. */
 const NAVIGATION_MOVES: Pick<Redirect, 'source' | 'destination' | 'has'>[] = [
   {
@@ -135,6 +140,29 @@ const nextConfig: NextConfig = {
   // Permanent redirects for SEO (301)
   async redirects() {
     return [
+      // The Shots Founder Hub APT repository. The signed metadata lives in the
+      // shots-founder-hub repository on main; the packages are its release assets.
+      // Redirects run before the locale proxy, and APT follows HTTPS redirects.
+      {
+        source: '/apt/dists/:path*',
+        destination: `${FOUNDER_HUB_APT_FILES}/dists/:path*`,
+        statusCode: 302,
+      },
+      {
+        source: '/apt/shots-founder-hub-archive-keyring.asc',
+        destination: `${FOUNDER_HUB_APT_FILES}/shots-founder-hub-archive-keyring.asc`,
+        statusCode: 302,
+      },
+      {
+        source: '/apt/pool/:tag/amd64/shots-founder-hub.deb',
+        destination: `${FOUNDER_HUB_RELEASES}/:tag/shots-founder-hub-linux-x86_64.deb`,
+        statusCode: 302,
+      },
+      {
+        source: '/apt/pool/:tag/arm64/shots-founder-hub.deb',
+        destination: `${FOUNDER_HUB_RELEASES}/:tag/shots-founder-hub-linux-aarch64.deb`,
+        statusCode: 302,
+      },
       ...(process.env.NEXT_PUBLIC_R2_PUBLIC_URL
         ? Object.entries(publicImages).map(([source, key]) => ({
             source: source.replace(/[():*+?]/g, '\\$&'),
