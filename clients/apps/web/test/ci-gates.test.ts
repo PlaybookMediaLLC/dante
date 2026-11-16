@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 import test from 'node:test'
+import ts from 'typescript'
 
 /**
  * `CI validation` is the only required status check on develop and main
@@ -66,4 +68,77 @@ test('the gate is the context the rulesets require', () => {
       `${branch} must not require a shard by name`
     )
   }
+})
+
+const repoRoot = resolve('../../..')
+
+/** The pattern the Plan job matches changed files against for one area job. */
+function areaPattern(area: string): RegExp {
+  const match = workflow.match(new RegExp(`area ${area} '([^']+)'`))
+  assert.ok(match, `ci.yml has no ${area} area`)
+  return new RegExp(match[1]!)
+}
+
+// Selection may skip a job only when nothing its tests read changed. These
+// recompute what each area's tests read, so a new cross-tree read cannot
+// leave a pull request green while the job that would fail is skipped.
+test('the Go checks run when a file outside server/ that Go reads changes', () => {
+  const go = areaPattern('go')
+  const reads = readdirSync(join(repoRoot, 'server'), { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.go'))
+    .flatMap((file) => {
+      const source = readFileSync(join(repoRoot, 'server', file), 'utf8')
+      return [...source.matchAll(/"((?:\.\.\/)+[^"]+)"/g)].map(
+        (match) =>
+          // A directory literal (`"../.github/workflows/" + file`) keeps its slash.
+          relative(repoRoot, resolve(repoRoot, 'server', dirname(file), match[1]!)) +
+          (match[1]!.endsWith('/') ? '/' : '')
+      )
+    })
+    .filter((path) => !path.startsWith('server/'))
+  assert.ok(reads.includes('clients/apps/web/lib/auth/permissions.ts'))
+  assert.deepEqual(
+    reads.filter((path) => !go.test(path)),
+    []
+  )
+})
+
+test('the native clients run when a module their code or tests import changes', () => {
+  const native = areaPattern('native')
+  // The Raycast tests run with the web app's tsconfig (its package.json).
+  const config = ts.getParsedCommandLineOfConfigFile(
+    'tsconfig.json',
+    {},
+    {
+      ...ts.sys,
+      onUnRecoverableConfigFileDiagnostic: () => {},
+    }
+  )
+  assert.ok(config)
+  const options = { ...config.options, resolveJsonModule: true }
+  const raycast = join(repoRoot, 'clients/integrations/raycast')
+  const queue = ['src', 'test'].flatMap((dir) =>
+    readdirSync(join(raycast, dir), { recursive: true, encoding: 'utf8' })
+      .filter((file) => /\.tsx?$/.test(file))
+      .map((file) => join(raycast, dir, file))
+  )
+  const seen = new Set<string>()
+  while (queue.length > 0) {
+    const file = queue.pop()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (!/\.tsx?$/.test(file)) continue
+    for (const { fileName } of ts.preProcessFile(readFileSync(file, 'utf8')).importedFiles) {
+      const resolved = ts.resolveModuleName(fileName, file, options, ts.sys).resolvedModule
+      if (resolved && !resolved.resolvedFileName.includes('/node_modules/')) {
+        queue.push(resolved.resolvedFileName)
+      }
+    }
+  }
+  const files = [...seen].map((file) => relative(repoRoot, file))
+  assert.ok(files.includes('clients/apps/web/lib/api/contracts/write.ts'))
+  assert.deepEqual(
+    files.filter((path) => !native.test(path)),
+    []
+  )
 })

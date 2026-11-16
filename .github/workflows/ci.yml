@@ -83,8 +83,11 @@ jobs:
               echo "$1=false" >> "$GITHUB_OUTPUT"
             fi
           }
-          area go '^(server/|Makefile$|\.github/workflows/ci\.yml$)'
-          area native '^(clients/integrations/|clients/package-lock\.json$|\.github/workflows/ci\.yml$)'
+          # Each pattern covers every file the area's tests read, including
+          # web files the Go tests compare against and the web modules the
+          # Raycast tests import; test/ci-gates.test.ts recomputes both.
+          area go '^(server/|Makefile$|\.github/workflows/|clients/apps/web/lib/auth/(permissions|api-key-scopes)\.ts$|clients/apps/web/test/workspace-name-cases\.json$)'
+          area native '^(clients/|server/internal/medialimits/|\.github/workflows/ci\.yml$)'
       - name: Plan the browser tests
         id: e2e
         env:
