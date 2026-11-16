@@ -7,6 +7,7 @@ import {
   balanceShards,
   buildMatrix,
   listSpecs,
+  needsStack,
   planTier,
   SHARD_OVERHEAD_MS,
 } from '../../../../dev/e2e-plan.mjs'
@@ -77,6 +78,74 @@ for (const file of [
 
 test('an unreadable diff runs the full suite rather than fewer tests', () => {
   assert.equal(planTier({ event: 'pull_request', baseRef: 'develop' }), 'full')
+  assert.equal(planTier({ event: 'pull_request', baseRef: 'develop', mergeQueue: true }), 'full')
+})
+
+// The rule that lets a pull request skip the browser stack: the merge queue
+// runs the full suite on the exact tree before it lands.
+test('the merge queue runs the full suite, whatever changed', () => {
+  assert.equal(planTier({ event: 'merge_group', changedFiles: ['docs/vision.md'] }), 'full')
+  assert.equal(planTier({ event: 'merge_group' }), 'full')
+  assert.equal(needsStack({ event: 'merge_group', tier: 'full' }), true)
+})
+
+for (const file of [
+  'clients/apps/web/components/platform-ui/card.tsx',
+  'server/internal/httpapi/handler.go',
+  'clients/apps/web/lib/auth/access.ts',
+]) {
+  test(`with a merge queue, a pull request touching ${file} leaves the browser stack to it`, () => {
+    const tier = planTier({
+      event: 'pull_request',
+      baseRef: 'develop',
+      changedFiles: [file],
+      mergeQueue: true,
+    })
+    assert.equal(tier, 'none')
+    assert.equal(needsStack({ event: 'pull_request', mergeQueue: true, tier }), false)
+  })
+}
+
+// A change to CI or the stack is proven on the pull request that makes it.
+for (const file of [
+  '.github/workflows/ci.yml',
+  '.github/actions/load-ci-image/action.yml',
+  'dev/studio',
+  'dev/compose.e2e.yaml',
+  'clients/apps/web/Dockerfile',
+  'server/Dockerfile',
+  'clients/package-lock.json',
+  'server/go.sum',
+]) {
+  test(`with a merge queue, a pull request touching ${file} still runs the full suite`, () => {
+    const tier = planTier({
+      event: 'pull_request',
+      baseRef: 'develop',
+      changedFiles: ['clients/apps/web/app/page.tsx', file],
+      mergeQueue: true,
+    })
+    assert.equal(tier, 'full')
+    assert.equal(needsStack({ event: 'pull_request', mergeQueue: true, tier }), true)
+  })
+}
+
+test('without a merge queue, every run builds the stack', () => {
+  for (const tier of ['none', 'smoke', 'full']) {
+    assert.equal(needsStack({ event: 'pull_request', mergeQueue: false, tier }), true)
+    assert.equal(needsStack({ event: 'push', tier }), true)
+  }
+})
+
+test('a release pull request into main runs the full suite even beside a queue', () => {
+  assert.equal(
+    planTier({
+      event: 'pull_request',
+      baseRef: 'main',
+      changedFiles: ['README.md'],
+      mergeQueue: true,
+    }),
+    'full'
+  )
 })
 
 test('shards are balanced by measured duration, not by file count', () => {

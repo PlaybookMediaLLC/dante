@@ -67,3 +67,14 @@ test('the gate is the context the rulesets require', () => {
     )
   }
 })
+
+test('every check develop requires also reports in its merge queue', () => {
+  // A required check that never runs on the queue's commit holds every pull
+  // request in the queue until it times out.
+  const ruleset = JSON.parse(readFileSync('../../../.github/rulesets/develop.json', 'utf8'))
+  assert.ok(ruleset.rules.some((rule: { type: string }) => rule.type === 'merge_queue'))
+  for (const file of ['ci.yml', 'branch-policy.yml']) {
+    const source = readFileSync(`../../../.github/workflows/${file}`, 'utf8')
+    assert.match(source, /^ {2}merge_group:$/m, `${file} must run on merge_group`)
+  }
+})
