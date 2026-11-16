@@ -88,7 +88,13 @@ test('the Go checks run when a file outside server/ that Go reads changes', () =
     .filter((file) => file.endsWith('.go'))
     .flatMap((file) => {
       const source = readFileSync(join(repoRoot, 'server', file), 'utf8')
-      return [...source.matchAll(/"((?:\.\.\/)+[^"]+)"/g)].map(
+      // Only a path written as one literal can be checked here.
+      assert.doesNotMatch(
+        source,
+        /filepath\.Join\([^)]*"\.\."/,
+        `${file}: write the path as one literal`
+      )
+      return [...source.matchAll(/["`]((?:\.\.\/)+[^"`]+)["`]/g)].map(
         (match) =>
           // A directory literal (`"../.github/workflows/" + file`) keeps its slash.
           relative(repoRoot, resolve(repoRoot, 'server', dirname(file), match[1]!)) +
