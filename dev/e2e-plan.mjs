@@ -237,7 +237,10 @@ export function buildMatrix({ tier, shards, specs, durations }) {
 
 function main() {
   const shards = Number(process.env.SHARDS || 3)
-  const changedFiles = process.env.CHANGED_FILES?.split('\n').map((line) => line.trim())
+  // A blank list means the diff could not be read, which runs everything.
+  const changedFiles = process.env.CHANGED_FILES?.trim()
+    ? process.env.CHANGED_FILES.split('\n').map((line) => line.trim())
+    : undefined
   const event = process.env.EVENT
   const mergeQueue = process.env.MERGE_QUEUE === 'true'
   const tier = planTier({

@@ -78,3 +78,41 @@ test('every check develop requires also reports in its merge queue', () => {
     assert.match(source, /^ {2}merge_group:$/m, `${file} must run on merge_group`)
   }
 })
+
+// The wiring that turns plan outputs into accepted skips. Each regression
+// below would let `CI validation` pass with checks that never ran.
+test('the gate accepts a skip only for a plan output that exists', () => {
+  const outputs = workflow.slice(
+    workflow.indexOf('\n    outputs:\n'),
+    workflow.indexOf('\n    steps:\n')
+  )
+  const declared = new Set([...outputs.matchAll(/^ {6}([a-z0-9_]+):/gm)].map((match) => match[1]))
+  const used = new Set(
+    [...workflow.matchAll(/needs\.plan\.outputs\.([a-z0-9_]+)/g)].map((match) => match[1])
+  )
+  assert.deepEqual(
+    [...used].filter((name) => !declared.has(name)),
+    []
+  )
+  // An unset output must not read as a reason to skip the stack.
+  assert.doesNotMatch(workflow, /outputs\.stack != 'true'/)
+})
+
+test('nothing may be skipped in the merge queue', () => {
+  assert.match(workflow, /if \[\[ "\$GITHUB_EVENT_NAME" == merge_group \]\]; then SKIPPABLE=''; fi/)
+  assert.match(workflow, /area\(\) \{\n\s+if \[\[ "\$GITHUB_EVENT_NAME" == merge_group \|\|/)
+})
+
+test('a pull request narrows only behind a queue that waits for CI validation', () => {
+  const step = workflow.slice(workflow.indexOf('name: Check the base branch for a merge queue'))
+  assert.match(step, /\.type == "merge_queue"/)
+  assert.match(step, /\.type == "required_status_checks"[\s\S]*\.context == "CI validation"/)
+})
+
+test('the API contract gate never compares the document with itself', () => {
+  assert.match(
+    workflow,
+    /BASE: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.merge_group\.base_sha \|\|/
+  )
+  assert.match(workflow, /\[\[ -n "\$BASE" \]\] \|\| \{/)
+})

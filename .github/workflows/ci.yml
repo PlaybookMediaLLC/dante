@@ -90,17 +90,20 @@ jobs:
           area go '^(server/|Makefile$|\.github/workflows/ci\.yml$)'
           area native '^(clients/integrations/|clients/package-lock\.json$|\.github/workflows/ci\.yml$)'
       # A pull request's run may leave the Docker stack to the merge queue only
-      # when its base has one, so the full suite still runs before it lands.
-      # No queue, or rules that cannot be read, keep the full pull request run.
+      # when its base has a queue that waits for `CI validation`, so the full
+      # suite still runs before it lands. Anything else, including rules that
+      # cannot be read, keeps the full pull request run.
       - name: Check the base branch for a merge queue
         id: queue
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          rules="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" --jq '[.[].type] | join(" ")' || true)"
-          echo "Rules on $GITHUB_BASE_REF: ${rules:-none readable}." >> "$GITHUB_STEP_SUMMARY"
-          if [[ " $rules " == *' merge_queue '* ]]; then
+          queued="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" --jq '
+            any(.[]; .type == "merge_queue") and any(.[]; .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]; .context == "CI validation"))' || true)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable}." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$queued" == true ]]; then
             echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
           fi
       - name: Plan the browser tests
@@ -539,6 +542,8 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           document=server/internal/shotsapi/openapi.json
+          # An empty base would read the document from the index and compare it with itself.
+          [[ -n "$BASE" ]] || { echo 'No base revision to compare the OpenAPI document against.' >&2; exit 1; }
           if ! git cat-file -e "$BASE:$document" 2>/dev/null; then
             echo "The base revision has no OpenAPI document to compare against."
             exit 0
@@ -859,9 +864,11 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
           SKIPPABLE: >-
-            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ needs.plan.outputs.stack != 'true' && 'web-image backend-image collab-image social-gate ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
+            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ needs.plan.outputs.stack == 'false' && 'web-image backend-image collab-image social-gate ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
         run: |
           set -euo pipefail
+          # The merge queue is where the full suite runs: nothing may be skipped.
+          if [[ "$GITHUB_EVENT_NAME" == merge_group ]]; then SKIPPABLE=''; fi
           failed=''
           {
             echo '| Gate | Result |'

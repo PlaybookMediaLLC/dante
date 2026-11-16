@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -134,6 +135,47 @@ test('without a merge queue, every run builds the stack', () => {
     assert.equal(needsStack({ event: 'pull_request', mergeQueue: false, tier }), true)
     assert.equal(needsStack({ event: 'push', tier }), true)
   }
+})
+
+/** What the CI step reads: the script's outputs for one environment. */
+function planOutputs(env: Record<string, string>): Record<string, string> {
+  const output = execFileSync(process.execPath, ['../../../dev/e2e-plan.mjs'], {
+    encoding: 'utf8',
+    env: { PATH: process.env.PATH, SHARDS: '6', REF: 'refs/pull/1/merge', ...env },
+    stdio: ['ignore', 'pipe', 'ignore'],
+  })
+  return Object.fromEntries(
+    output
+      .trim()
+      .split('\n')
+      .map((line) => line.split(/=(.*)/s, 2))
+  )
+}
+
+test('the plan step runs everything in the queue and when the diff is unreadable', () => {
+  const queue = planOutputs({ EVENT: 'merge_group', CHANGED_FILES: 'docs/ci.md' })
+  assert.deepEqual([queue.tier, queue.run, queue.stack], ['full', 'true', 'true'])
+  // The workflow passes an empty list when `git diff` fails.
+  const blank = planOutputs({
+    EVENT: 'pull_request',
+    BASE: 'develop',
+    CHANGED_FILES: '',
+    MERGE_QUEUE: 'true',
+  })
+  assert.deepEqual([blank.tier, blank.stack], ['full', 'true'])
+  const queued = planOutputs({
+    EVENT: 'pull_request',
+    BASE: 'develop',
+    CHANGED_FILES: 'clients/apps/web/app/page.tsx',
+    MERGE_QUEUE: 'true',
+  })
+  assert.deepEqual([queued.tier, queued.run, queued.stack], ['none', 'false', 'false'])
+  const unqueued = planOutputs({
+    EVENT: 'pull_request',
+    BASE: 'develop',
+    CHANGED_FILES: 'clients/apps/web/app/page.tsx',
+  })
+  assert.equal(unqueued.stack, 'true')
 })
 
 test('a release pull request into main runs the full suite even beside a queue', () => {
