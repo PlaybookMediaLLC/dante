@@ -269,6 +269,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # The restored build cache also holds test results, and the database
+      # tests read a schema that CI migrates from SQL outside their binaries:
+      # a cached pass could hide a migration that breaks them. Compiled
+      # packages still come from the cache.
+      GOFLAGS: -count=1
       MAINTENANCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/maintenance_test?sslmode=disable
       SOCIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_test?sslmode=disable
       PUBLISHING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/shared_cutover_test?sslmode=disable
