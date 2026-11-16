@@ -51,6 +51,17 @@ test('the gate runs even when a job it watches failed or was skipped', () => {
   )
 })
 
+test('a push run is never cancelled by the next push', () => {
+  // A cancelled develop push left its commit with no full-suite result.
+  for (const file of ['ci.yml', 'founder-hub-integration.yml']) {
+    const source = readFileSync(`../../../.github/workflows/${file}`, 'utf8')
+    assert.match(
+      source,
+      /group: [\w-]+\$\{\{ github\.event\.pull_request\.number \|\| github\.run_id \}\}/
+    )
+  }
+})
+
 test('the gate is the context the rulesets require', () => {
   assert.match(workflow, /\n {2}validate:\n {4}name: CI validation\n/)
   for (const branch of ['develop', 'main']) {
