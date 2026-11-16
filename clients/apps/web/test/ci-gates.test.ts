@@ -67,3 +67,11 @@ test('the gate is the context the rulesets require', () => {
     )
   }
 })
+
+test('the content-keyed ESLint cache only serves single-file rules', () => {
+  // A cached result is reused while its file is unchanged, which is safe only
+  // while no rule reads type information from other files.
+  assert.match(workflow, /npm run lint -- --max-warnings=0 --cache-strategy content/)
+  const config = readFileSync('../../eslint.config.mjs', 'utf8')
+  assert.doesNotMatch(config, /projectService|parserOptions:\s*\{[^}]*\bproject\b/)
+})
