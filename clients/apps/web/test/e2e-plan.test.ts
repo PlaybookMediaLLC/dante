@@ -141,14 +141,26 @@ test('without a merge queue, every run builds the stack', () => {
 function planOutputs(env: Record<string, string>): Record<string, string> {
   const output = execFileSync(process.execPath, ['../../../dev/e2e-plan.mjs'], {
     encoding: 'utf8',
-    env: { PATH: process.env.PATH, SHARDS: '6', REF: 'refs/pull/1/merge', ...env },
+    // Blank every input, and GITHUB_OUTPUT so the script prints instead of
+    // writing into the CI job's own outputs.
+    env: {
+      ...process.env,
+      GITHUB_OUTPUT: '',
+      EVENT: '',
+      BASE: '',
+      CHANGED_FILES: '',
+      MERGE_QUEUE: '',
+      SHARDS: '6',
+      REF: 'refs/pull/1/merge',
+      ...env,
+    },
     stdio: ['ignore', 'pipe', 'ignore'],
   })
   return Object.fromEntries(
     output
       .trim()
       .split('\n')
-      .map((line) => line.split(/=(.*)/s, 2))
+      .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
   )
 }
 
