@@ -405,15 +405,22 @@ jobs:
       - run: npm run typecheck
         working-directory: clients
 
+  # Two shards side by side: one npm test run held every suite in a row, a
+  # median 114 s of tests in a 2m43s job.
   client-unit:
-    name: Client unit tests
+    name: Client unit tests (${{ matrix.shard }}/2)
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # The collaboration server's replica test relays edits through a real Redis.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # The collaboration server's replica test relays edits through a real
+    # Redis. Only the second shard runs it; an empty image starts no container.
     services:
       redis:
-        image: redis:7.4-alpine
+        image: ${{ matrix.shard == 2 && 'redis:7.4-alpine' || '' }}
         ports:
           - 6379:6379
     env:
@@ -426,20 +433,33 @@ jobs:
           cache: npm
           cache-dependency-path: clients/package-lock.json
       - uses: azure/setup-helm@v4
+        if: matrix.shard == 1
       - run: npm ci --prefer-offline --no-audit
         working-directory: clients
       - run: npm run build:sdk
         working-directory: clients
-      - run: npm run test
+      # The web package's own test script, with --test-shard ahead of the files:
+      # placed after them, Node ignores it and every shard runs every test.
+      # test/ci-gates.test.ts holds this line to the package.json script.
+      - name: Web unit tests
+        working-directory: clients/apps/web
+        run: npx tsx --test --test-shard=${{ matrix.shard }}/2 test/*.test.ts
+      - name: Collaboration server and editor unit tests
+        if: matrix.shard == 2
         working-directory: clients
+        run: npm test -w @shots/collab-server -w @shots/platejs-editor
       # The server-module tier: every test/*.server.ts suite, including the
       # four that had no caller at all before (workspace invitations and
       # membership, GIF search, link images).
       - run: npm run test:server
+        if: matrix.shard == 1
         working-directory: clients
       - run: python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
+        if: matrix.shard == 1
       - run: python3 dev/verify-rfcs.py
+        if: matrix.shard == 1
       - name: Validate local development configuration
+        if: matrix.shard == 1
         run: |
           ./dev/studio status
           docker compose --env-file .local/dev.env --file dev/compose.yaml config --quiet
@@ -447,10 +467,14 @@ jobs:
             --file dev/compose.e2e.yaml --file dev/compose.social-gate.yaml config --quiet
       # Formerly its own workflow (helm.yml), which duplicated these four
       # commands on a trigger surface this workflow already covers.
-      - run: helm lint infra/charts/screenshot-studio
-      - run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
-      - run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
-      - run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
+      - if: matrix.shard == 1
+        run: helm lint infra/charts/screenshot-studio
+      - if: matrix.shard == 1
+        run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
+      - if: matrix.shard == 1
+        run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
+      - if: matrix.shard == 1
+        run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
   native-clients:
     name: Native clients

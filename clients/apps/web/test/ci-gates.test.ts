@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import test from 'node:test'
 
 /**
@@ -65,5 +65,36 @@ test('the gate is the context the rulesets require', () => {
       !checks.some((context: string) => context.startsWith('integration')),
       `${branch} must not require a shard by name`
     )
+  }
+})
+
+// The unit job runs each workspace's tests itself rather than one npm test, so
+// a workspace that gains a test script, or a web script that changes, would
+// otherwise drop out of CI without a failure.
+test('the sharded unit job runs every workspace test script as written', () => {
+  const root = JSON.parse(readFileSync('../../package.json', 'utf8'))
+  const withTests = (root.workspaces as string[])
+    .flatMap((glob) => {
+      const dir = glob.replace('/*', '')
+      return readdirSync(`../../${dir}`).map((name) => `../../${dir}/${name}/package.json`)
+    })
+    .filter((file) => existsSync(file))
+    .map((file) => JSON.parse(readFileSync(file, 'utf8')))
+    .filter((pkg) => pkg.scripts?.test)
+  const unit = workflow.slice(workflow.indexOf('\n  client-unit:\n'))
+  for (const pkg of withTests) {
+    if (pkg.name === 'screenshot-studio') {
+      assert.equal(pkg.scripts.test, 'tsx --test test/*.test.ts')
+      assert.match(
+        unit,
+        /npx tsx --test --test-shard=\$\{\{ matrix\.shard \}\}\/2 test\/\*\.test\.ts/
+      )
+    } else {
+      assert.match(
+        unit,
+        new RegExp(`npm test( -w \\S+)* -w ${pkg.name}\\b`),
+        `${pkg.name} runs in no shard`
+      )
+    }
   }
 })
