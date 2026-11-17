@@ -70,6 +70,13 @@ to shrink — adding to it needs the production bug written down.
 | ...that changes the backend, auth, billing, tenancy, the API contracts, the framework, a shared package, the lockfile or CI | The full suite                                           |
 | Push to `develop`                                                                                                           | The full suite, duration-balanced shards                 |
 | Release pull request into `main`                                                                                            | The full suite, unless the same commit already passed it |
+| Merge queue into `develop`                                                                                                  | The full suite, duration-balanced shards                 |
+
+Once `develop` has a merge queue (the `Plan` job reads its rules), a pull
+request into `develop` runs no browser tests and builds no images of its own:
+the queue runs the full suite on the exact tree before the pull request lands.
+A pull request that changes CI, `dev/`, a Dockerfile or a lockfile still runs
+the full suite itself, so a CI change is proven where it is made.
 
 [`dev/e2e-plan.mjs`](../../../../../dev/e2e-plan.mjs) makes that decision and
 owns the escalation list; `test/e2e-plan.test.ts` holds it to those rules.
