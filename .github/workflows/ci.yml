@@ -305,9 +305,9 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Four legs side by side: the checks that need no database, the tests in two
-  # shards, and the race-detector tests. Run one after another they took a
-  # median 11.5 minutes, and every server pull request waited on the sum.
+  # Five legs side by side: code generation, vet, the tests in two shards, and
+  # the race-detector tests. Run one after another they took a median 11.5
+  # minutes, and every server pull request waited on the sum.
   go-checks:
     name: Go checks (${{ matrix.suite }})
     needs: plan
@@ -317,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [static, test-1, test-2, race]
+        suite: [generate, vet, test-1, test-2, race]
     env:
       # The restored build cache also holds test results, and the database
       # tests read a schema that CI migrates from SQL outside their binaries:
@@ -330,8 +330,8 @@ jobs:
       NOTIFICATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notifications_test?sslmode=disable
     services:
       postgres:
-        # An empty image starts no container: the static leg needs no database.
-        image: ${{ matrix.suite != 'static' && 'postgres:16-bookworm' || '' }}
+        # An empty image starts no container: generate and vet need no database.
+        image: ${{ (matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race') && 'postgres:16-bookworm' || '' }}
         env:
           POSTGRES_DB: publishing_acceptance
           POSTGRES_PASSWORD: postgres
@@ -360,8 +360,8 @@ jobs:
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
       # Race builds share nothing with the others, so the race leg keeps its
-      # own entry. The static leg and the second test shard read the first
-      # test shard's and save none. Each entry is about 1.1 GB, so it is
+      # own entry. The generate, vet and second test shard legs read the
+      # first test shard's and save none. Each entry is about 1.1 GB, so it is
       # keyed on go.sum alone and written once per dependency change: a new
       # entry per push filled the repository's 10 GB and evicted every other
       # cache. Packages changed since are recompiled; unchanged ones still hit.
@@ -378,25 +378,26 @@ jobs:
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
-      - if: matrix.suite == 'static'
+      - if: matrix.suite == 'generate'
         run: make generate
       - name: Verify generated clients are current
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- ent internal/social/ent internal/frontenddeploy/vercelapi/client.gen.go
       - name: Verify the module graph is unchanged
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- go.mod go.sum
       - name: Verify Go formatting
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: make fmt-check
-      - if: matrix.suite == 'static'
+      # On the committed tree: the generate leg fails if generation changes it.
+      - if: matrix.suite == 'vet'
         run: make vet
       # psql ships with the runner image.
       - name: Create the social test database
-        if: matrix.suite != 'static'
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE social_test'
       - name: Create and migrate Founder Hub test databases
-        if: matrix.suite != 'static'
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: |
           create_founder_hub_database() {
             database="$1"
