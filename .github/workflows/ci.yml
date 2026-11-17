@@ -101,18 +101,26 @@ jobs:
           area native '^(clients/|server/internal/medialimits/|\.github/workflows/ci\.yml$)'
       # A pull request's run may leave the Docker stack to the merge queue only
       # when its base has a queue that waits for `CI validation`, so the full
-      # suite still runs before it lands. Anything else, including rules that
-      # cannot be read, keeps the full pull request run.
+      # suite still runs before it lands. The queue and the required check may
+      # come from a ruleset or from classic branch protection, which the rules
+      # endpoint does not show. Anything else, including settings that cannot
+      # be read, keeps the full pull request run.
       - name: Check the base branch for a merge queue
         id: queue
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          queued="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" --jq '
-            any(.[]; .type == "merge_queue") and any(.[]; .type == "required_status_checks"
-              and any(.parameters.required_status_checks[]; .context == "CI validation"))' || true)"
-          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable}." >> "$GITHUB_STEP_SUMMARY"
+          rules="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" || echo '[]')"
+          checks="$(gh api "repos/$GITHUB_REPOSITORY/branches/$GITHUB_BASE_REF" --jq '.protection.required_status_checks.contexts // []' || echo '[]')"
+          queue_id="$(gh api graphql -F owner="${GITHUB_REPOSITORY%/*}" -F name="${GITHUB_REPOSITORY#*/}" -F branch="$GITHUB_BASE_REF" \
+            -f query='query($owner: String!, $name: String!, $branch: String!) { repository(owner: $owner, name: $name) { mergeQueue(branch: $branch) { id } } }' \
+            --jq '.data.repository.mergeQueue.id // empty' || true)"
+          queued="$(jq -n --argjson rules "$rules" --argjson checks "$checks" --arg queue "$queue_id" '
+            ($queue != "" or any($rules[]; .type == "merge_queue"))
+            and (any($checks[]; . == "CI validation") or any($rules[]; .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]; .context == "CI validation")))' || true)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable} (queue: ${queue_id:-none}; protected checks: $checks)." | tee -a "$GITHUB_STEP_SUMMARY"
           if [[ "$queued" == true ]]; then
             echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
           fi
