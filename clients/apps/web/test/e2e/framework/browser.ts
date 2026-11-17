@@ -12,13 +12,15 @@ type BrowserResponse = {
   status: number
 }
 
-function toRequestInit(input: BrowserRequest): RequestInit {
+// A string body only: Playwright's serialized argument type cannot carry the
+// full RequestInit body union through page.evaluate.
+function toRequestInit(input: BrowserRequest) {
   return {
     body: input.body,
-    credentials: 'same-origin',
+    credentials: 'same-origin' as const,
     headers: input.headers,
     method: input.method,
-  }
+  } satisfies RequestInit
 }
 
 export async function browserRequest(
