@@ -26,6 +26,9 @@ flowchart TD
   report["Browser test report"]
   validate["CI validation"]
 
+  plan --> web
+  plan --> backend
+  plan --> collab
   plan --> go
   plan --> native
   plan --> gate
@@ -89,6 +92,19 @@ production build genuinely fails are tagged `@quarantine` and run nightly;
 [the suite's README](../clients/apps/web/test/e2e/README.md) is the reference.
 
 ## What runs, and when
+
+**The full suite runs before anything lands on develop, in the merge queue.**
+A `merge_group` run selects nothing: every job runs. A pull request's own run
+is fast feedback. When the `Plan` job finds a merge queue in the base branch's
+rules, the pull request skips the image builds, the browser shards and the
+social gate, which take most of a 25-minute run, and keeps the client, Go, API
+contract and native checks its diff can reach. A change to CI, `dev/`, a
+Dockerfile or a lockfile still runs the full suite on the pull request. The queue
+counts only if the rules also require `CI validation`, which the queue then
+waits for. With no such queue, or rules the job cannot read, a pull request
+runs as before: selection never narrows a run that nothing downstream
+re-checks. Turning the queue off therefore means re-running CI on open pull
+requests.
 
 [`dev/e2e-plan.mjs`](../dev/e2e-plan.mjs) classifies the change and emits the
 shard matrix. Its rules, and the escalation list that keeps selection safe, are
