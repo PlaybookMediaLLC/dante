@@ -120,7 +120,8 @@ jobs:
             ($queue != "" or any($rules[]; .type == "merge_queue"))
             and (any($checks[]; . == "CI validation") or any($rules[]; .type == "required_status_checks"
               and any(.parameters.required_status_checks[]; .context == "CI validation")))' || true)"
-          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable} (queue: ${queue_id:-none}; protected checks: $checks)." | tee -a "$GITHUB_STEP_SUMMARY"
+          rule_types="$(jq -r '[.[].type] | join(", ")' <<<"$rules" || echo unreadable)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable} (queue: ${queue_id:-none}; ruleset rules: ${rule_types:-none}; protected checks: $checks)." | tee -a "$GITHUB_STEP_SUMMARY"
           if [[ "$queued" == true ]]; then
             echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
           fi
