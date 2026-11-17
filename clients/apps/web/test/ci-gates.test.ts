@@ -232,6 +232,10 @@ test('every Go check runs in exactly one leg, and every leg exists', () => {
   }
   // Shard 1 also runs every package but internal/product: a missing shard
   // drops half of that package's tests.
+  assert.deepEqual(
+    suites.filter((suite) => suite.startsWith('test')),
+    ['test-1', 'test-2']
+  )
   assert.match(
     job,
     /run: make test SHARD=\$\{\{ matrix\.suite == 'test-1' && '1\/2' \|\| '2\/2' \}\}$/m
@@ -293,5 +297,9 @@ test('the Go build cache keeps one entry per leg and dependency set', () => {
   const rest = workflow.slice(workflow.indexOf('\n  go-checks:\n') + 1)
   const job = rest.slice(0, rest.search(/\n {2}[a-z][a-z0-9-]*:\n/))
   assert.doesNotMatch(job, /key: go-.*github\.sha/)
-  assert.match(job, /steps\.go-cache\.outputs\.cache-hit != 'true'/)
+  // Only the legs that compile everything they share a key with may save it.
+  assert.match(
+    job,
+    /if: \(matrix\.suite == 'test-1' \|\| matrix\.suite == 'race'\) && steps\.go-cache\.outputs\.cache-hit != 'true'/
+  )
 })

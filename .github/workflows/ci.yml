@@ -305,9 +305,9 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Three legs side by side: the checks that need no database, the tests, and
-  # the race-detector tests. Run one after another they took a median 11.5
-  # minutes, and every server pull request waited on the sum.
+  # Four legs side by side: the checks that need no database, the tests in two
+  # shards, and the race-detector tests. Run one after another they took a
+  # median 11.5 minutes, and every server pull request waited on the sum.
   go-checks:
     name: Go checks (${{ matrix.suite }})
     needs: plan
