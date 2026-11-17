@@ -81,7 +81,14 @@ test('the sharded unit job runs every workspace test script as written', () => {
     .filter((file) => existsSync(file))
     .map((file) => JSON.parse(readFileSync(file, 'utf8')))
     .filter((pkg) => pkg.scripts?.test)
-  const unit = workflow.slice(workflow.indexOf('\n  client-unit:\n'))
+  const rest = workflow.slice(workflow.indexOf('\n  client-unit:\n') + 1)
+  const unit = rest.slice(0, rest.search(/\n {2}[a-z][a-z0-9-]*:\n/))
+  // A shard missing from the matrix, or a step for a shard that does not
+  // exist, would drop tests while the job still passed.
+  assert.match(unit, /^ {8}shard: \[1, 2\]$/m)
+  for (const [, shard] of unit.matchAll(/matrix\.shard == (\d+)/g)) {
+    assert.ok(['1', '2'].includes(shard!), `no shard ${shard}`)
+  }
   for (const pkg of withTests) {
     if (pkg.name === 'screenshot-studio') {
       assert.equal(pkg.scripts.test, 'tsx --test test/*.test.ts')
@@ -92,7 +99,7 @@ test('the sharded unit job runs every workspace test script as written', () => {
     } else {
       assert.match(
         unit,
-        new RegExp(`npm test( -w \\S+)* -w ${pkg.name}\\b`),
+        new RegExp(`npm test( -w \\S+)* -w ${pkg.name}(\\s|$)`, 'm'),
         `${pkg.name} runs in no shard`
       )
     }

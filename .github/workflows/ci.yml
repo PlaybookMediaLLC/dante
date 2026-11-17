@@ -444,10 +444,14 @@ jobs:
       - name: Web unit tests
         working-directory: clients/apps/web
         run: npx tsx --test --test-shard=${{ matrix.shard }}/2 test/*.test.ts
-      - name: Collaboration server and editor unit tests
+      - name: Collaboration server unit tests
         if: matrix.shard == 2
         working-directory: clients
-        run: npm test -w @shots/collab-server -w @shots/platejs-editor
+        run: npm test -w @shots/collab-server
+      - name: Editor unit tests
+        if: matrix.shard == 1
+        working-directory: clients
+        run: npm test -w @shots/platejs-editor
       # The server-module tier: every test/*.server.ts suite, including the
       # four that had no caller at all before (workspace invitations and
       # membership, GIF search, link images).
