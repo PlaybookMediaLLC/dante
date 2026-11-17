@@ -101,18 +101,26 @@ jobs:
           area native '^(clients/|server/internal/medialimits/|\.github/workflows/ci\.yml$)'
       # A pull request's run may leave the Docker stack to the merge queue only
       # when its base has a queue that waits for `CI validation`, so the full
-      # suite still runs before it lands. Anything else, including rules that
-      # cannot be read, keeps the full pull request run.
+      # suite still runs before it lands. The queue and the required check may
+      # come from a ruleset or from classic branch protection, which the rules
+      # endpoint does not show. Anything else, including settings that cannot
+      # be read, keeps the full pull request run.
       - name: Check the base branch for a merge queue
         id: queue
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          queued="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" --jq '
-            any(.[]; .type == "merge_queue") and any(.[]; .type == "required_status_checks"
-              and any(.parameters.required_status_checks[]; .context == "CI validation"))' || true)"
-          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable}." >> "$GITHUB_STEP_SUMMARY"
+          rules="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" || echo '[]')"
+          checks="$(gh api "repos/$GITHUB_REPOSITORY/branches/$GITHUB_BASE_REF" --jq '.protection.required_status_checks.contexts // []' || echo '[]')"
+          queue_id="$(gh api graphql -F owner="${GITHUB_REPOSITORY%/*}" -F name="${GITHUB_REPOSITORY#*/}" -F branch="$GITHUB_BASE_REF" \
+            -f query='query($owner: String!, $name: String!, $branch: String!) { repository(owner: $owner, name: $name) { mergeQueue(branch: $branch) { id } } }' \
+            --jq '.data.repository.mergeQueue.id // empty' || true)"
+          queued="$(jq -n --argjson rules "$rules" --argjson checks "$checks" --arg queue "$queue_id" '
+            ($queue != "" or any($rules[]; .type == "merge_queue"))
+            and (any($checks[]; . == "CI validation") or any($rules[]; .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]; .context == "CI validation")))' || true)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable} (queue: ${queue_id:-none}; protected checks: $checks)." | tee -a "$GITHUB_STEP_SUMMARY"
           if [[ "$queued" == true ]]; then
             echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
           fi
@@ -297,7 +305,7 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-  # Three legs side by side: the checks that need no database, the tests, and
+  # Five legs side by side: code generation, vet, the tests in two shards, and
   # the race-detector tests. Run one after another they took a median 11.5
   # minutes, and every server pull request waited on the sum.
   go-checks:
@@ -309,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [static, test, race]
+        suite: [generate, vet, test-1, test-2, race]
     env:
       # The restored build cache also holds test results, and the database
       # tests read a schema that CI migrates from SQL outside their binaries:
@@ -322,8 +330,8 @@ jobs:
       NOTIFICATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notifications_test?sslmode=disable
     services:
       postgres:
-        # An empty image starts no container: the static leg needs no database.
-        image: ${{ matrix.suite != 'static' && 'postgres:16-bookworm' || '' }}
+        # An empty image starts no container: generate and vet need no database.
+        image: ${{ (matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race') && 'postgres:16-bookworm' || '' }}
         env:
           POSTGRES_DB: publishing_acceptance
           POSTGRES_PASSWORD: postgres
@@ -352,11 +360,11 @@ jobs:
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
       # Race builds share nothing with the others, so the race leg keeps its
-      # own entry. The static leg reads the test leg's and saves none. Each
-      # entry is about 1.1 GB, so it is keyed on go.sum alone and written once
-      # per dependency change: a new entry per push filled the repository's
-      # 10 GB and evicted every other cache. Packages changed since are
-      # recompiled; unchanged ones still hit.
+      # own entry. The generate, vet and second test shard legs read the
+      # first test shard's and save none. Each entry is about 1.1 GB, so it is
+      # keyed on go.sum alone and written once per dependency change: a new
+      # entry per push filled the repository's 10 GB and evicted every other
+      # cache. Packages changed since are recompiled; unchanged ones still hit.
       - name: Restore the Go module and build output
         id: go-cache
         uses: actions/cache/restore@v4
@@ -370,25 +378,26 @@ jobs:
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
-      - if: matrix.suite == 'static'
+      - if: matrix.suite == 'generate'
         run: make generate
       - name: Verify generated clients are current
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- ent internal/social/ent internal/frontenddeploy/vercelapi/client.gen.go
       - name: Verify the module graph is unchanged
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- go.mod go.sum
       - name: Verify Go formatting
-        if: matrix.suite == 'static'
+        if: matrix.suite == 'generate'
         run: make fmt-check
-      - if: matrix.suite == 'static'
+      # On the committed tree: the generate leg fails if generation changes it.
+      - if: matrix.suite == 'vet'
         run: make vet
       # psql ships with the runner image.
       - name: Create the social test database
-        if: matrix.suite != 'static'
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE social_test'
       - name: Create and migrate Founder Hub test databases
-        if: matrix.suite != 'static'
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: |
           create_founder_hub_database() {
             database="$1"
@@ -407,22 +416,23 @@ jobs:
           create_founder_hub_database shared_cutover_test
           create_founder_hub_database notifications_test
       - name: Verify one public schema for product and social Ent models
-        if: matrix.suite == 'test'
+        if: matrix.suite == 'test-1'
         run: |
           go test ./internal/publishing -run TestOAuthGrantAndConnectionUseEntInOnePublicSchema -count=1
           go test ./internal/social/tenantpublishing -run TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost -count=1
-      # The race packages are excluded here; the race leg runs them.
-      - if: matrix.suite == 'test'
-        run: make test
+      # The race packages are excluded here; the race leg runs them. The
+      # Makefile says how the two shards divide the rest.
+      - if: matrix.suite == 'test-1' || matrix.suite == 'test-2'
+        run: make test SHARD=${{ matrix.suite == 'test-1' && '1/2' || '2/2' }}
       - name: Verify social migrations are repeatable
-        if: matrix.suite == 'test'
+        if: matrix.suite == 'test-1'
         run: |
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
       - if: matrix.suite == 'race'
         run: make race
       - name: Save the Go module and build output
-        if: matrix.suite != 'static' && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: (matrix.suite == 'test-1' || matrix.suite == 'race') && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@v4
         with:
           path: |
