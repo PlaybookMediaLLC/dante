@@ -32,6 +32,9 @@ bash .github/rulesets/apply.sh
 The script sets the default branch to develop and idempotently creates or
 updates the named [develop](../.github/rulesets/develop.json) and
 [main](../.github/rulesets/main.json) rulesets. It preserves unrelated rulesets.
+It configures the repository the checkout's `origin` remote names, or
+`GH_REPO` when set, and prints it first. It then reads develop's rules back and
+fails unless the merge queue and the required checks are in force.
 Both branches require PRs, resolved review conversations, and the Branch policy
 and CI validation checks. `CI validation` is the single gate for everything CI
 runs: it names every job, asserts each result, and accepts a skip only for the
