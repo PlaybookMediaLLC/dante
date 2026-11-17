@@ -22,6 +22,11 @@ concurrency:
 
 env:
   NODE_VERSION: '22.23.4'
+  # onnxruntime-node's install script otherwise downloads its CUDA provider
+  # (a 327 MB library) from GitHub releases on every npm ci, in every job.
+  # No runner has a GPU, so CI cannot use it, and a 504 from that download
+  # failed a browser shard's install. The CPU runtime ships in the package.
+  ONNXRUNTIME_NODE_INSTALL_CUDA: skip
   # Each browser shard runs its own stack on its own runner, so this trades
   # concurrent job slots for wall clock. The whole suite is roughly 9,200
   # worker-seconds and each shard runs 4 Playwright workers, so six shards put
