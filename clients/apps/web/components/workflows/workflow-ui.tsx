@@ -92,6 +92,8 @@ export const FAILURE_CODES: Record<string, string> = {
     'The page asks visitors to sign in, or is not public, so it cannot show this deployment.',
   needs_auth: 'The signed-in session ended. Reconnect it in Signed-in capture to continue.',
   capture_pending: 'The signed-in capture had not finished when this step stopped waiting.',
+  capture_unmatched:
+    'AI found no signed-in screen that shows what this release changed, so nothing was captured. Add a recipe for the changed screen, or capture a chosen page instead.',
   action_failed: 'The action failed; see the node for details.',
   missing: 'Event evidence was missing, so no branch was chosen.',
   pending: 'Event enrichment was still pending, so no branch was chosen.',

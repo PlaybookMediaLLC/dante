@@ -2,6 +2,8 @@ package product
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -35,6 +37,9 @@ var (
 	// ErrCaptureSuperseded ends the run: a newer deployment replaced this one
 	// before its capture ran, and the newer one captures for itself.
 	ErrCaptureSuperseded = errors.New("a newer deployment superseded this capture")
+	// ErrCaptureUnmatched stops the run: AI found no signed-in page that shows
+	// what the release changed, so nothing would honestly illustrate it.
+	ErrCaptureUnmatched = errors.New("no signed-in page shows this release")
 )
 
 // automationCaptureProduct gives a run the capture of its own deployment, so
@@ -42,12 +47,19 @@ var (
 // version proof the app must report the deployment's commit first, and a
 // retry reuses the proven receipt. Otherwise the output is labeled as the
 // page's current state, which claims nothing about the deployment.
-func (c *Configuration) automationCaptureProduct(ctx context.Context, org string, event *ent.ReleaseSourceEvent, input automation.Outputs, action *automation.Action) (automation.Outputs, error) {
+func (c *Configuration) automationCaptureProduct(ctx context.Context, org string, node *ent.ReleaseAutomationNode, event *ent.ReleaseSourceEvent, input automation.Outputs, action *automation.Action) (automation.Outputs, error) {
 	if input.CampaignID == "" {
 		return automation.Outputs{}, ErrInvalidInput
 	}
 	if err := c.requireWorkspaceFeature(ctx, org, "campaign:workflow"); err != nil {
 		return automation.Outputs{}, err
+	}
+	if action.MatchRelease {
+		outputs, err := c.automationReleaseCaptures(ctx, org, node, event, input, action)
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		return c.linkAutomationCapture(ctx, org, event.ID, outputs)
 	}
 	if action.RecipeID != "" {
 		outputs, err := c.automationAuthenticatedCapture(ctx, org, event, input, action)
@@ -93,12 +105,18 @@ func (c *Configuration) automationCaptureProduct(ctx context.Context, org string
 
 func (c *Configuration) linkAutomationCapture(ctx context.Context, org, eventID string, outputs automation.Outputs) (automation.Outputs, error) {
 	actor := Actor{OrganizationID: org, Kind: "service", Display: "release-automation", RequestID: eventID}
-	link, err := c.LinkCampaignAsset(ctx, actor, outputs.CampaignID, outputs.CaptureAssetID, LinkCampaignAssetInput{Kind: "product-shot", preserveExisting: true})
-	if err != nil {
-		return automation.Outputs{}, err
+	assets := outputs.CaptureAssetIDs
+	if len(assets) == 0 {
+		assets = []string{outputs.CaptureAssetID}
 	}
-	if link.AssetStatus != "UPLOADED" {
-		return automation.Outputs{}, ErrCaptureRefused
+	for _, asset := range assets {
+		link, err := c.LinkCampaignAsset(ctx, actor, outputs.CampaignID, asset, LinkCampaignAssetInput{Kind: "product-shot", preserveExisting: true})
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		if link.AssetStatus != "UPLOADED" {
+			return automation.Outputs{}, ErrCaptureRefused
+		}
 	}
 	return outputs, nil
 }
@@ -159,73 +177,159 @@ func (c *Configuration) automationAuthenticatedCapture(ctx context.Context, org 
 	if !c.CaptureAvailable() {
 		return automation.Outputs{}, ErrAuthenticatedCaptureUnavailable
 	}
-	recipe, err := activeRecipeVersion(ctx, c.client.CaptureRecipe, org, action.RecipeID)
-	if ent.IsNotFound(err) {
-		return automation.Outputs{}, ErrCaptureRefused
-	}
+	job, err := c.automationRecipeJob(ctx, org, event, action.RecipeID, action.CurrentState, "")
 	if err != nil {
 		return automation.Outputs{}, err
+	}
+	if err := captureJobState(job); err != nil {
+		return automation.Outputs{}, err
+	}
+	if job.SurfaceCaptureID == nil {
+		return automation.Outputs{}, ErrCaptureRefused
+	}
+	outputs := input
+	outputs.CreditsCharged = 0
+	outputs.CaptureID, outputs.CaptureAssetID, outputs.CaptureProof = *job.SurfaceCaptureID, *job.AssetID, automation.CaptureProofCurrentState
+	if job.ExpectedRevision != nil {
+		outputs.CaptureProof = automation.CaptureProofVersion
+	}
+	return outputs, nil
+}
+
+// automationReleaseCaptures lets AI choose which of the source's signed-in pages
+// show what this release changed, then waits for every chosen capture. A page
+// that could not be captured is left out; none at all stops the run.
+func (c *Configuration) automationReleaseCaptures(ctx context.Context, org string, receipt *ent.ReleaseAutomationNode, event *ent.ReleaseSourceEvent, input automation.Outputs, action *automation.Action) (automation.Outputs, error) {
+	if !c.CaptureAvailable() {
+		return automation.Outputs{}, ErrAuthenticatedCaptureUnavailable
+	}
+	plan, credits, err := c.automationCapturePlan(ctx, org, receipt, event, input, action)
+	if err != nil {
+		return automation.Outputs{}, err
+	}
+	outputs := input
+	outputs.CreditsCharged = credits
+	outputs.CaptureAssetIDs, outputs.CaptureFeatures = []string{}, []string{}
+	proven, waiting, needsAuth, superseded := true, false, false, 0
+	for _, planned := range plan {
+		job, err := c.automationRecipeJob(ctx, org, event, planned.RecipeID, action.CurrentState, planned.Feature)
+		if errors.Is(err, ErrCaptureRefused) {
+			continue // archived or rebound since it was chosen: that page is missing
+		}
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		switch state := captureJobState(job); {
+		case state == nil:
+			if outputs.CaptureAssetID == "" {
+				outputs.CaptureID, outputs.CaptureAssetID = optionalText(job.SurfaceCaptureID), *job.AssetID
+			}
+			outputs.CaptureAssetIDs = append(outputs.CaptureAssetIDs, *job.AssetID)
+			outputs.CaptureFeatures = append(outputs.CaptureFeatures, planned.Feature)
+			proven = proven && job.ExpectedRevision != nil
+		case errors.Is(state, ErrCapturePending):
+			waiting = true
+		case errors.Is(state, ErrCaptureNeedsAuth):
+			needsAuth = true
+		case errors.Is(state, ErrCaptureSuperseded):
+			superseded++
+		}
+	}
+	switch {
+	case needsAuth:
+		return automation.Outputs{}, ErrCaptureNeedsAuth
+	case waiting:
+		return automation.Outputs{}, ErrCapturePending
+	case len(outputs.CaptureAssetIDs) == 0 && superseded > 0:
+		return automation.Outputs{}, ErrCaptureSuperseded
+	case len(outputs.CaptureAssetIDs) == 0:
+		return automation.Outputs{}, ErrCaptureRefused
+	}
+	outputs.CaptureProof = automation.CaptureProofCurrentState
+	if proven {
+		outputs.CaptureProof = automation.CaptureProofVersion
+	}
+	return outputs, nil
+}
+
+// automationRecipeJob admits, or finds, the job one recipe runs for this run's
+// deployment. A feature steers a navigating recipe toward that release change in
+// a job of its own; every other capture shares the deployment's job.
+func (c *Configuration) automationRecipeJob(ctx context.Context, org string, event *ent.ReleaseSourceEvent, recipeID string, currentState bool, feature string) (*ent.CaptureJob, error) {
+	recipe, err := activeRecipeVersion(ctx, c.client.CaptureRecipe, org, recipeID)
+	if ent.IsNotFound(err) {
+		return nil, ErrCaptureRefused
+	}
+	if err != nil {
+		return nil, err
 	}
 	connection, err := c.client.PlatformAppConnection.Query().Where(platformappconnection.ID(*recipe.AppConnectionID), platformappconnection.OrganizationID(org)).Only(ctx)
 	if err != nil {
-		return automation.Outputs{}, err
+		return nil, err
 	}
 	definition, err := decodeCaptureRecipe(recipe)
 	if err != nil {
-		return automation.Outputs{}, err
+		return nil, err
 	}
 	// The connection is bound to one source: the event must come from it.
 	if connection.SourceAppID == nil || *connection.SourceAppID != event.SourceAppID || connection.Status == platformappconnection.StatusREVOKED ||
-		(definition.Version == nil && !action.CurrentState) {
-		return automation.Outputs{}, ErrCaptureRefused
+		(definition.Version == nil && !currentState) {
+		return nil, ErrCaptureRefused
 	}
 	deployment, err := c.automationDeployment(ctx, org, event, connection.Environment)
 	if err != nil {
-		return automation.Outputs{}, err
+		return nil, err
 	}
 	// And to one environment: a staging session never captures production.
 	if deployment.Environment != connection.Environment {
-		return automation.Outputs{}, ErrCaptureRefused
+		return nil, ErrCaptureRefused
 	}
+	key := captureDeploymentKey(deployment.ID, recipe.ID, connection.Generation)
+	var evidence *string
 	tx, err := c.client.Tx(ctx)
 	if err != nil {
-		return automation.Outputs{}, err
+		return nil, err
 	}
 	defer tx.Rollback()
 	// Older jobs for this deployment and recipe count: a reconnect raises the
 	// generation in the key, and repins the unfinished job rather than losing it.
-	job, err := tx.CaptureJob.Query().Where(capturejob.OrganizationID(org), capturejob.DeploymentEventID(deployment.ID), capturejob.RecipeID(recipe.ID)).Order(ent.Desc(capturejob.FieldCreatedAt)).First(ctx)
+	query := tx.CaptureJob.Query().Where(capturejob.OrganizationID(org), capturejob.DeploymentEventID(deployment.ID), capturejob.RecipeID(recipe.ID))
+	if feature != "" && definition.Navigation != nil {
+		evidence = &feature
+		digest := sha256.Sum256([]byte(feature))
+		key += ":change:" + hex.EncodeToString(digest[:8])
+		query.Where(capturejob.ObjectiveEvidence(feature))
+	} else {
+		query.Where(capturejob.ObjectiveEvidenceIsNil())
+	}
+	job, err := query.Order(ent.Desc(capturejob.FieldCreatedAt)).First(ctx)
 	if ent.IsNotFound(err) {
 		actor := Actor{OrganizationID: org, Kind: "service", Display: "release-automation", RequestID: event.ID}
-		job, err = admitCaptureJob(ctx, tx, actor, recipe, connection, capturejob.KindDeployment, deployment, captureDeploymentKey(deployment.ID, recipe.ID, connection.Generation), nil)
+		job, err = admitCaptureJob(ctx, tx, actor, recipe, connection, capturejob.KindDeployment, deployment, key, nil, evidence)
 	}
 	if err != nil {
-		return automation.Outputs{}, err
+		return nil, err
 	}
-	if err := tx.Commit(); err != nil {
-		return automation.Outputs{}, err
-	}
+	return job, tx.Commit()
+}
+
+// captureJobState is a job's result as a run sees it: nil once it holds an image.
+func captureJobState(job *ent.CaptureJob) error {
 	switch job.Phase {
 	case capturejob.PhaseSUCCEEDED:
-		if job.SurfaceCaptureID == nil || job.AssetID == nil {
-			return automation.Outputs{}, ErrCaptureRefused
+		if job.AssetID == nil {
+			return ErrCaptureRefused
 		}
-		outputs := input
-		outputs.CreditsCharged = 0
-		outputs.CaptureID, outputs.CaptureAssetID, outputs.CaptureProof = *job.SurfaceCaptureID, *job.AssetID, automation.CaptureProofCurrentState
-		if job.ExpectedRevision != nil {
-			outputs.CaptureProof = automation.CaptureProofVersion
-		}
-		return outputs, nil
+		return nil
 	case capturejob.PhaseNEEDS_AUTH:
-		return automation.Outputs{}, ErrCaptureNeedsAuth
+		return ErrCaptureNeedsAuth
 	case capturejob.PhaseFAILED, capturejob.PhaseCANCELLED:
 		if job.FailureCode != nil && *job.FailureCode == captureSuperseded {
-			return automation.Outputs{}, ErrCaptureSuperseded
+			return ErrCaptureSuperseded
 		}
-		return automation.Outputs{}, ErrCaptureRefused
+		return ErrCaptureRefused
 	}
-	return automation.Outputs{}, ErrCapturePending
+	return ErrCapturePending
 }
 
 // deploymentReceipt finds a page's capture for a deployment. With a revision,

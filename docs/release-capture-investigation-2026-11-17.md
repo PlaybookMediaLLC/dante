@@ -7,7 +7,8 @@ them, and place the screenshots into a marketing campaign?
 **Baseline.** `develop` at `1126781cb2f0edc3a0d76677b784826fc8d0c285`. Source
 was read directly; the code graph was still building. Production state comes
 from the [2026-11-14 ledger](release-campaign-validation-2026-11-14.md) and was
-not rechecked. This is an investigation: it changes no code.
+not rechecked. The findings below describe that baseline; the same branch then
+closed the code gaps, recorded in [Implemented on this branch](#implemented-on-this-branch).
 
 ## Answer
 
@@ -37,9 +38,9 @@ records the deferred UI run and a missing GitHub App repository grant.
 | --- | --- | --- | --- |
 | 1. Sign in to staging | Cloudflare Live View sign-in by a person, identity check, cookie and localStorage export, encrypted state, fresh-browser restore check, `needs_auth` parking and reconnect | Real-Chrome tests and 35 capture integration tests pass | 24-hour fixed lifetime; no unattended re-login; IndexedDB/sessionStorage apps fail |
 | 2. Understand the release | GitHub release/PR/tag/milestone/deployment intake, dedupe, PR titles, bodies, labels, changed paths; AI relevance verdict | 40 release-automation integration tests pass | No feature extraction per change; no diff or code reading by design |
-| 3. Choose screens and objectives | Deterministic feature-to-page lookup, used only by the person-started launch pipeline | Read in source | Release automation binds one fixed page or recipe; objectives are hand-written |
+| 3. Choose screens and objectives | Deterministic feature-to-page lookup, used only by person-started paths | Read in source | Release automation binds one fixed page or recipe; objectives are hand-written |
 | 4. AI drives and captures | Bounded text-only navigator over links and tabs; markers, masks, version proof; private storage; provenance | Real-Chrome navigation test with a scripted model passes | No buttons, dialogs, typing, scroll, vision, element crop, 2x, or video |
-| 5. Place into a campaign | `render_creatives` fills 1–3 of 8 layout templates with brand gradient, text colour and font; links renders to the campaign | Covered by the integration tests above, with a recorded renderer | Drafts attach the raw capture; one image per run; no logo; canvas not rendered |
+| 5. Place into a campaign | `render_creatives` fills 1–3 of the 7 layout templates that carry copy with brand gradient, text colour and font; links renders to the campaign | Covered by the integration tests above, with a recorded renderer | Drafts attach the raw capture; one image per run; no logo; canvas not rendered |
 | 6. Review | Submit for review ends the run; approval pins exact renders; scheduling needs an approved variant | Not exercised beyond tests | None for this goal |
 
 ### 1. Signing in to the customer's staging app
@@ -48,19 +49,20 @@ How it works ([capture_connections.go](../server/internal/product/capture_connec
 [browser/state.go](../server/internal/capture/browser/state.go),
 [sessionstate.go](../server/internal/capture/sessionstate/sessionstate.go)):
 
-- One `PlatformAppConnection` row per app and environment holds the origin,
-  approved hosts, sign-in hosts, protected path, CSS identity selector, expected
-  account, encrypted state, generation and lease
-  ([schema](../server/ent/schema/capture.go)).
+- Each `PlatformAppConnection` row (unique by name in a workspace, optionally tied
+  to a source app, for one environment) holds the origin, approved hosts, sign-in
+  hosts, protected path, CSS identity selector, expected account, encrypted state,
+  generation and lease ([schema](../server/ent/schema/capture.go)).
 - An owner or admin starts a sign-in. Shots allocates a Cloudflare Browser Run
-  session and returns a Live View link once, with no-store headers. The person
+  session and returns a Live View link with no-store headers; it is never stored,
+  and the same person can refresh it for the same browser. The person
   signs in by hand, so OTP, password, SSO and MFA all depend on what the app
   and the person can do. Nothing types credentials.
 - **I've signed in** proves the expected account on the live page, exports
   cookies for approved hosts and localStorage for the signed-in origin, closes
   that browser, and restores the state into a fresh browser. Only that passes
   the connection to Ready. Failures are classified as `sign_in_incomplete`,
-  `wrong_account`, `session_restore_failed` or a provider error (RC-013/RC-014,
+  `wrong_account`, `session_restore_failed`, or a provider, page or recipe error (RC-013/RC-014,
   shipped in [#599](https://github.com/PlaybookMediaLLC/shots/pull/599)).
 - State is AES-256-GCM sealed, bound to organization, connection, environment
   and generation. Each capture re-seals rotated cookies.
@@ -94,7 +96,8 @@ Limits that matter for unattended release capture:
 
 - Intake: the GitHub App webhook (HMAC-verified) accepts published releases,
   merged PRs, created tags, closed milestones and successful deployments, plus
-  signed per-source GitHub, GitLab, generic, Vercel and Netlify webhooks.
+  signed per-source GitHub, GitLab and generic webhooks, and signed Vercel and
+  Netlify webhooks on frontend deployment connections.
   A unique `(organization, source, semantic key)` deduplicates redelivery.
 - Evidence: release name, tag and notes; PR title, body, labels, size counts;
   changed file paths (never contents). Feature bullets are parsed from notes by
@@ -115,12 +118,14 @@ Limits that matter for unattended release capture:
 
 - `capture_product` takes one `surfaceId` or one `recipeId`, fixed in the graph
   ([release_automation_capture.go](../server/internal/product/release_automation_capture.go)).
-  The validator allows one capture per run ([graph.go:128-137](../server/internal/releaseautomation/graph.go)).
-- On deployment, every registered production page on the deployed origin (up to
-  ten) and every active recipe is captured, whatever changed.
+  The validator allows one capture per run ([graph.go:129-138](../server/internal/releaseautomation/graph.go)).
+- On deployment, every registered page in the deployment's environment on the
+  deployed origin (up to ten), plus every active recipe on that source's connections
+  for that environment, is captured, whatever changed.
 - `FindSurfacesForFeature` scores pages by tag, name and token overlap, with no
   model, and falls back to the homepage ([surfaces.go:363](../server/internal/product/surfaces.go)).
-  Only the launch pipeline uses it, for its first three capabilities.
+  Only person-started paths use it (the launch pipeline, for its first three
+  capabilities, and the chat assistant); release automation never does.
 - The navigation objective is written by a person on a capture recipe
   ([recipe.go:84-88](../server/internal/capture/browser/recipe.go)). Nothing
   generates one from a release.
@@ -170,7 +175,8 @@ capture at 2x or in dark mode, or record a clip.
   ([render.ts:85-112](../clients/apps/web/lib/workflows/render.ts)).
 - Templates: Headline spotlight, Browser launch, Laptop launch, Product suite,
   Phone duo, Editorial (16:9), Social phone card (1:1), Story phone (9:16)
-  ([lib/design/templates.ts](../clients/apps/web/lib/design/templates.ts)).
+  ([lib/design/templates.ts](../clients/apps/web/lib/design/templates.ts)). The
+  workflow builder offers the seven that carry copy; Phone duo shows no headline.
 
 Gaps:
 
@@ -262,8 +268,10 @@ or scoped authorization in [the RFC index](rfcs/README.md).
   [#599](https://github.com/PlaybookMediaLLC/shots/pull/599) shipped both.
 - RFC 029's 2026-10-16 status note says authenticated capture is not built;
   recipes, jobs and the navigator are implemented.
-- [Notification events](workspace-notification-events.md) lists email as a
-  `capture.failed` channel; it is off by default in code.
+- [Notification events](workspace-notification-events.md) and the catalogue name
+  `handleDeploymentEvent` as the `capture.failed` emitter; no such function exists.
+  The emitters are `captureDeployment`, `failCapture` and, until this branch,
+  `parkCaptureJob`.
 
 ## Dependencies outside the code
 
@@ -273,3 +281,21 @@ or scoped authorization in [the RFC index](rfcs/README.md).
 | GitHub App access to the Verifier repository | Oppulence-Engineering organization owner |
 | `OPENROUTER_API_KEY`, Cloudflare capture credentials and object storage, to run a real model and provider outside production | Platform engineering |
 | Session-lifetime policy above 24 hours | Product owner, against RFC 007's pilot limit |
+
+## Implemented on this branch
+
+Every code gap above is closed on this branch. Production acceptance (gap 1) and the
+dependencies outside the code remain open: they need people and credentials, not code.
+
+| Gap | What changed | Proof |
+| --- | --- | --- |
+| 2. Session lifetime | Each verified capture renews saved state for another `PLATFORM_CAPTURE_STATE_MAX_AGE` (24 hours by default), capped 30 days after the person's last sign-in. A parked capture emits the new `capture.needs_auth` event, emailed to operators by default. | `TestCaptureRenewsTheSessionWithinItsCap`, notification assertion in `TestCaptureExpiredSessionParksTheJobUntilAPersonReconnects` |
+| 3. Drafts carry the render | Drafts attach the branded renders, one per captured change (or the first render of one capture), within each channel's media limit; captures stay linked as evidence. The headline is the captured change, else the first sentence of the first post. Renders place the brand logo. | `TestAutomationCapturedCampaignCreatesEditableDraft`, `TestAutomationDraftMediaPrefersOneRenderPerCapturedChange`, `TestAutomationHeadlineText` |
+| 4. Release-derived capture plan | `capture_product` with `matchRelease` (language version 4): one bounded model call chooses up to three of the source's active recipes that show the release, stored before it is charged; each navigating recipe runs a job steered by the change as untrusted evidence, kept out of the page's history; `capture_unmatched` when none fits. Editor, contracts and run page support it. | `TestCaptureReleaseMatchChoosesPagesAndSteersNavigation`, `TestCaptureProductLanguage`, web contract test |
+| 5. Wider navigation | AI navigation may press buttons, disclosure and menu controls; never one in a form, one that submits, or one whose label names a risky action. Recipes may capture at scale 2 and crop to the first marker; every result records the marker's focus box. | `TestRealBrowserPressesOnlySafeButtons`, `TestRealBrowserCropsTheMarkerAtDoubleScale` |
+| 6. Composition across features | One render per captured change, numbered parts so designs never collide; the canvas lays out a release-matched run's captures first and renders its artboards into the campaign when the web renderer is on; the launch designer accepts automation captures. | `TestAutomationRenderCreativesRendersEachCapturedChange` |
+| 7. Smaller fixes | `navigation_unconfigured` fails a navigation recipe at once on a worker without a model. Capture jobs show the AI's path and the release change. The account element is optional: without it, the account text must appear in the header, navigation or account controls. IndexedDB-only sessions are pinned as refused. | `TestCaptureNavigationWithoutAModelFailsAtOnce`, `TestRealBrowserProvesTheAccountWithoutASelector`, `TestRealBrowserRefusesAnIndexedDBOnlySession` |
+
+Still open, unchanged by code: the production capture-to-draft run, the GitHub App
+repository grant, a real-model and real-provider measurement of navigation success,
+and the decision on whether 30 days is the right absolute cap for saved sessions.

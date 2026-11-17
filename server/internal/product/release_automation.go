@@ -192,7 +192,9 @@ func (c *Configuration) SaveReleaseAutomation(ctx context.Context, actor Actor, 
 func (c *Configuration) automationResources(ctx context.Context, org string, graph automation.Graph) error {
 	captures := slices.ContainsFunc(graph.Nodes, func(node automation.Node) bool { return node.Action != nil && node.Action.Type == "capture_product" })
 	for _, node := range graph.Nodes {
-		if node.Action != nil && node.Action.Type == "capture_product" {
+		// A release-matched capture names no page: it chooses among the tenant's
+		// recipes when it runs.
+		if node.Action != nil && node.Action.Type == "capture_product" && !node.Action.MatchRelease {
 			var owned bool
 			var err error
 			if node.Action.RecipeID != "" {
@@ -286,6 +288,10 @@ func requiredCapabilities(graph automation.Graph) []string {
 	required := []string{}
 	for _, n := range graph.Nodes {
 		capability := ""
+		// Choosing pages from a release asks the model, then runs signed-in recipes.
+		if n.Action != nil && n.Action.MatchRelease && !slices.Contains(required, automation.CapabilityAI) {
+			required = append(required, automation.CapabilityAI)
+		}
 		switch {
 		case n.Type == "classify", n.Action != nil && n.Action.Type == "generate_copy":
 			capability = automation.CapabilityAI
@@ -293,7 +299,7 @@ func requiredCapabilities(graph automation.Graph) []string {
 			capability = automation.CapabilityRender
 		case n.Action != nil && n.Action.Type == "create_canvas":
 			capability = automation.CapabilityCanvas
-		case n.Action != nil && n.Action.Type == "capture_product" && n.Action.RecipeID != "":
+		case n.Action != nil && n.Action.Type == "capture_product" && (n.Action.RecipeID != "" || n.Action.MatchRelease):
 			capability = automation.CapabilityBrowser
 		case n.Action != nil && n.Action.Type == "capture_product":
 			capability = automation.CapabilityCapture

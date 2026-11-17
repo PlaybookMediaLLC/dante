@@ -629,8 +629,37 @@ func TestCaptureProductLanguage(t *testing.T) {
 	if len(Validate(withRecipe(func(a *Action) { a.SurfaceID = "surface" }))) == 0 || len(Validate(withRecipe(func(a *Action) { a.VersionPath = "/v" }))) == 0 {
 		t.Fatal("a recipe's page or proof was overridden")
 	}
-	// Other actions cannot carry version proof.
+	// A release-matched capture chooses among the source's recipes, in version 4, on a budget.
+	matched := func(change func(*Graph, *Action)) Graph {
+		g := withRecipe(func(a *Action) { a.RecipeID, a.MatchRelease, a.CreditLimit = "", true, 5 })
+		g.SchemaVersion = 4
+		change(&g, FindNode(g, "capture").Action)
+		return g
+	}
+	if issues := Validate(matched(func(*Graph, *Action) {})); len(issues) > 0 {
+		t.Fatalf("release match: %+v", issues)
+	}
+	for name, change := range map[string]func(*Graph, *Action){
+		"version 3":     func(g *Graph, _ *Action) { g.SchemaVersion = 3 },
+		"no budget":     func(_ *Graph, a *Action) { a.CreditLimit = 0 },
+		"over budget":   func(_ *Graph, a *Action) { a.CreditLimit = MaxClassifyCredits + 1 },
+		"and a recipe":  func(_ *Graph, a *Action) { a.RecipeID = "recipe-1" },
+		"and a surface": func(_ *Graph, a *Action) { a.SurfaceID = "surface" },
+		"and a path":    func(_ *Graph, a *Action) { a.VersionPath = "/api/version" },
+		"merge trigger": func(g *Graph, _ *Action) { g.Family = Merged },
+	} {
+		if len(Validate(matched(change))) == 0 {
+			t.Fatalf("%s: an invalid release match was accepted", name)
+		}
+	}
 	g := testGraph()
+	g.SchemaVersion = 4
+	g.Nodes[2].Action.MatchRelease = true
+	if len(Validate(g)) == 0 {
+		t.Fatal("release matching on create release was accepted")
+	}
+	// Other actions cannot carry version proof.
+	g = testGraph()
 	g.SchemaVersion = 3
 	g.Nodes[2].Action.CurrentState = true
 	if len(Validate(g)) == 0 {

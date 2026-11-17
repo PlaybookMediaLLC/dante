@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import type { CaptureJob, CaptureRecipe } from '@/lib/api/contracts/capture'
 import { captureFailureMessage } from '@/lib/tenant/surface-freshness'
 import { useTRPCClient } from '@/lib/trpc/react'
-import { CAPTURE_JOB_PHASE, captureJobOpen } from '@/lib/workflows/capture'
+import { CAPTURE_JOB_PHASE, captureJobOpen, captureNavigationSummary } from '@/lib/workflows/capture'
 import { CaptureError, useCaptureAction } from './capture-ui'
 import { relativeTime } from './workflow-ui'
 
@@ -52,6 +52,12 @@ function JobRow({
             <p className="text-sm text-muted-foreground">
               {captureFailureMessage(job.failureCode)}
             </p>
+          ) : null}
+          {job.releaseChange ? (
+            <p className="text-sm text-muted-foreground">Steered to show: {job.releaseChange}</p>
+          ) : null}
+          {captureNavigationSummary(job) ? (
+            <p className="text-sm text-muted-foreground">{captureNavigationSummary(job)}</p>
           ) : null}
           <CaptureError message={error} />
         </div>

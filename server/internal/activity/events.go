@@ -40,6 +40,8 @@ var Catalogue = catalogue([]Definition{
 	{ID: "deployment.succeeded", Label: "Deployment received", Group: "captures", Audience: "creators", Restricted: false, EmailDefault: false},
 	{ID: "capture.completed", Label: "Capture ready", Group: "captures", Audience: "owner", Restricted: false, EmailDefault: false},
 	{ID: "capture.failed", Label: "Capture needs attention", Group: "captures", Audience: "operators", Restricted: true, EmailDefault: false},
+	// A parked signed-in capture waits for a person, so it emails by default.
+	{ID: "capture.needs_auth", Label: "Sign in again to keep capturing", Group: "captures", Audience: "operators", Restricted: true, EmailDefault: true},
 	{ID: "asset.uploaded", Label: "Asset ready", Group: "assets", Audience: "owner", Restricted: false, EmailDefault: false},
 	{ID: "asset.generated", Label: "Generated asset ready", Group: "assets", Audience: "owner", Restricted: false, EmailDefault: false},
 	{ID: "generation.completed", Label: "Generation finished", Group: "generation", Audience: "owner", Restricted: false, EmailDefault: false},
@@ -121,7 +123,7 @@ func catalogue(definitions []Definition) []Definition {
 	sources := map[string]string{
 		"frontend.connection_attention": "saveFrontendPollState", "frontend.succeeded": "emitFrontendDecision", "frontend.checks_passed": "emitFrontendDecision", "frontend.failed": "emitFrontendDecision", "frontend.needs_attention": "emitFrontendDecision", "frontend.rollback": "emitFrontendDecision",
 		"release.created": "CreateRelease", "release.ingested": "IngestSourceRelease", "source_change.collected": "CollectSourceChange", "source_app.connected": "CreateSourceApp", "deployment.succeeded": "IngestDeployment",
-		"capture.completed": "recordCapture", "capture.failed": "handleDeploymentEvent", "asset.uploaded": "CompleteAssetUpload", "asset.generated": "StoreGeneratedAsset",
+		"capture.completed": "recordCapture", "capture.failed": "captureDeployment / failCapture", "capture.needs_auth": "parkCaptureJob", "asset.uploaded": "CompleteAssetUpload", "asset.generated": "StoreGeneratedAsset",
 		"generation.completed": "FinishLaunchRun", "generation.failed": "FinishLaunchRun / expired-run recovery", "generation.budget_exhausted": "FinishLaunchRun", "generation.cancelled": "CancelLaunchRun",
 		"campaign_posts.submitted": "TransitionCampaignPosts", "campaign_posts.decided": "TransitionCampaignPosts", "variant.ready": "CreateCreativeVariant / SaveDesign", "variant.decided": "decideVariantTx", "brief.approved": "ApproveLaunchSpec", "plan.approved": "ApproveLaunchPlan",
 		"draft.review_requested": "ReviewContentDraft", "draft.approved": "ReviewContentDraft", "draft.changes_requested": "ReviewContentDraft", "comment.created": "recordDiscussionActivity / AddGuestComment / AddStoreReviewComment", "comment.on_your_draft": "recordDiscussionActivity", "comment.resolved": "recordDiscussionActivity / ResolveStoreReviewComment", "member.mentioned": "recordDiscussionActivity",

@@ -3,7 +3,11 @@ import 'server-only'
 import { z } from 'zod'
 import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
-import { patchDesignDocument } from '@/lib/design/document'
+import {
+  type DesignDocument,
+  designDocumentSchema,
+  patchDesignDocument,
+} from '@/lib/design/document'
 import { renderDesignForTenant } from '@/lib/design/render-design'
 import {
   createDesignRenderer,
@@ -28,6 +32,8 @@ export const workflowRenderRequestSchema = z.strictObject({
     .array(z.string().regex(/^[a-z0-9-]{1,64}$/))
     .min(1)
     .max(3),
+  /** Which of the node's captures this is; part 0 keeps the node's original design names. */
+  part: z.number().int().min(0).max(2).optional(),
 })
 
 /** One rendered creative, linked to the campaign as a design render. */
@@ -39,6 +45,17 @@ export const workflowRenderSchema = z.strictObject({
 
 /** A workflow render request. */
 export type WorkflowRenderRequest = z.infer<typeof workflowRenderRequestSchema>
+
+/** The brand kit's logo, small in the top left corner, above everything else. */
+export function withBrandLogo(document: DesignDocument, logoAssetId: string): DesignDocument {
+  return designDocumentSchema.parse({
+    ...document,
+    overlays: [
+      ...document.overlays,
+      { id: 'brand-logo', position: { x: 0.08, y: 0.09 }, size: 0.09, src: `asset:${logoAssetId}` },
+    ],
+  })
+}
 
 /** The renderer is off or unreachable; the worker retries later. */
 export class WorkflowRenderUnavailableError extends Error {
@@ -85,7 +102,7 @@ export async function renderWorkflowCreatives(request: WorkflowRenderRequest) {
   try {
     const renders: z.infer<typeof workflowRenderSchema>[] = []
     for (const template of templates) {
-      const name = `Workflow ${request.nodeId} · ${template.id}`
+      const name = `Workflow ${request.nodeId} · ${template.id}${request.part ? ` · ${request.part + 1}` : ''}`
       const reused = existing.find((item) => item.name === name && item.templateId === template.id)
       let design = reused ? await getDesign(tenant, reused.id) : null
       if (!design) {
@@ -95,6 +112,7 @@ export async function renderWorkflowCreatives(request: WorkflowRenderRequest) {
           subheadline: request.subheadline,
         })
         if (kit) document = patchDesignDocument(document, brandDesignChanges(kit, document.texts))
+        if (kit?.logoAssetId) document = withBrandLogo(document, kit.logoAssetId)
         design = await createDesign(tenant, {
           campaignId: request.campaignId,
           document,

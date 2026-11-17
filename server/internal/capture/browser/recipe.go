@@ -28,8 +28,9 @@ const (
 	maxSelectorLength   = 200
 )
 
-// Step kinds. There is no way to run a script, type, submit, or click anything
-// but a tab.
+// Step kinds. There is no way to run a script, type, or submit. Fixed steps
+// click only tabs; AI navigation may also press buttons that open menus,
+// panels and dialogs, never one in a form or one that submits.
 const (
 	StepNavigate  = "NAVIGATE"
 	StepWaitFor   = "WAIT_FOR"
@@ -44,11 +45,25 @@ type Step struct {
 	TimeoutMs int    `json:"timeoutMs,omitempty"`
 }
 
-// Viewport is the fixed size of the capture.
+// Viewport is the fixed size of the capture. Scale 2 captures at twice the
+// pixel density for sharp creatives; 0 or 1 is one image pixel per CSS pixel.
 type Viewport struct {
 	Width  int `json:"width"`
 	Height int `json:"height"`
+	Scale  int `json:"scale,omitempty"`
 }
+
+// DeviceScale is the capture's pixels per CSS pixel.
+func (v Viewport) DeviceScale() int {
+	if v.Scale == 2 {
+		return 2
+	}
+	return 1
+}
+
+// CropMarker makes the image the first marker and a small margin around it,
+// so a creative shows the change instead of the whole screen.
+const CropMarker = "marker"
 
 // VersionCheck says where the signed-in app reports its deployed commit: a
 // same-origin path, or an element whose text or content attribute holds it.
@@ -75,9 +90,11 @@ type Recipe struct {
 	// AllowedPostPaths are the exact paths the customer confirms are read-only.
 	// Every other POST, and every PUT, PATCH, and DELETE, is refused.
 	AllowedPostPaths []string `json:"allowedPostPaths,omitempty"`
-	// Navigation chooses among observed links and tabs after the fixed steps.
-	// Markers still prove the destination; a model cannot waive them.
+	// Navigation chooses among observed links, tabs and buttons after the fixed
+	// steps. Markers still prove the destination; a model cannot waive them.
 	Navigation *Navigation `json:"navigation,omitempty"`
+	// Crop is empty for the whole viewport, or CropMarker.
+	Crop string `json:"crop,omitempty"`
 }
 
 // Navigation is an explicit, bounded feature objective for this recipe.
@@ -118,6 +135,12 @@ func (r Recipe) Validate() error {
 	}
 	if r.Viewport.Width < 320 || r.Viewport.Height < 320 || r.Viewport.Width > MaxWidth || r.Viewport.Height > MaxHeight {
 		return errors.New("Use a viewport from 320×320 up to 1920×1080.")
+	}
+	if r.Viewport.Scale < 0 || r.Viewport.Scale > 2 {
+		return errors.New("Capture at scale 1 or 2.")
+	}
+	if r.Crop != "" && r.Crop != CropMarker {
+		return errors.New("Crop to the first marker, or capture the whole viewport.")
 	}
 	if len(r.Steps) == 0 || len(r.Steps) > MaxSteps {
 		return errors.New("Use 1–10 steps.")

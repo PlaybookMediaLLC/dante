@@ -256,109 +256,170 @@ export function ActionEditor({
       ) : null}
       {action.type === 'capture_product' ? (
         <>
-          <Label className="grid gap-1 text-sm">
-            Page behind a sign-in
-            <Select
-              value={action.recipeId || EMPTY}
-              onValueChange={(nextValue) => {
-                const recipe = recipes.find((item) => item.id === nextValue)
+          <Label className="flex items-start gap-2 text-sm">
+            <Checkbox
+              checked={action.matchRelease ?? false}
+              onCheckedChange={(checked) =>
                 onChange(
-                  recipe
-                    ? // A recipe with no version proof can only ever be the current state.
-                      {
-                        type: action.type,
-                        input: action.input,
-                        recipeId: recipe.id,
-                        currentState: recipe.definition.version ? undefined : true,
-                      }
+                  checked === true
+                    ? { type: action.type, input: action.input, matchRelease: true, creditLimit: 5 }
                     : { type: action.type, input: action.input, versionPath: '/api/version' }
                 )
-              }}
-            >
-              <SelectTrigger className={automationSelectClass}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY}>None: capture a public page</SelectItem>
-                {action.recipeId && !chosenRecipe ? (
-                  <SelectItem value={action.recipeId}>
-                    {captureOverview.isPending ? 'Loading…' : 'No longer enabled: choose another'}
-                  </SelectItem>
-                ) : null}
-                {recipes.map((recipe) => (
-                  <SelectItem key={recipe.id} value={recipe.id}>
-                    {recipe.name} · version {recipe.version}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs leading-5 font-normal text-muted-foreground">
-              {captureOverview.error
-                ? 'Signed-in screens could not be loaded.'
-                : chosenRecipe
-                  ? chosenRecipe.definition.version
-                    ? 'The page and version proof come from this screen.'
-                    : 'This screen has no version proof, so the image is labeled as its current state.'
-                  : 'Lists screens enabled in Signed-in capture for this repository.'}
+              }
+            />
+            <span>
+              Choose pages from the release with AI
+              <span className="block text-xs leading-5 font-normal text-muted-foreground">
+                AI reads the release and picks up to 3 of this repository&apos;s signed-in screens
+                that show what changed, then steers each screen&apos;s navigation toward that
+                change. Needs workflow language version 4.
+              </span>
             </span>
           </Label>
-          {action.recipeId ? null : (
+          {action.matchRelease ? (
             <>
               <Label className="grid gap-1 text-sm">
-                Product page
-                <Select
-                  value={action.surfaceId || EMPTY}
-                  onValueChange={(nextValue) =>
-                    onChange({ ...action, surfaceId: nextValue === EMPTY ? undefined : nextValue })
+                AI credit limit for choosing pages
+                <Input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={action.creditLimit ?? ''}
+                  onChange={(event) =>
+                    onChange({
+                      ...action,
+                      creditLimit: event.target.value ? Number(event.target.value) : undefined,
+                    })
                   }
-                >
-                  <SelectTrigger className={automationSelectClass}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={EMPTY}>Choose a page</SelectItem>
-                    {(overview.surfaces ?? []).map((surface) => (
-                      <SelectItem key={surface.id} value={surface.id}>
-                        {surface.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
+                <span className="text-xs leading-5 font-normal text-muted-foreground">
+                  1–50 credits for the one call that chooses pages. Each screen&apos;s AI navigation
+                  spends from its own budget.
+                </span>
               </Label>
               <Label className="flex items-start gap-2 text-sm">
                 <Checkbox
                   checked={action.currentState ?? false}
                   onCheckedChange={(checked) =>
-                    onChange(
-                      checked === true
-                        ? { ...action, currentState: true, versionPath: undefined }
-                        : { ...action, currentState: undefined, versionPath: '/api/version' }
-                    )
+                    onChange({ ...action, currentState: checked === true ? true : undefined })
                   }
                 />
                 <span>
-                  Capture without version proof
-                  <span className="block text-xs leading-5 text-muted-foreground">
-                    The image is labeled as the page&apos;s current state. It may show the version
-                    from before this deployment.
+                  Include screens without version proof
+                  <span className="block text-xs leading-5 font-normal text-muted-foreground">
+                    Their images are labeled as the current state and may show the version from
+                    before this deployment.
                   </span>
                 </span>
               </Label>
-              {action.currentState ? null : (
-                <Label className="grid gap-1 text-sm">
-                  Path that reports the deployed commit
-                  <Input
-                    maxLength={256}
-                    value={action.versionPath ?? ''}
-                    onChange={(event) =>
-                      onChange({ ...action, versionPath: event.target.value || undefined })
-                    }
-                  />
-                  <span className="text-xs leading-5 text-muted-foreground">
-                    On the same site as the product page. It must answer with the commit SHA before
-                    the screenshot is taken; until then the step keeps waiting, then fails.
-                  </span>
-                </Label>
+            </>
+          ) : (
+            <>
+              <Label className="grid gap-1 text-sm">
+                Page behind a sign-in
+                <Select
+                  value={action.recipeId || EMPTY}
+                  onValueChange={(nextValue) => {
+                    const recipe = recipes.find((item) => item.id === nextValue)
+                    onChange(
+                      recipe
+                        ? // A recipe with no version proof can only ever be the current state.
+                          {
+                            type: action.type,
+                            input: action.input,
+                            recipeId: recipe.id,
+                            currentState: recipe.definition.version ? undefined : true,
+                          }
+                        : { type: action.type, input: action.input, versionPath: '/api/version' }
+                    )
+                  }}
+                >
+                  <SelectTrigger className={automationSelectClass}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY}>None: capture a public page</SelectItem>
+                    {action.recipeId && !chosenRecipe ? (
+                      <SelectItem value={action.recipeId}>
+                        {captureOverview.isPending ? 'Loading…' : 'No longer enabled: choose another'}
+                      </SelectItem>
+                    ) : null}
+                    {recipes.map((recipe) => (
+                      <SelectItem key={recipe.id} value={recipe.id}>
+                        {recipe.name} · version {recipe.version}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs leading-5 font-normal text-muted-foreground">
+                  {captureOverview.error
+                    ? 'Signed-in screens could not be loaded.'
+                    : chosenRecipe
+                      ? chosenRecipe.definition.version
+                        ? 'The page and version proof come from this screen.'
+                        : 'This screen has no version proof, so the image is labeled as its current state.'
+                      : 'Lists screens enabled in Signed-in capture for this repository.'}
+                </span>
+              </Label>
+              {action.recipeId ? null : (
+                <>
+                  <Label className="grid gap-1 text-sm">
+                    Product page
+                    <Select
+                      value={action.surfaceId || EMPTY}
+                      onValueChange={(nextValue) =>
+                        onChange({ ...action, surfaceId: nextValue === EMPTY ? undefined : nextValue })
+                      }
+                    >
+                      <SelectTrigger className={automationSelectClass}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={EMPTY}>Choose a page</SelectItem>
+                        {(overview.surfaces ?? []).map((surface) => (
+                          <SelectItem key={surface.id} value={surface.id}>
+                            {surface.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Label>
+                  <Label className="flex items-start gap-2 text-sm">
+                    <Checkbox
+                      checked={action.currentState ?? false}
+                      onCheckedChange={(checked) =>
+                        onChange(
+                          checked === true
+                            ? { ...action, currentState: true, versionPath: undefined }
+                            : { ...action, currentState: undefined, versionPath: '/api/version' }
+                        )
+                      }
+                    />
+                    <span>
+                      Capture without version proof
+                      <span className="block text-xs leading-5 text-muted-foreground">
+                        The image is labeled as the page&apos;s current state. It may show the version
+                        from before this deployment.
+                      </span>
+                    </span>
+                  </Label>
+                  {action.currentState ? null : (
+                    <Label className="grid gap-1 text-sm">
+                      Path that reports the deployed commit
+                      <Input
+                        maxLength={256}
+                        value={action.versionPath ?? ''}
+                        onChange={(event) =>
+                          onChange({ ...action, versionPath: event.target.value || undefined })
+                        }
+                      />
+                      <span className="text-xs leading-5 text-muted-foreground">
+                        On the same site as the product page. It must answer with the commit SHA before
+                        the screenshot is taken; until then the step keeps waiting, then fails.
+                      </span>
+                    </Label>
+                  )}
+                </>
               )}
             </>
           )}

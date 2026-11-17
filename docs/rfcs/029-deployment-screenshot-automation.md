@@ -8,6 +8,7 @@
 
 **Status:** Partially implemented
 **Status note (2026-10-16):** The first deployment-capture slice shipped. Authenticated capture and the rest of this RFC are not built.
+**Status note (2026-11-17):** Authenticated capture is implemented behind configuration under RFC 007: app connections, capture recipes, durable jobs and bounded AI navigation ([implementation status](authenticated-release-capture-review.md#10-implementation-status), [release capture investigation](../release-capture-investigation-2026-11-17.md)).
 **Implementation update (2026-10-20):** [Workflows](../release-automation.md) can render campaign creatives from a product page's current capture with the existing design renderer.
 **Date:** 2026-08-17
 **Revised:** 2026-08-26

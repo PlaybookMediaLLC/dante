@@ -50,6 +50,8 @@ const (
 	FieldRefusedRequests = "refusedRequests"
 	// FieldAssetID holds the string denoting the asset_id field in the database.
 	FieldAssetID = "assetId"
+	// FieldNavigationActions holds the string denoting the navigation_actions field in the database.
+	FieldNavigationActions = "navigationActions"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "createdAt"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -79,6 +81,7 @@ var Columns = []string{
 	FieldFencingToken,
 	FieldRefusedRequests,
 	FieldAssetID,
+	FieldNavigationActions,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }

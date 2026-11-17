@@ -311,6 +311,10 @@ func TestCaptureNavigationPersistsProvenanceAndBillsOnlyExecutedAttempts(t *test
 	if attempt.SourceURL != "https://app.example.com/reports" {
 		t.Fatalf("source URL=%q", attempt.SourceURL)
 	}
+	// The path is shown with the result, never page text.
+	if path := saved.NavigationActions; len(path) != 1 || path[0]["kind"] != "link" || path[0]["path"] != "/reports" {
+		t.Fatalf("navigation path=%v", path)
+	}
 	media := w.db.Client.Asset.GetX(w.ctx, *saved.AssetID)
 	if media.CaptureID == nil || *media.CaptureID != attempt.ID {
 		t.Fatal("original image lost capture provenance")
@@ -443,6 +447,31 @@ func TestCaptureNavigationRecoversBeforeFirstModelAttempt(t *testing.T) {
 	}
 }
 
+// A worker without a model can never run an AI recipe: fail now, not at the deadline.
+func TestCaptureNavigationWithoutAModelFailsAtOnce(t *testing.T) {
+	w := newCaptureWorld(t)
+	connection := w.connection(t)
+	w.signIn(t, connection.ID)
+	recipe := w.recipe(t, connection.ID, func(r *browser.Recipe) {
+		r.Navigation = &browser.Navigation{Objective: "Reports", MaxSteps: 2, CreditLimit: 2}
+	})
+	job, err := w.repo.RequestCaptureJob(w.ctx, w.owner, recipe.ID, CaptureJobRequest{Test: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	allocated := len(w.browser.allocated)
+	if outcome := w.run(t, job.ID); !outcome.Done {
+		t.Fatal("an unconfigured model was retried")
+	}
+	saved := w.job(t, job.ID)
+	if saved.Phase != "FAILED" || saved.FailureCode == nil || *saved.FailureCode != string(browser.NavigationUnconfigured) || saved.AssetID != nil {
+		t.Fatalf("outcome: %+v", saved)
+	}
+	if w.browser.runs.Load() != 0 || len(w.browser.allocated) != allocated {
+		t.Fatal("a browser was opened for a capture that could not navigate")
+	}
+}
+
 func TestCaptureConnectJourneyProvesAFreshSession(t *testing.T) {
 	w := newCaptureWorld(t)
 	connection := w.connection(t)
@@ -503,6 +532,25 @@ func TestCaptureConnectJourneyProvesAFreshSession(t *testing.T) {
 	}
 	if w.browser.open() != 0 {
 		t.Fatalf("browsers left open: %d", w.browser.open())
+	}
+}
+
+// An owner need not write a CSS selector: the account's text proves it.
+func TestCaptureConnectionMayNameTheAccountByTextAlone(t *testing.T) {
+	w := newCaptureWorld(t)
+	source := w.source.ID
+	input := CreateCaptureConnectionInput{Name: "Text account", SourceAppID: &source, Environment: "staging", Origin: "https://app.example.com",
+		Hosts: []string{"app.example.com"}, ProtectedPath: "/dashboard", ExpectedAccount: "demo@example.com"}
+	record, err := w.repo.CreateCaptureConnection(w.ctx, w.owner, input)
+	if err != nil || record.IdentitySelector != "" {
+		t.Fatalf("record=%+v err=%v", record, err)
+	}
+	if captureTarget(w.db.Client.PlatformAppConnection.GetX(w.ctx, record.ID)).Validate() != nil {
+		t.Fatal("the stored connection cannot run")
+	}
+	input.Name, input.ExpectedAccount = "Too short", "de"
+	if _, err := w.repo.CreateCaptureConnection(w.ctx, w.owner, input); !errors.Is(err, ErrInvalidInput) {
+		t.Fatalf("a two-letter account was accepted by text alone: %v", err)
 	}
 }
 
@@ -852,6 +900,42 @@ func TestCaptureReleaseBeforeDeploymentWaitsAndNeverRecordsOldUI(t *testing.T) {
 	}
 }
 
+// A verified capture renews the saved session for another idle window, capped
+// thirty days after the person signed in; a failed one renews nothing.
+func TestCaptureRenewsTheSessionWithinItsCap(t *testing.T) {
+	w := newCaptureWorld(t)
+	connection, recipe := w.ready(t)
+	expiry := func() time.Time { return *w.db.Client.PlatformAppConnection.GetX(w.ctx, connection.ID).StateExpiresAt }
+	near := func(got, want time.Time) bool { return got.Sub(want).Abs() < time.Minute }
+	set := func(signedIn, expires time.Duration) {
+		w.exec(t, `UPDATE platform_app_connection SET "validatedAt"=now()+$2::interval, "stateExpiresAt"=now()+$3::interval WHERE id=$1`,
+			connection.ID, fmt.Sprintf("%d seconds", int(signedIn.Seconds())), fmt.Sprintf("%d seconds", int(expires.Seconds())))
+	}
+	set(-time.Hour, 23*time.Hour)
+	w.run(t, w.request(t, recipe.ID).ID)
+	if got := expiry(); !near(got, time.Now().Add(captureDefaultStateAge)) {
+		t.Fatalf("renewed to %v", got)
+	}
+	signedIn := -(captureStateAbsoluteAge - 2*time.Hour)
+	set(signedIn, time.Hour)
+	w.run(t, w.request(t, recipe.ID).ID)
+	if got := expiry(); !near(got, time.Now().Add(signedIn+captureStateAbsoluteAge)) {
+		t.Fatalf("cap ignored: %v", got)
+	}
+	set(-time.Hour, time.Hour)
+	before := expiry()
+	normal := w.browser.run
+	w.browser.run = func(browser.RunInput) (*browser.RunResult, error) {
+		return nil, &browser.Failure{Code: browser.MarkerMissing}
+	}
+	failed := w.request(t, recipe.ID)
+	w.run(t, failed.ID)
+	w.browser.run = normal
+	if w.job(t, failed.ID).Phase != "FAILED" || !expiry().Equal(before) {
+		t.Fatal("a failed capture renewed the session")
+	}
+}
+
 func TestCaptureExpiredSessionParksTheJobUntilAPersonReconnects(t *testing.T) {
 	w := newCaptureWorld(t)
 	connection, _ := w.ready(t)
@@ -872,6 +956,10 @@ func TestCaptureExpiredSessionParksTheJobUntilAPersonReconnects(t *testing.T) {
 	// No login screenshot was accepted, and no browser or lease waits for the person.
 	if n := w.db.Client.SurfaceCapture.Query().Where(surfacecapture.SurfaceID(w.surface)).CountX(w.ctx); n != 0 {
 		t.Fatal("a login screen was recorded")
+	}
+	// The person who must sign in hears about it, by email unless they opted out.
+	if n := w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.Type("activity.capture.needs_auth")).CountX(w.ctx); n != 1 {
+		t.Fatalf("needs-auth notifications=%d", n)
 	}
 	// Running again without a person does nothing.
 	runs := w.browser.runs.Load()
@@ -1397,6 +1485,170 @@ func TestCaptureWorkflowActionWaitsForItsExactResult(t *testing.T) {
 	if posts := outputs.PostIDs; len(posts) == 0 {
 		t.Fatal("no draft posts")
 	}
+}
+
+// releasePlanModel answers the page-choosing call with plan and every
+// navigation call with capture, recording what each one was shown.
+type releasePlanModel struct {
+	plan                         string
+	plans, navigations           int
+	planPrompt, navigationPrompt string
+}
+
+func (m *releasePlanModel) Structured(_ context.Context, request platformai.Request, out any) (platformai.Usage, error) {
+	usage := platformai.Usage{CostUSD: 0.02, InputTokens: 100, OutputTokens: 20}
+	if request.SchemaName == "workflow_capture_plan" {
+		m.plans++
+		m.planPrompt = request.Prompt
+		return usage, json.Unmarshal([]byte(m.plan), out)
+	}
+	m.navigations++
+	m.navigationPrompt = request.Prompt
+	return usage, json.Unmarshal([]byte(`{"action":"capture","controlId":-1}`), out)
+}
+
+// A release-matched capture lets AI choose the page that shows the release and
+// steers that recipe's navigation toward the change, in a job of its own whose
+// image is the run's evidence and leaves the page's history alone.
+func TestCaptureReleaseMatchChoosesPagesAndSteersNavigation(t *testing.T) {
+	w := newCaptureWorld(t)
+	model, meter := &releasePlanModel{}, &recordingMonthlyMeter{}
+	w.repo.WithAutomationModel(model).WithMonthlyMeter(meter)
+	_, recipe := w.ready(t, func(r *browser.Recipe) {
+		r.Navigation = &browser.Navigation{Objective: "Open the reports area", MaxSteps: 2, CreditLimit: 2}
+	})
+	feature := "CSV export on the reports page"
+	charged := func() (n int64) {
+		for _, used := range meter.used {
+			n += used
+		}
+		return n
+	}
+	model.plan = fmt.Sprintf(`{"captures":[{"recipeId":%q,"feature":%q}]}`, recipe.ID, feature)
+	normal := w.browser.run
+	w.browser.run = func(input browser.RunInput) (*browser.RunResult, error) {
+		if input.NextNavigation != nil {
+			if _, err := input.NextNavigation(w.ctx, browser.NavigationObservation{Path: "/dashboard", Ready: true}); err != nil {
+				return nil, err
+			}
+		}
+		return normal(input)
+	}
+	renderer := &recordingRenderer{}
+	w.repo.WithAutomationRenderer(renderer)
+	if err := w.repo.AdvertiseReleaseAutomationExecutor(w.ctx, "release-worker"+w.id, w.repo.AutomationCapabilities()...); err != nil {
+		t.Fatal(err)
+	}
+	w.graph.SchemaVersion, w.graph.Family = 4, automation.Deployed
+	w.graph.Qualification = automation.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
+	w.graph.Nodes[1].Condition = &automation.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
+	action := automation.Action{Type: "capture_product", Input: &automation.Reference{NodeID: "campaign", Output: "campaignId"}, MatchRelease: true, CreditLimit: 5}
+	w.graph.Nodes = append(w.graph.Nodes, automation.Node{ID: "capture", Type: "action", Action: &action})
+	w.graph.Nodes[4].Action.Input.NodeID = "capture"
+	w.graph.Edges[4].To = "capture"
+	w.graph.Edges = append(w.graph.Edges, automation.Edge{From: "capture", To: "review", Branch: "next"})
+	active := w.activate(t)
+	sha := "abcdef1234567890abcdef1234567890abcdef12"
+	body := fmt.Sprintf(`{"installation":{"id":%d},"repository":{"id":1001,"full_name":"acme/app"},"deployment":{"id":901,"sha":%q,"environment":"production"},"deployment_status":{"id":1901,"state":"success","created_at":%q}}`, w.installation, sha, time.Now().Format(time.RFC3339Nano))
+	if _, err := w.repo.AcceptGitHubEvent(w.ctx, AcceptGitHubEventInput{DeliveryID: "release-match", EventName: "deployment_status", Body: []byte(body)}); err != nil {
+		t.Fatal(err)
+	}
+	history, err := w.repo.ListAutomationHistory(w.ctx, w.owner, AutomationHistoryFilter{})
+	if err != nil || len(history) == 0 {
+		t.Fatalf("history=%d err=%v", len(history), err)
+	}
+	runID := history[0].Run.ID
+	if _, err := w.repo.LoadReleaseAutomation(w.ctx, w.org, runID, 0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.repo.CollectAutomationChange(w.ctx, w.org, runID, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.SelectReleaseAutomation(w.ctx, w.org, runID, *active.ActiveVersionID, 0); err != nil {
+		t.Fatal(err)
+	}
+	for _, node := range []string{"release", "campaign"} {
+		if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, node, nil, 0); err != nil {
+			t.Fatalf("%s: %v", node, err)
+		}
+	}
+	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0); !errors.Is(err, ErrCapturePending) {
+		t.Fatalf("pending: %v", err)
+	}
+	beforeWait := charged()
+	if model.plans != 1 || !strings.Contains(model.planPrompt, `<release trust="untrusted">`) || !strings.Contains(model.planPrompt, recipe.ID) || !strings.Contains(model.planPrompt, "Open the reports area") {
+		t.Fatalf("plans=%d prompt=%q", model.plans, model.planPrompt)
+	}
+	steered := w.db.Client.CaptureJob.Query().Where(capturejob.OrganizationID(w.org), capturejob.ObjectiveEvidenceNotNil()).OnlyX(w.ctx)
+	if *steered.ObjectiveEvidence != feature || steered.ExpectedRevision == nil || *steered.ExpectedRevision != sha || steered.RecipeID != recipe.ID {
+		t.Fatalf("steered=%+v", steered)
+	}
+	// Waiting for the capture never asks the model to choose again, or bills again.
+	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0); !errors.Is(err, ErrCapturePending) || model.plans != 1 || charged() != beforeWait {
+		t.Fatalf("second wait: %v plans=%d charged=%d/%d", err, model.plans, charged(), beforeWait)
+	}
+	if outcome := w.run(t, steered.ID); !outcome.Done {
+		t.Fatalf("outcome=%+v", outcome)
+	}
+	var prompt struct {
+		Change string `json:"untrustedReleaseChange"`
+	}
+	if err := json.Unmarshal([]byte(model.navigationPrompt), &prompt); err != nil || prompt.Change != feature {
+		t.Fatalf("navigation was not steered: %q", model.navigationPrompt)
+	}
+	finished := w.db.Client.CaptureJob.GetX(w.ctx, steered.ID)
+	if finished.Phase != capturejob.PhaseSUCCEEDED || finished.AssetID == nil || finished.SurfaceCaptureID != nil {
+		t.Fatalf("finished=%+v", finished)
+	}
+	if n := w.db.Client.SurfaceCapture.Query().Where(surfacecapture.SurfaceID(w.surface), surfacecapture.SourceEQ(surfacecapture.SourceDeployment)).CountX(w.ctx); n != 0 {
+		t.Fatal("a steered capture replaced the page's deployment history")
+	}
+	outputs, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(outputs.CaptureAssetIDs) != 1 || outputs.CaptureAssetIDs[0] != *finished.AssetID || outputs.CaptureAssetID != *finished.AssetID ||
+		!slices.Equal(outputs.CaptureFeatures, []string{feature}) || outputs.CaptureProof != automation.CaptureProofVersion || outputs.CreditsCharged != 2 {
+		t.Fatalf("outputs=%+v", outputs)
+	}
+	if _, err := w.repo.GetCampaignAsset(w.ctx, w.owner, outputs.CampaignID, *finished.AssetID); err != nil {
+		t.Fatalf("capture not linked to the campaign: %v", err)
+	}
+	if model.plans != 1 {
+		t.Fatalf("plans=%d", model.plans)
+	}
+	// Drafts carry the steered image.
+	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "review", nil, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Run("no page shows the release", func(t *testing.T) {
+		model.plan = `{"captures":[]}`
+		other := fmt.Sprintf(`{"installation":{"id":%d},"repository":{"id":1001,"full_name":"acme/app"},"deployment":{"id":902,"sha":%q,"environment":"production"},"deployment_status":{"id":1902,"state":"success","created_at":%q}}`, w.installation, sha, time.Now().Format(time.RFC3339Nano))
+		if _, err := w.repo.AcceptGitHubEvent(w.ctx, AcceptGitHubEventInput{DeliveryID: "release-unmatched", EventName: "deployment_status", Body: []byte(other)}); err != nil {
+			t.Fatal(err)
+		}
+		history, err := w.repo.ListAutomationHistory(w.ctx, w.owner, AutomationHistoryFilter{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		runID := history[0].Run.ID
+		for _, step := range []func() error{
+			func() error { _, err := w.repo.LoadReleaseAutomation(w.ctx, w.org, runID, 0); return err },
+			func() error { _, err := w.repo.CollectAutomationChange(w.ctx, w.org, runID, 0); return err },
+			func() error { return w.repo.SelectReleaseAutomation(w.ctx, w.org, runID, *active.ActiveVersionID, 0) },
+			func() error { _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "release", nil, 0); return err },
+			func() error { _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "campaign", nil, 0); return err },
+		} {
+			if err := step(); err != nil {
+				t.Fatal(err)
+			}
+		}
+		_, err = w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0)
+		if !errors.Is(err, ErrCaptureUnmatched) || !PermanentAutomationError(err) || automationFailureCode(err) != "capture_unmatched" {
+			t.Fatalf("unmatched: %v", err)
+		}
+	})
 }
 
 // A published release can arrive before its code is live: the run waits for a

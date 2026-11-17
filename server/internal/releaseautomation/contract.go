@@ -8,8 +8,9 @@ import "time"
 // graphs stay valid unchanged. Version 2 adds AI relevance checks, paid copy
 // generation, tag-push and milestone triggers, version and size fields,
 // numeric operators, and release contents, so a worker that only advertises
-// version 1 can never be handed one. Version 3 adds capture_product.
-const SchemaVersion = 3
+// version 1 can never be handed one. Version 3 adds capture_product. Version 4
+// lets capture_product choose its pages from the release (matchRelease).
+const SchemaVersion = 4
 const MaxNodes = 64
 
 // MaxGenerationNodes bounds paid generation calls in one run.
@@ -29,6 +30,9 @@ const MaxRenderTemplates = 3
 
 // MaxCanvasRecipes bounds the canvas templates one canvas node lays out.
 const MaxCanvasRecipes = 3
+
+// MaxReleaseCaptures bounds the pages a release-matched capture takes.
+const MaxReleaseCaptures = 3
 
 // CapabilityRender is advertised by a worker that can reach the web renderer.
 const CapabilityRender = "render"
@@ -72,6 +76,10 @@ type Outputs struct {
 	CaptureID      string `json:"captureId,omitempty"`
 	CaptureAssetID string `json:"captureAssetId,omitempty"`
 	CaptureProof   string `json:"captureProof,omitempty"`
+	// CaptureAssetIDs are every image a release-matched capture took, first
+	// equal to CaptureAssetID; CaptureFeatures names what each one shows.
+	CaptureAssetIDs []string `json:"captureAssetIds,omitempty"`
+	CaptureFeatures []string `json:"captureFeatures,omitempty"`
 }
 
 const (
@@ -89,6 +97,15 @@ type Generation struct {
 	Posts   []GeneratedPost `json:"posts,omitempty"`
 	// Verdict is an AI relevance check's decision.
 	Verdict *Decision `json:"verdict,omitempty"`
+	// Captures are the pages a release-matched capture chose, in order.
+	Captures []PlannedCapture `json:"captures,omitempty"`
+}
+
+// PlannedCapture is one page chosen for a release and the change it shows.
+// Feature is model output from untrusted release text: data, never instructions.
+type PlannedCapture struct {
+	RecipeID string `json:"recipeId"`
+	Feature  string `json:"feature"`
 }
 
 type GeneratedPost struct {
@@ -216,6 +233,10 @@ type Action struct {
 	// SurfaceID and VersionPath: the recipe names the page and its version proof.
 	// CurrentState then allows a recipe that has no version proof.
 	RecipeID string `json:"recipeId,omitempty"`
+	// MatchRelease lets AI choose up to MaxReleaseCaptures of the source's active
+	// recipes whose pages show what the release changed, steering each recipe's
+	// navigation toward that change. CreditLimit bounds the choosing call.
+	MatchRelease bool `json:"matchRelease,omitempty"`
 }
 
 type Node struct {

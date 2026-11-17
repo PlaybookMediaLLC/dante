@@ -17,13 +17,17 @@ import (
 // with canvas templates and store it in the workspace. The web derives the
 // canvas from the run and node, so a retry finds the canvas it already made.
 type AutomationCanvasRequest struct {
-	OrganizationID string   `json:"organizationId"`
-	RunID          string   `json:"runId"`
-	NodeID         string   `json:"nodeId"`
-	ReleaseID      string   `json:"releaseId"`
-	CampaignID     string   `json:"campaignId,omitempty"`
-	CaptureAssetID string   `json:"captureAssetId,omitempty"`
-	RecipeIDs      []string `json:"recipeIds"`
+	OrganizationID string `json:"organizationId"`
+	RunID          string `json:"runId"`
+	NodeID         string `json:"nodeId"`
+	ReleaseID      string `json:"releaseId"`
+	CampaignID     string `json:"campaignId,omitempty"`
+	CaptureAssetID string `json:"captureAssetId,omitempty"`
+	// CaptureAssetIDs are a release-matched run's captures, which the canvas shows
+	// first. Sent only for several, which only language version 4 graphs make, so
+	// a worker deployed before the web never sends an older web an unknown field.
+	CaptureAssetIDs []string `json:"captureAssetIds,omitempty"`
+	RecipeIDs       []string `json:"recipeIds"`
 }
 
 // AutomationCanvasBuilder lays out canvases; the web app owns the canvas
@@ -75,9 +79,9 @@ func (r *HTTPAutomationRenderer) BuildCanvas(ctx context.Context, request Automa
 	return result.CanvasID, nil
 }
 
-// automationCreateCanvas lays out a canvas from the run's release. Screenshots
-// come from the release; without any, the chosen surface's current capture
-// is used when there is one.
+// automationCreateCanvas lays out a canvas from the run's release. A
+// release-matched run's captures come first; otherwise screenshots come from the
+// release, then from the run's capture or the chosen surface's current one.
 func (c *Configuration) automationCreateCanvas(ctx context.Context, org, runID, nodeID string, input automation.Outputs, action *automation.Action) (automation.Outputs, error) {
 	if c.automationCanvases == nil {
 		return automation.Outputs{}, ErrAutomationCanvasesUnavailable
@@ -95,8 +99,12 @@ func (c *Configuration) automationCreateCanvas(ctx context.Context, org, runID, 
 			return automation.Outputs{}, err
 		}
 	}
+	var captures []string
+	if len(input.CaptureAssetIDs) > 1 {
+		captures = input.CaptureAssetIDs
+	}
 	canvasID, err := c.automationCanvases.BuildCanvas(ctx, AutomationCanvasRequest{OrganizationID: org, RunID: runID, NodeID: nodeID,
-		ReleaseID: input.ReleaseID, CampaignID: input.CampaignID, CaptureAssetID: capture, RecipeIDs: action.RecipeIDs})
+		ReleaseID: input.ReleaseID, CampaignID: input.CampaignID, CaptureAssetID: capture, CaptureAssetIDs: captures, RecipeIDs: action.RecipeIDs})
 	if errors.Is(err, ErrRendererRefused) {
 		return automation.Outputs{}, ErrInvalidInput
 	}

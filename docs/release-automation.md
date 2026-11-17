@@ -31,9 +31,9 @@ string, and GitHub connection callbacks return to `/workflows`.
 | Submit for human review       | Executable (v1). Ends the run; approval stays with a person.                                                                  |
 | Notify workspace              | Automatic on every selected run's outcome through workspace activity; not a graph node.                                       |
 | Campaign context              | Folded into generation: brand profile voice, audience, CTA conventions, prohibited terms, product text.                       |
-| Product screenshots           | Production deployments keep the existing capture pipeline in automation mode. Not a graph node.                               |
-| Render creatives              | Executable (v2): fills 1–3 design templates with the latest product capture through the web renderer.                         |
-| Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder.               |
+| Product screenshots           | Production deployments keep the existing capture pipeline in automation mode. `capture_product` (v3) captures one page for the run; with `matchRelease` (v4) AI chooses up to three signed-in screens that show the release. |
+| Render creatives              | Executable (v2): fills 1–3 design templates with the run's captures, or the latest product capture, through the web renderer; one creative per captured change. |
+| Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder, showing a release-matched run's captures first, and renders its artboards into the campaign when the web renderer is on. |
 | Hand off approved content     | Not exposed: no trigger exists for "approved", and scheduling stays in the human flow.                                        |
 | Manual campaign               | Linked: `/campaigns/new` builds a campaign by hand under the same review rules.                                               |
 | Recurring campaigns (RFC 041) | Planned, shown disabled. Nothing in RFC 041 is built.                                                                         |
@@ -168,6 +168,21 @@ sign in again. After they do, the job resumes, and retrying the run finds its re
 recipe without version proof also needs `currentState: true`. Its worker advertises the
 `browser` capability ([design and status](rfcs/authenticated-release-capture-review.md#10-implementation-status)).
 
+With `matchRelease` (v4) and a 1–50 `creditLimit`, the action names no page. One
+schema-constrained model call reads the release (title, notes, features and merged
+pull request titles, fenced as untrusted) and chooses up to three of the source's
+active recipes whose screens show a described change, restricted to their IDs, each
+with a short description of the change. The choice is stored on the node receipt
+before the charge, so a retry, or the run waiting for its captures, never calls or
+bills again. Recipes without version proof are candidates only with
+`currentState: true`. A chosen recipe with AI navigation runs in a job of its own,
+steered toward that change: the navigator sees it as `untrustedReleaseChange`, and its
+image is the run's evidence, never the page's current capture or deployment receipt. A
+recipe without navigation shares the deployment's job. The node waits for every chosen
+capture, leaves out pages that failed, and outputs `captureAssetIds` and
+`captureFeatures` beside the first capture. No chosen page stops the run as
+`needs_attention` / `capture_unmatched`. The worker needs both `ai` and `browser`.
+
 For a public page, the action has an explicit proof choice, and the validator requires
 exactly one:
 
@@ -197,17 +212,26 @@ image. Workers advertise the `capture` capability when they have object storage.
 
 `render_creatives` (v2) takes a campaign output and 1–3 design templates from
 the web's catalog (`layout-*` templates that place a headline). The worker
-shows the capture from an earlier `capture_product` step, or else picks the
+shows the captures from an earlier `capture_product` step, or else picks the
 current capture of the chosen product page, or the most recently captured page,
 and asks the web over `POST /api/internal/workflow-renders`,
 signed with HMAC-SHA256 over `<timestamp>.<body>` and rejected after five
-minutes. The web fills each template with the capture, the event title as
-headline, and the first line of its notes as subheadline, applies the campaign's
-brand kit, renders it with the existing design renderer and render cache, and
-links each image to the campaign as a design render. A retry reuses the designs
-this node already made, and identical renders hit the cache. No current capture
-stops the run as `needs_attention` / `capture_missing`. Designs stay drafts; an
-approver must approve a visual before it can be scheduled with a post.
+minutes. One capture fills every template; several each fill one template in turn,
+as numbered parts, so every captured change gets its own creative. The headline is
+that capture's change when a release match named one, otherwise the first sentence
+of the campaign's first post: the release title until generated copy or a person
+rewrites it. The subheadline is the first line of the notes. The web applies the
+campaign's brand kit, places its logo in the top left corner, renders with the
+existing design renderer and render cache, and links each image to the campaign as a
+design render. A retry reuses the designs this node already made, and identical
+renders hit the cache. No current capture stops the run as `needs_attention` /
+`capture_missing`. Designs stay drafts; an approver must approve a visual before it
+can be scheduled with a post.
+
+Drafts that submit review creates carry the branded renders: one per captured change,
+or the first render when one capture filled several templates, up to each channel's
+media limit. Without a render they carry the captures. The captures stay linked to
+the campaign as evidence.
 
 ### Paid copy generation
 
@@ -309,9 +333,10 @@ nodes. It is sequential, acyclic, reachable, and bounded to 64 nodes, 128 edges,
 holds the three draft/review actions and the original fields and operators;
 version 2 adds the `classify` node, `generate_copy`, `render_creatives`, release
 contents, the tag and milestone triggers, the new fields, and numeric
-comparisons. Version 3 adds `capture_product`. Each version keeps every earlier
-meaning. The editor saves a graph as version 2, or as version 3 when it uses
-`capture_product`, so only those graphs need a version 3 worker. Branch merges require
+comparisons. Version 3 adds `capture_product`, and version 4 its `matchRelease`
+option. Each version keeps every earlier meaning. The editor saves a graph as
+version 2, as version 3 when it uses `capture_product`, or as version 4 when that
+capture matches the release, so only those graphs need a newer worker. Branch merges require
 input-producing actions to dominate the consumer on every incoming path.
 Layout is stored separately from the semantic graph/hash. Incomplete drafts can
 be stored, but they cannot exceed hard size/depth limits.
@@ -487,7 +512,10 @@ as `needs_attention` without side effects. Rolling the worker back therefore
 needs active v2 definitions disabled first. `capture_product` follows the same
 rule: the interpreter only sets its activity options, which v1 and v2 graphs never
 reach, an older worker cannot activate a v3 graph and fails a v3 run it picks up as
-`needs_attention`, and rolling back needs active v3 definitions disabled first.
+`needs_attention`, and rolling back needs active v3 definitions disabled first. Version
+4 changes no interpreter options; a version 3 worker cannot activate a version 4 graph,
+and rolling back needs active version 4 definitions disabled first. Apply
+`20261117090000_release_capture_evidence.sql` (two nullable columns) before deploying.
 Future interpreter changes need
 Temporal versioning or a separate compatible workflow registration; graph schema
 versioning alone is insufficient. Rollback must preserve the new tables/receipts

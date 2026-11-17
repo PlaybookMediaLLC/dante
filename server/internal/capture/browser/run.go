@@ -8,6 +8,7 @@ import (
 	"fmt"
 	goimage "image"
 	_ "image/png"
+	"math"
 	"net/netip"
 	"net/url"
 	"strings"
@@ -66,6 +67,9 @@ type Target struct {
 	Hosts []string
 	// Identity proves the signed-in account: the element's text must contain
 	// ExpectedAccount. An app-owned signal, not a generic "dashboard" label.
+	// Without a selector the account must appear in the page's header,
+	// navigation or account controls; another account is then indistinguishable
+	// from none, so it reads as a sign-in to finish rather than WrongAccount.
 	IdentitySelector string
 	ExpectedAccount  string
 	// ProtectedPath is a page only a signed-in user reaches.
@@ -92,8 +96,10 @@ func (t Target) Validate() error {
 	if !ValidPath(t.ProtectedPath) {
 		return errors.New("Set a page only a signed-in user can reach.")
 	}
-	if !ValidSelector(t.IdentitySelector) || t.ExpectedAccount == "" || len(t.ExpectedAccount) > 200 {
-		return errors.New("Name the element that shows the signed-in account, and what it must say.")
+	// Text alone needs enough of it to be the account, not a common word.
+	if (t.IdentitySelector != "" && !ValidSelector(t.IdentitySelector)) || (t.IdentitySelector == "" && len(strings.TrimSpace(t.ExpectedAccount)) < 3) ||
+		t.ExpectedAccount == "" || len(t.ExpectedAccount) > 200 {
+		return errors.New("Say what the signed-in account shows, such as its email, and optionally the element that shows it.")
 	}
 	return nil
 }
@@ -377,7 +383,26 @@ func (s *scope) navigate(ctx context.Context, target Target, path string, timeou
 	return nil
 }
 
+// accountTextScript finds the expected account in the page's header,
+// navigation and account controls. Main content never counts: another account
+// may list this one in a member table.
+const accountTextScript = `(expected) => Array.from(document.querySelectorAll(
+	'header,nav,aside,[role=banner],[role=navigation],[role=complementary],[aria-label*=account i],[aria-label*=profile i],[data-testid*=account i],[data-testid*=user i]'))
+	.some((e) => (e.textContent || '').includes(expected))`
+
+// accountShown reports whether the expected account is on the page, without
+// waiting: through the configured element, or the account text.
+func (s *scope) accountShown(ctx context.Context, target Target) (bool, error) {
+	if target.IdentitySelector == "" {
+		return s.evalBool(ctx, accountTextScript, target.ExpectedAccount)
+	}
+	return s.evalBool(ctx, `(selector) => !!document.querySelector(selector)`, target.IdentitySelector)
+}
+
 func (s *scope) checkIdentity(ctx context.Context, target Target, requested string) error {
+	if target.IdentitySelector == "" {
+		return s.waitAccountText(ctx, target.ExpectedAccount, requested)
+	}
 	// No account shown at all is a sign-in, MFA, or CAPTCHA screen under another
 	// name: only a person can get past it. Another account's name is WrongAccount.
 	if err := s.waitFor(ctx, target.IdentitySelector, defaultStepTimeout, requested, NeedsAuth); err != nil {
@@ -391,6 +416,25 @@ func (s *scope) checkIdentity(ctx context.Context, target Target, requested stri
 		return &Failure{Code: WrongAccount}
 	}
 	return nil
+}
+
+// waitAccountText polls for the account text, as waitFor polls for an element.
+func (s *scope) waitAccountText(ctx context.Context, expected, requested string) error {
+	waitCtx, cancel := context.WithTimeout(ctx, defaultStepTimeout)
+	defer cancel()
+	for {
+		if found, err := s.evalBool(waitCtx, accountTextScript, expected); err == nil && found {
+			return nil
+		}
+		if s.signedOut(waitCtx, requested) {
+			return &Failure{Code: NeedsAuth}
+		}
+		select {
+		case <-waitCtx.Done():
+			return &Failure{Code: NeedsAuth}
+		case <-time.After(150 * time.Millisecond):
+		}
+	}
 }
 
 // proveRevision asks the signed-in app which commit it runs.
@@ -459,6 +503,16 @@ type RunResult struct {
 	RefusedRequests   int
 	SourcePath        string
 	NavigationActions []NavigationAction
+	// Focus is where the first marker sat in the captured viewport, as fractions.
+	Focus *Focus
+}
+
+// Focus is a box in fractions of the viewport, from its top left corner.
+type Focus struct {
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	W float64 `json:"w"`
+	H float64 `json:"h"`
 }
 
 // Run restores state into a fresh context and executes the recipe, refusing
@@ -481,7 +535,8 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 		return nil, err
 	}
 	defer s.close()
-	if err := s.page.Context(ctx).SetViewport(&proto.EmulationSetDeviceMetricsOverride{Width: input.Recipe.Viewport.Width, Height: input.Recipe.Viewport.Height, DeviceScaleFactor: 1}); err != nil {
+	scale := input.Recipe.Viewport.DeviceScale()
+	if err := s.page.Context(ctx).SetViewport(&proto.EmulationSetDeviceMetricsOverride{Width: input.Recipe.Viewport.Width, Height: input.Recipe.Viewport.Height, DeviceScaleFactor: float64(scale)}); err != nil {
 		return nil, &Failure{Code: ProviderUnavailable}
 	}
 	if err := s.restore(input.State); err != nil {
@@ -555,12 +610,27 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 		return nil, &Failure{Code: OriginRefused}
 	}
 	result.SourcePath = here.EscapedPath()
-	shot, err := s.page.Context(ctx).Screenshot(false, &proto.PageCaptureScreenshot{Format: proto.PageCaptureScreenshotFormatPng})
+	crop := input.Recipe.Crop == CropMarker
+	box, err := s.markerBox(ctx, input.Recipe.Markers[0], crop)
+	if err != nil {
+		return nil, &Failure{Code: PageFailed}
+	}
+	result.Focus = box.focus()
+	request := &proto.PageCaptureScreenshot{Format: proto.PageCaptureScreenshotFormatPng}
+	width, height := float64(input.Recipe.Viewport.Width), float64(input.Recipe.Viewport.Height)
+	if crop {
+		clip := box.crop(cropMargin)
+		if clip == nil {
+			return nil, &Failure{Code: MarkerMissing}
+		}
+		request.Clip, width, height = clip, clip.Width, clip.Height
+	}
+	shot, err := s.page.Context(ctx).Screenshot(false, request)
 	if err != nil {
 		return nil, &Failure{Code: PageFailed}
 	}
 	config, _, err := goimage.DecodeConfig(bytes.NewReader(shot))
-	if err != nil || len(shot) > maxImageBytes || config.Width != input.Recipe.Viewport.Width || config.Height != input.Recipe.Viewport.Height {
+	if err != nil || len(shot) > maxImageBytes || math.Abs(float64(config.Width)-width*float64(scale)) > 2 || math.Abs(float64(config.Height)-height*float64(scale)) > 2 {
 		return nil, &Failure{Code: ImageInvalid}
 	}
 	result.Image, result.Width, result.Height = shot, config.Width, config.Height
@@ -570,6 +640,59 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 		result.State = rotated
 	}
 	return result, nil
+}
+
+// cropMargin keeps a little context around a cropped marker, in CSS pixels.
+const cropMargin = 24
+
+// markerBox is where the first visible marker is in the viewport, or not found.
+type markerBox struct {
+	Found                    bool
+	Left, Top, Right, Bottom float64
+	ScrollX, ScrollY         float64
+	Width, Height            float64
+}
+
+// markerBox measures the first visible element matching selector. Only a
+// crop scrolls it into view: an uncropped capture keeps the page as it is.
+func (s *scope) markerBox(ctx context.Context, selector string, scroll bool) (markerBox, error) {
+	var box markerBox
+	result, err := s.page.Context(ctx).Eval(`(selector, scroll) => {
+		const e = Array.from(document.querySelectorAll(selector)).find((e) => e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}));
+		if (!e) return {found:false};
+		if (scroll) e.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+		const r = e.getBoundingClientRect();
+		return {found:true,left:r.left,top:r.top,right:r.right,bottom:r.bottom,scrollX:scrollX,scrollY:scrollY,width:innerWidth,height:innerHeight};
+	}`, selector, scroll)
+	if err != nil {
+		return box, err
+	}
+	return box, json.Unmarshal([]byte(result.Value.JSON("", "")), &box)
+}
+
+// visible is the part of the box inside the viewport, grown by margin.
+func (b markerBox) visible(margin float64) (left, top, right, bottom float64, ok bool) {
+	left, top = math.Max(0, b.Left-margin), math.Max(0, b.Top-margin)
+	right, bottom = math.Min(b.Width, b.Right+margin), math.Min(b.Height, b.Bottom+margin)
+	return left, top, right, bottom, b.Found && right-left >= 1 && bottom-top >= 1
+}
+
+// focus is the visible marker in fractions of the viewport.
+func (b markerBox) focus() *Focus {
+	left, top, right, bottom, ok := b.visible(0)
+	if !ok {
+		return nil
+	}
+	return &Focus{X: left / b.Width, Y: top / b.Height, W: (right - left) / b.Width, H: (bottom - top) / b.Height}
+}
+
+// crop is the screenshot clip around the visible marker, in page coordinates.
+func (b markerBox) crop(margin float64) *proto.PageViewport {
+	left, top, right, bottom, ok := b.visible(margin)
+	if !ok {
+		return nil
+	}
+	return &proto.PageViewport{X: left + b.ScrollX, Y: top + b.ScrollY, Width: right - left, Height: bottom - top, Scale: 1}
 }
 
 // selectTab clicks only an element that declares itself a tab.

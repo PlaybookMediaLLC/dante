@@ -46,30 +46,48 @@ type NextNavigationAction func(context.Context, NavigationObservation) (Navigati
 
 const (
 	NavigationUnavailable Code = "navigation_unavailable"
-	NavigationInvalid     Code = "navigation_invalid"
-	NavigationFailed      Code = "navigation_failed"
-	NavigationLimit       Code = "navigation_limit"
-	NavigationBudget      Code = "navigation_budget"
-	NavigationRetryLimit  Code = "navigation_retry_limit"
+	// NavigationUnconfigured is final: this worker has no model or meter, so
+	// retrying here until the job's deadline could never succeed.
+	NavigationUnconfigured Code = "navigation_unconfigured"
+	NavigationInvalid      Code = "navigation_invalid"
+	NavigationFailed       Code = "navigation_failed"
+	NavigationLimit        Code = "navigation_limit"
+	NavigationBudget       Code = "navigation_budget"
+	NavigationRetryLimit   Code = "navigation_retry_limit"
 )
 
-// No arbitrary click: only navigation links and explicit tabs. Links navigate
-// directly, so their click handlers cannot submit forms or open other windows.
-const observeNavigation = `(identity, masks, markers) => {
+// No arbitrary click: navigation links, explicit tabs, and buttons that open
+// menus, panels or dialogs. Links navigate directly, so their click handlers
+// cannot submit forms or open other windows. A button inside a form, one that
+// submits or resets, or one whose label names a risky action is never offered;
+// the network policy still refuses every write a click might attempt.
+const observeNavigation = `(identity, masks, markers, account) => {
  const visible = e => !!e && e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
- const excluded = e => { const selectors=[identity,...(masks || []),'form','[contenteditable=true]'].join(','); return !!e.closest(selectors) || !!e.querySelector(selectors); };
- const text = e => (e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').slice(0,120);
+ const excluded = e => { const selectors=[identity,...(masks || []),'form','[contenteditable=true]'].filter(Boolean).join(','); return !!e.closest(selectors) || !!e.querySelector(selectors); };
+ const text = e => (e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').split(account).join('[account]').slice(0,120);
+ const mentionsAccount = e => (e.innerText || e.getAttribute('aria-label') || '').includes(account);
  const selector = e => { const parts=[]; while(e && e.tagName!=='HTML' && parts.length<12) {
    const siblings=Array.from(e.parentElement.children);
    parts.unshift(':nth-child('+(siblings.indexOf(e)+1)+')'); e=e.parentElement;
  } const path=parts.join('>'); return document.querySelectorAll(path).length===1?path:''; };
- const controls = Array.from(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'))
-   .filter(e => visible(e) && !excluded(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true')
-   .slice(0,60).map(e => ({kind:e.getAttribute('role')==='tab'?'tab':'link',label:text(e),href:e.href || '',selector:selector(e)}));
+ const links = Array.from(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'));
+ const buttons = Array.from(document.querySelectorAll('` + pressableSelector + `')).filter(e => !links.includes(e) && ` + pressableCheck + `);
+ const controls = [...links, ...buttons]
+   .filter(e => visible(e) && !excluded(e) && !mentionsAccount(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true')
+   .slice(0,60).map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.includes(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
  return {headings:Array.from(document.querySelectorAll('h1,h2,[role=heading]')).filter(e=>visible(e)&&!excluded(e)).slice(0,12).map(text),controls,
    loading:Array.from(document.querySelectorAll('[aria-busy=true],[role=progressbar]')).some(visible),
    ready:markers.every(s=>Array.from(document.querySelectorAll(s)).some(visible))};
 }`
+
+// pressableSelector finds buttons and the controls that open menus, panels and
+// dialogs. Anchors never count: a link is followed only from navigation.
+const pressableSelector = `button,[role=button],[aria-haspopup],[aria-expanded],[role=menuitem],summary`
+
+// pressableCheck refuses a control whose press could submit, reset or name a
+// risky action; e is the element. The same check runs before every press.
+const pressableCheck = `!e.matches('a[href],input,[form],button[type=submit],button[type=reset]') && !e.closest('form') &&
+ !/\b(delete|remove|destroy|erase|sign ?out|log ?out|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect)\b/i.test(e.innerText || e.getAttribute('aria-label') || '')`
 
 func navigationPath(raw, origin string) (string, bool) {
 	u, err := url.Parse(raw)
@@ -95,7 +113,7 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	if err := s.checkIdentity(ctx, input.Target, view.Path); err != nil {
 		return view, err
 	}
-	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers)
+	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers, input.Target.ExpectedAccount)
 	if err != nil {
 		return view, &Failure{Code: PageFailed}
 	}
@@ -114,7 +132,7 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	view.loading = snapshot.Loading
 	view.Ready = view.Ready && !view.loading
 	for _, control := range snapshot.Controls {
-		if control.Label == "" || (control.Kind == "tab" && !ValidSelector(control.Selector)) {
+		if control.Label == "" || (control.Kind != "link" && !ValidSelector(control.Selector)) {
 			continue
 		}
 		path := ""
@@ -156,6 +174,25 @@ func (s *scope) waitNavigation(ctx context.Context, input RunInput, before Navig
 		case <-time.After(150 * time.Millisecond):
 		}
 	}
+}
+
+// pressButton presses the observed button only if it is still the same safe,
+// visible, enabled control with the same label.
+func (s *scope) pressButton(ctx context.Context, selector, label string) error {
+	pressed, err := s.evalBool(ctx, `(selector, expected) => {
+		const e = document.querySelector(selector);
+		if (!e || !e.matches('`+pressableSelector+`') || !(`+pressableCheck+`)) return false;
+		if ((e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').slice(0,120) !== expected ||
+			!e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}) || e.disabled || e.getAttribute('aria-disabled')==='true') return false;
+		e.click(); return true;
+	}`, selector, label)
+	if err != nil {
+		return &Failure{Code: PageFailed}
+	}
+	if !pressed {
+		return &Failure{Code: NavigationInvalid}
+	}
+	return nil
 }
 
 func (s *scope) navigateFeature(ctx context.Context, input RunInput) ([]NavigationAction, error) {
@@ -225,6 +262,8 @@ func (s *scope) navigateFeature(ctx context.Context, input RunInput) ([]Navigati
 			err = s.navigate(ctx, input.Target, control.Path, defaultStepTimeout)
 		case "tab":
 			err = s.selectTab(ctx, Step{Selector: control.selector}, view.Path, control.Label)
+		case "button":
+			err = s.pressButton(ctx, control.selector, control.Label)
 		default:
 			return actions, &Failure{Code: NavigationInvalid}
 		}
