@@ -41,9 +41,10 @@ fmt-check:
 # SHARD it runs everything. internal/product runs its tests one at a time
 # against one database and took 92 of the step's 100 s in CI, longer than
 # every other package together, so each shard runs alternate product tests by
-# sorted name, and the first also runs the other packages beside them. Only
-# a SHARD given on the command line counts: one exported by a shell or a CI
-# tool would quietly run half the tests.
+# sorted name and, beside them, alternate other packages: one shard running
+# all the others took 88 s while its product half took 54. Only a SHARD given
+# on the command line counts: one exported by a shell or a CI tool would
+# quietly run half the tests.
 SHARD_INDEX = $(word 1,$(subst /, ,$(SHARD)))
 SHARD_COUNT = $(word 2,$(subst /, ,$(SHARD)))
 
@@ -59,10 +60,12 @@ else
 	mine="$$(printf '%s\n' "$$all" | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
 	test -n "$$mine" || { echo "internal/product: shard $(SHARD) has no tests" >&2; exit 1; }; \
 	echo "internal/product: shard $(SHARD) runs $$(echo "$$mine" | wc -l) of $$(echo "$$all" | wc -l) tests"; \
+	packages="$$(go list ./...)"; \
+	packages="$$(printf '%s\n' "$$packages" | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$' | \
+		LC_ALL=C sort | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
+	echo "shard $(SHARD) also runs $$(echo "$$packages" | grep -c .) other packages"; \
 	others=; status=0; \
-	if [ "$(SHARD_INDEX)" -eq 1 ]; then \
-		go test $$(go list ./... | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$') & others=$$!; \
-	fi; \
+	if [ -n "$$packages" ]; then go test $$packages & others=$$!; fi; \
 	go test -run "^($$(echo "$$mine" | paste -sd '|' -))$$" ./internal/product || status=$$?; \
 	if [ -n "$$others" ]; then wait "$$others" || status=1; fi; \
 	exit "$$status"
