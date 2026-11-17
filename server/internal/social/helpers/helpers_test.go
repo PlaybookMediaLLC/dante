@@ -79,7 +79,8 @@ func TestWeightedLength(t *testing.T) {
 
 // regexp2 backtracked quadratically through domain-like words and through a
 // URL path of parenthesised groups: without the budget each took seconds, and
-// now each counts.
+// now each counts within a second of CPU time. The clock would also count
+// other processes' work on a busy machine.
 func TestLinkScanStopsOnCraftedText(t *testing.T) {
 	liftTextBudget(t)
 	scans := map[string]func(string) error{
@@ -101,12 +102,12 @@ func TestLinkScanStopsOnCraftedText(t *testing.T) {
 	}
 	for name, text := range cases {
 		for scan, run := range scans {
-			start := time.Now()
+			start := cpuTime(t)
 			if err := run(text); err != nil {
 				t.Errorf("%s(%s) error = %v", scan, name, err)
 			}
-			if elapsed := time.Since(start); elapsed > time.Second {
-				t.Errorf("%s(%s) took %v", scan, name, elapsed)
+			if spent := cpuTime(t) - start; spent > time.Second {
+				t.Errorf("%s(%s) used %v of CPU", scan, name, spent)
 			}
 		}
 	}
