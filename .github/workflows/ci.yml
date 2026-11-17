@@ -347,9 +347,11 @@ jobs:
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
       # Race builds share nothing with the others, so the race leg keeps its
-      # own entry. The static leg reads the test leg's and saves none: three
-      # multi-GB entries per push would crowd the Docker layer caches out of
-      # the repository's 10 GB again.
+      # own entry. The static leg reads the test leg's and saves none. Each
+      # entry is about 1.1 GB, so it is keyed on go.sum alone and written once
+      # per dependency change: a new entry per push filled the repository's
+      # 10 GB and evicted every other cache. Packages changed since are
+      # recompiled; unchanged ones still hit.
       - name: Restore the Go module and build output
         id: go-cache
         uses: actions/cache/restore@v4
@@ -357,9 +359,8 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
+          key: go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-
             go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
@@ -416,7 +417,7 @@ jobs:
       - if: matrix.suite == 'race'
         run: make race
       - name: Save the Go module and build output
-        if: matrix.suite != 'static' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: matrix.suite != 'static' && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@v4
         with:
           path: |
