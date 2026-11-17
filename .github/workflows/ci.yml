@@ -481,14 +481,10 @@ jobs:
       # path builds it.
       - run: npm run build:sdk
         working-directory: clients
+      # The web app's script runs TypeScript 7 (tsgo) since it agreed with tsc
+      # on real runs: 16 s against tsc's share of a 65 s step.
       - run: npm run typecheck
         working-directory: clients
-      # TypeScript 7 beside tsc on the web app until the two agree on real
-      # runs, then tsc goes: locally 21 s against tsc's 76 s. It reads the
-      # route types the step above generated.
-      - name: Typecheck the web app with TypeScript 7
-        working-directory: clients/apps/web
-        run: npx tsgo --noEmit -p tsconfig.json
 
   # Two shards side by side: one npm test run held every suite in a row, a
   # median 114 s of tests in a 2m43s job.
