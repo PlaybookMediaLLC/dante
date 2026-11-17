@@ -6,7 +6,7 @@
     "build": "next build --webpack",
     "api:generate": "tsx scripts/openapi.ts && openapi-typescript ../../../server/internal/shotsapi/openapi.json -o ../../packages/shots-api-client/src/schema.ts",
     "start": "next start",
-    "typecheck": "rm -rf .next/types && next typegen && tsc --noEmit",
+    "typecheck": "rm -rf .next/types && next typegen && tsgo --noEmit",
     "test": "tsx --test test/*.test.ts",
     "test:founder-hub-auth": "NODE_OPTIONS='--conditions=react-server' tsx --test test/founder-hub-oauth.backend.ts",
     "test:publishing-backend-client": "NODE_OPTIONS='--conditions=react-server' tsx --test test/publishing-backend-client.server.ts",
