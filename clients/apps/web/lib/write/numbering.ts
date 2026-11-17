@@ -67,3 +67,5 @@ export function numberCaptions(captions: string[], numbering: Numbering | undefi
     ? captions.map((caption, index) => withLabel(caption, labels[index], numbering))
     : captions
 }
+
+// Measurement probe for the CI pull request lane; this pull request is not merged.
