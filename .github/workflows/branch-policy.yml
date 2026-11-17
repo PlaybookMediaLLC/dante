@@ -3,6 +3,8 @@ name: Branch policy
 on:
   pull_request:
     types: [opened, reopened, synchronize, edited, ready_for_review]
+  # A required check must also report on the merge queue's commit.
+  merge_group:
 
 permissions:
   contents: read
@@ -10,7 +12,7 @@ permissions:
 # This is a required check, so overlapping runs would make the context flap.
 # `edited` fires on every pull request description change.
 concurrency:
-  group: branch-policy-${{ github.event.pull_request.number }}
+  group: branch-policy-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +25,16 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            if (context.eventName === 'merge_group') {
+              // Only develop has a merge queue, and a pull request enters it
+              // only after this check passed on the pull request itself.
+              if (context.payload.merge_group.base_ref === 'refs/heads/develop') {
+                core.info('Merge queue entry for develop.');
+              } else {
+                core.setFailed('Only develop merges through a merge queue.');
+              }
+              return;
+            }
             const pr = context.payload.pull_request;
             if (pr.base.ref === 'develop') {
               core.info('Work PR targets develop.');

@@ -6,13 +6,18 @@ on:
     types: [opened, synchronize, reopened, edited, closed]
   push:
     branches: [develop, main]
+  # The full suite, on the exact tree a pull request will land as. With a
+  # merge queue on develop, a pull request's own run is the fast feedback.
+  merge_group:
 
 permissions:
   contents: read
 
 concurrency:
-  # A merged PR's ref becomes its base; its close event must still cancel only that PR.
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A new commit cancels its pull request's run, and a merged PR's close event
+  # cancels only that PR. A push run is never cancelled: each gets its own
+  # group, so a newer push cannot cancel it running or replace it pending.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -44,6 +49,7 @@ jobs:
       e2e_tier: ${{ steps.e2e.outputs.tier }}
       e2e_matrix: ${{ steps.e2e.outputs.matrix }}
       e2e_run: ${{ steps.e2e.outputs.run == 'true' && steps.release.outputs.reuse != 'true' }}
+      stack: ${{ steps.e2e.outputs.stack }}
     steps:
       # A pull request's merge commit has its base as the first parent, so two
       # commits of history are enough to list what the pull request changes.
@@ -77,7 +83,7 @@ jobs:
         run: |
           set -euo pipefail
           area() {
-            if [[ -z "${FILES//[[:space:]]/}" ]] || grep -qE "$2" <<< "$FILES"; then
+            if [[ "$GITHUB_EVENT_NAME" == merge_group || -z "${FILES//[[:space:]]/}" ]] || grep -qE "$2" <<< "$FILES"; then
               echo "$1=true" >> "$GITHUB_OUTPUT"
             else
               echo "$1=false" >> "$GITHUB_OUTPUT"
@@ -85,12 +91,30 @@ jobs:
           }
           area go '^(server/|Makefile$|\.github/workflows/ci\.yml$)'
           area native '^(clients/integrations/|clients/package-lock\.json$|\.github/workflows/ci\.yml$)'
+      # A pull request's run may leave the Docker stack to the merge queue only
+      # when its base has a queue that waits for `CI validation`, so the full
+      # suite still runs before it lands. Anything else, including rules that
+      # cannot be read, keeps the full pull request run.
+      - name: Check the base branch for a merge queue
+        id: queue
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          queued="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" --jq '
+            any(.[]; .type == "merge_queue") and any(.[]; .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]; .context == "CI validation"))' || true)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable}." >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$queued" == true ]]; then
+            echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Plan the browser tests
         id: e2e
         env:
           BASE: ${{ github.base_ref }}
           CHANGED_FILES: ${{ steps.changed.outputs.files }}
           EVENT: ${{ github.event_name }}
+          MERGE_QUEUE: ${{ steps.queue.outputs.merge_queue }}
           REF: ${{ github.ref }}
           SHARDS: ${{ env.E2E_SHARDS }}
         run: node dev/e2e-plan.mjs
@@ -122,7 +146,8 @@ jobs:
   # node_modules per shard, which was about a third of the whole runner budget.
   web-image:
     name: Build web image
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -177,7 +202,8 @@ jobs:
 
   backend-image:
     name: Build backend images
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -230,7 +256,8 @@ jobs:
 
   collab-image:
     name: Build collab image
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -553,9 +580,11 @@ jobs:
         run: npx tsc -p packages/shots-api-client/tsconfig.json --noEmit
       - name: Block unintended breaking API changes
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           document=server/internal/shotsapi/openapi.json
+          # An empty base would read the document from the index and compare it with itself.
+          [[ -n "$BASE" ]] || { echo 'No base revision to compare the OpenAPI document against.' >&2; exit 1; }
           if ! git cat-file -e "$BASE:$document" 2>/dev/null; then
             echo "The base revision has no OpenAPI document to compare against."
             exit 0
@@ -777,7 +806,7 @@ jobs:
     name: Social publishing gate
     needs: plan
     # A prose-only pull request cannot change what the worker publishes.
-    if: github.event_name != 'pull_request' || needs.plan.outputs.docs_only != 'true'
+    if: needs.plan.outputs.stack == 'true' && (github.event_name != 'pull_request' || needs.plan.outputs.docs_only != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -876,9 +905,11 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
           SKIPPABLE: >-
-            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
+            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ needs.plan.outputs.stack == 'false' && 'web-image backend-image collab-image social-gate ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
         run: |
           set -euo pipefail
+          # The merge queue is where the full suite runs: nothing may be skipped.
+          if [[ "$GITHUB_EVENT_NAME" == merge_group ]]; then SKIPPABLE=''; fi
           failed=''
           {
             echo '| Gate | Result |'

@@ -4,8 +4,9 @@
 // decisions. test/e2e/README.md ("When the suite runs") is the prose version.
 //
 // Usage: node dev/e2e-plan.mjs
-// Reads EVENT, REF, BASE, CHANGED_FILES and SHARDS; writes `tier`, `run` and
-// `matrix` to GITHUB_OUTPUT, or to stdout when it is unset.
+// Reads EVENT, REF, BASE, CHANGED_FILES, MERGE_QUEUE and SHARDS; writes
+// `tier`, `run`, `stack` and `matrix` to GITHUB_OUTPUT, or to stdout when it
+// is unset.
 import { readFileSync, readdirSync, existsSync, appendFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,6 +56,20 @@ export const FULL_SUITE_PATTERNS = [
   /^clients\/apps\/web\/test\/e2e\/framework\//,
 ]
 
+/**
+ * When a merge queue runs the full suite before a pull request lands, the pull
+ * request's own run skips the browser stack, except for a change to how CI or
+ * the stack is built (so a CI change is proven on the pull request that makes
+ * it) or to a lockfile.
+ */
+export const CI_CONFIG_PATTERNS = [
+  /^\.github\//,
+  /^dev\//,
+  /(^|\/)Dockerfile[^/]*$/,
+  /(^|\/)package-lock\.json$/,
+  /^server\/go\.(mod|sum)$/,
+]
+
 /** Tier C. Prose only: nothing the browser suite can observe. */
 export const DOCS_PATTERNS = [/^docs\//, /\.md$/]
 
@@ -73,23 +88,43 @@ export function isDocsOnly(changedFiles) {
 /**
  * Tier A (`full`), tier B (`smoke`) or tier C (`none`).
  *
- * A push to develop and a release pull request into main always run the full
- * suite. A pull request into develop runs the smoke set, unless it touches
- * something in FULL_SUITE_PATTERNS. No history to compare against means the
- * full suite, never fewer tests.
+ * The merge queue, a push to develop and a release pull request into main
+ * always run the full suite. A pull request into develop runs the smoke set,
+ * unless it touches something in FULL_SUITE_PATTERNS. When a merge queue
+ * guards its base, it runs no browser tests unless it touches
+ * CI_CONFIG_PATTERNS: the queue runs the full suite before it lands. No
+ * history to compare against means the full suite, never fewer tests.
  *
- * @param {{event?: string, ref?: string, baseRef?: string, changedFiles?: string[]}} input
+ * @param {{event?: string, ref?: string, baseRef?: string, changedFiles?: string[], mergeQueue?: boolean}} input
  * @returns {'full' | 'smoke' | 'none'}
  */
-export function planTier({ event, ref, baseRef, changedFiles }) {
+export function planTier({ event, ref, baseRef, changedFiles, mergeQueue }) {
+  if (event === 'merge_group') return 'full'
   if (event === 'push') return ref === 'refs/heads/develop' ? 'full' : 'none'
   if (baseRef === 'main') return 'full'
   if (!changedFiles) return 'full'
   const files = changedFiles.filter(Boolean)
   if (files.length === 0) return 'none'
   if (isDocsOnly(files)) return 'none'
+  if (mergeQueue) {
+    return files.some((file) => CI_CONFIG_PATTERNS.some((pattern) => pattern.test(file)))
+      ? 'full'
+      : 'none'
+  }
   if (files.some((file) => FULL_SUITE_PATTERNS.some((pattern) => pattern.test(file)))) return 'full'
   return 'smoke'
+}
+
+/**
+ * Whether the run builds the images and runs the Docker stack jobs (the
+ * browser shards and the social gate). Only a pull request that a merge queue
+ * will test in full, and that needs no browser tests of its own, skips them.
+ *
+ * @param {{event?: string, mergeQueue?: boolean, tier: string}} input
+ * @returns {boolean}
+ */
+export function needsStack({ event, mergeQueue, tier }) {
+  return !(event === 'pull_request' && mergeQueue && tier === 'none')
 }
 
 /**
@@ -202,12 +237,18 @@ export function buildMatrix({ tier, shards, specs, durations }) {
 
 function main() {
   const shards = Number(process.env.SHARDS || 3)
-  const changedFiles = process.env.CHANGED_FILES?.split('\n').map((line) => line.trim())
+  // A blank list means the diff could not be read, which runs everything.
+  const changedFiles = process.env.CHANGED_FILES?.trim()
+    ? process.env.CHANGED_FILES.split('\n').map((line) => line.trim())
+    : undefined
+  const event = process.env.EVENT
+  const mergeQueue = process.env.MERGE_QUEUE === 'true'
   const tier = planTier({
-    event: process.env.EVENT,
+    event,
     ref: process.env.REF,
     baseRef: process.env.BASE,
     changedFiles,
+    mergeQueue,
   })
   const specs = listSpecs()
   const durations = readDurations()
@@ -216,6 +257,7 @@ function main() {
     tier,
     docs_only: String(isDocsOnly(changedFiles)),
     run: String(matrix.length > 0),
+    stack: String(needsStack({ event, mergeQueue, tier })),
     // An empty matrix would make the job fail to expand; the job's `if` keys
     // off `run`, so give it a shape it can parse either way.
     matrix: JSON.stringify(
