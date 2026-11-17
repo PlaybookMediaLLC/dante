@@ -47,6 +47,11 @@ fmt-check:
 # quietly run half the tests.
 SHARD_INDEX = $(word 1,$(subst /, ,$(SHARD)))
 SHARD_COUNT = $(word 2,$(subst /, ,$(SHARD)))
+# The slowest other packages in CI (54, 37 and 27 s) are dealt to the shards
+# in turn ahead of the rest: alternating every package by name put all three
+# on one shard, which took 83 s to the other's 49. A package missing from
+# this list is still tested; it only sorts with the rest.
+SLOW_TEST_PATTERN := internal/capture/browser|internal/social/database/integration|internal/social/helpers
 
 test:
 ifneq ($(origin SHARD),command line)
@@ -61,8 +66,10 @@ else
 	test -n "$$mine" || { echo "internal/product: shard $(SHARD) has no tests" >&2; exit 1; }; \
 	echo "internal/product: shard $(SHARD) runs $$(echo "$$mine" | wc -l) of $$(echo "$$all" | wc -l) tests"; \
 	packages="$$(go list ./...)"; \
-	packages="$$(printf '%s\n' "$$packages" | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$' | \
-		LC_ALL=C sort | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
+	packages="$$(printf '%s\n' "$$packages" | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$' | LC_ALL=C sort)"; \
+	packages="$$( { printf '%s\n' "$$packages" | grep -E '/($(SLOW_TEST_PATTERN))$$'; \
+		printf '%s\n' "$$packages" | grep -Ev '/($(SLOW_TEST_PATTERN))$$'; } | \
+		awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
 	echo "shard $(SHARD) also runs $$(echo "$$packages" | grep -c .) other packages"; \
 	others=; status=0; \
 	if [ -n "$$packages" ]; then go test $$packages & others=$$!; fi; \
