@@ -447,7 +447,11 @@ jobs:
             eslint-${{ runner.os }}-${{ hashFiles('clients/package-lock.json', 'clients/eslint.config.mjs') }}-
       - run: npm run format:check
         working-directory: clients
-      - run: npm run lint -- --max-warnings=0
+      # A fresh checkout gives every file a new mtime, which invalidates the
+      # default metadata cache entry for every file: the restored cache never
+      # hit. Content hashes survive the checkout. No rule here reads another
+      # file or type information, so a file's result depends on it alone.
+      - run: npm run lint -- --max-warnings=0 --cache-strategy content
         working-directory: clients
 
   client-typecheck:
