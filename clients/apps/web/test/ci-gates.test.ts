@@ -222,12 +222,20 @@ test('every Go check runs in exactly one leg, and every leg exists', () => {
     .map((s) => s.trim())
   // A leg named in a step's condition but missing from the matrix, or the
   // reverse, would report success having run nothing.
-  const referenced = new Set([...job.matchAll(/matrix\.suite [!=]= '([a-z]+)'/g)].map((m) => m[1]))
+  const referenced = new Set(
+    [...job.matchAll(/matrix\.suite [!=]= '([a-z0-9-]+)'/g)].map((m) => m[1])
+  )
   assert.deepEqual([...referenced].sort(), [...suites].sort())
   for (const target of ['generate', 'fmt-check', 'vet', 'test', 'race']) {
-    const runs = job.match(new RegExp(`run: make ${target}$`, 'gm')) ?? []
+    const runs = job.match(new RegExp(`run: make ${target}( SHARD=.*)?$`, 'gm')) ?? []
     assert.equal(runs.length, 1, `make ${target} must run once`)
   }
+  // Shard 1 also runs every package but internal/product: a missing shard
+  // drops half of that package's tests.
+  assert.match(
+    job,
+    /run: make test SHARD=\$\{\{ matrix\.suite == 'test-1' && '1\/2' \|\| '2\/2' \}\}$/m
+  )
 })
 
 test('every check develop requires also reports in its merge queue', () => {

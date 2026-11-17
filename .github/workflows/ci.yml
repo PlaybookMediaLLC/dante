@@ -317,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [static, test, race]
+        suite: [static, test-1, test-2, race]
     env:
       # The restored build cache also holds test results, and the database
       # tests read a schema that CI migrates from SQL outside their binaries:
@@ -360,11 +360,11 @@ jobs:
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
       # Race builds share nothing with the others, so the race leg keeps its
-      # own entry. The static leg reads the test leg's and saves none. Each
-      # entry is about 1.1 GB, so it is keyed on go.sum alone and written once
-      # per dependency change: a new entry per push filled the repository's
-      # 10 GB and evicted every other cache. Packages changed since are
-      # recompiled; unchanged ones still hit.
+      # own entry. The static leg and the second test shard read the first
+      # test shard's and save none. Each entry is about 1.1 GB, so it is
+      # keyed on go.sum alone and written once per dependency change: a new
+      # entry per push filled the repository's 10 GB and evicted every other
+      # cache. Packages changed since are recompiled; unchanged ones still hit.
       - name: Restore the Go module and build output
         id: go-cache
         uses: actions/cache/restore@v4
@@ -415,22 +415,23 @@ jobs:
           create_founder_hub_database shared_cutover_test
           create_founder_hub_database notifications_test
       - name: Verify one public schema for product and social Ent models
-        if: matrix.suite == 'test'
+        if: matrix.suite == 'test-1'
         run: |
           go test ./internal/publishing -run TestOAuthGrantAndConnectionUseEntInOnePublicSchema -count=1
           go test ./internal/social/tenantpublishing -run TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost -count=1
-      # The race packages are excluded here; the race leg runs them.
-      - if: matrix.suite == 'test'
-        run: make test
+      # The race packages are excluded here; the race leg runs them. The
+      # Makefile says how the two shards divide the rest.
+      - if: matrix.suite == 'test-1' || matrix.suite == 'test-2'
+        run: make test SHARD=${{ matrix.suite == 'test-1' && '1/2' || '2/2' }}
       - name: Verify social migrations are repeatable
-        if: matrix.suite == 'test'
+        if: matrix.suite == 'test-1'
         run: |
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
       - if: matrix.suite == 'race'
         run: make race
       - name: Save the Go module and build output
-        if: matrix.suite != 'static' && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: (matrix.suite == 'test-1' || matrix.suite == 'race') && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@v4
         with:
           path: |

@@ -37,8 +37,33 @@ fmt:
 fmt-check:
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
+# CI splits `make test` into SHARD=1/2 and SHARD=2/2, one leg each; without
+# SHARD it runs everything. internal/product runs its tests one at a time
+# against one database and took 92 of the step's 100 s in CI, longer than
+# every other package together, so each shard runs alternate product tests by
+# sorted name, and the first also runs the other packages beside them.
+SHARD_INDEX = $(word 1,$(subst /, ,$(SHARD)))
+SHARD_COUNT = $(word 2,$(subst /, ,$(SHARD)))
+
 test:
+ifeq ($(SHARD),)
 	go test $$(go list ./... | grep -Ev '/($(RACE_PATH_PATTERN))$$')
+else
+	@test "$(SHARD_INDEX)" -ge 1 && test "$(SHARD_INDEX)" -le "$(SHARD_COUNT)"
+	@set -e; \
+	list="$$(go test -list . ./internal/product)"; \
+	all="$$(printf '%s\n' "$$list" | grep -E '^(Test|Example|Fuzz)' | sort)"; \
+	mine="$$(printf '%s\n' "$$all" | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
+	test -n "$$mine"; \
+	echo "internal/product: shard $(SHARD) runs $$(echo "$$mine" | wc -l) of $$(echo "$$all" | wc -l) tests"; \
+	others=; status=0; \
+	if [ "$(SHARD_INDEX)" = 1 ]; then \
+		go test $$(go list ./... | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$') & others=$$!; \
+	fi; \
+	go test -run "^($$(echo "$$mine" | paste -sd '|' -))$$" ./internal/product || status=$$?; \
+	if [ -n "$$others" ]; then wait "$$others" || status=1; fi; \
+	exit "$$status"
+endif
 
 race:
 	go test -race $(RACE_PACKAGES)
