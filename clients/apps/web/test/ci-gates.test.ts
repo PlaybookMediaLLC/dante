@@ -278,3 +278,12 @@ test('the API contract gate never compares the document with itself', () => {
   )
   assert.match(workflow, /\[\[ -n "\$BASE" \]\] \|\| \{/)
 })
+
+test('the Go build cache keeps one entry per leg and dependency set', () => {
+  // About 1.1 GB each: a new entry per develop push filled the repository's
+  // 10 GB and evicted every other cache.
+  const rest = workflow.slice(workflow.indexOf('\n  go-checks:\n') + 1)
+  const job = rest.slice(0, rest.search(/\n {2}[a-z][a-z0-9-]*:\n/))
+  assert.doesNotMatch(job, /key: go-.*github\.sha/)
+  assert.match(job, /steps\.go-cache\.outputs\.cache-hit != 'true'/)
+})
