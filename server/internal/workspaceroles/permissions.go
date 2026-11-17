@@ -35,3 +35,5 @@ func ForRole(role string) []string {
 		return []string{"workspace:read", "member:read", "artifact:read"}
 	}
 }
+
+// Measurement probe for the CI pull request lane; this pull request is not merged.
