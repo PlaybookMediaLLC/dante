@@ -230,8 +230,8 @@ test('every Go check runs in exactly one leg, and every leg exists', () => {
     const runs = job.match(new RegExp(`run: make ${target}( SHARD=.*)?$`, 'gm')) ?? []
     assert.equal(runs.length, 1, `make ${target} must run once`)
   }
-  // Shard 1 also runs every package but internal/product: a missing shard
-  // drops half of that package's tests.
+  // Each shard runs half of internal/product's tests and half of the other
+  // packages: a missing shard drops them.
   assert.deepEqual(
     suites.filter((suite) => suite.startsWith('test')),
     ['test-1', 'test-2']
