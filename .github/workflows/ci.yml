@@ -289,12 +289,19 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Three legs side by side: the checks that need no database, the tests, and
+  # the race-detector tests. Run one after another they took a median 11.5
+  # minutes, and every server pull request waited on the sum.
   go-checks:
-    name: Go checks
+    name: Go checks (${{ matrix.suite }})
     needs: plan
     if: needs.plan.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [static, test, race]
     env:
       # The restored build cache also holds test results, and the database
       # tests read a schema that CI migrates from SQL outside their binaries:
@@ -307,7 +314,8 @@ jobs:
       NOTIFICATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notifications_test?sslmode=disable
     services:
       postgres:
-        image: postgres:16-bookworm
+        # An empty image starts no container: the static leg needs no database.
+        image: ${{ matrix.suite != 'static' && 'postgres:16-bookworm' || '' }}
         env:
           POSTGRES_DB: publishing_acceptance
           POSTGRES_PASSWORD: postgres
@@ -335,6 +343,10 @@ jobs:
       # can read. A pull request's own save was readable by that pull request
       # alone, and each was gigabytes that pushed develop's out of the
       # repository's 10 GB, so every run compiled the tree twice from nothing.
+      # Race builds share nothing with the others, so the race leg keeps its
+      # own entry. The static leg reads the test leg's and saves none: three
+      # multi-GB entries per push would crowd the Docker layer caches out of
+      # the repository's 10 GB again.
       - name: Restore the Go module and build output
         id: go-cache
         uses: actions/cache/restore@v4
@@ -342,22 +354,32 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
+          key: go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
           restore-keys: |
-            go-${{ runner.os }}-${{ hashFiles('server/go.sum') }}-
-            go-${{ runner.os }}-
-      # psql ships with the runner image.
+            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}-
+            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
-      - run: make generate
+      - if: matrix.suite == 'static'
+        run: make generate
       - name: Verify generated clients are current
+        if: matrix.suite == 'static'
         run: git diff --exit-code -- ent internal/social/ent internal/frontenddeploy/vercelapi/client.gen.go
       - name: Verify the module graph is unchanged
+        if: matrix.suite == 'static'
         run: git diff --exit-code -- go.mod go.sum
+      - name: Verify Go formatting
+        if: matrix.suite == 'static'
+        run: make fmt-check
+      - if: matrix.suite == 'static'
+        run: make vet
+      # psql ships with the runner image.
       - name: Create the social test database
+        if: matrix.suite != 'static'
         run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE social_test'
       - name: Create and migrate Founder Hub test databases
+        if: matrix.suite != 'static'
         run: |
           create_founder_hub_database() {
             database="$1"
@@ -376,22 +398,22 @@ jobs:
           create_founder_hub_database shared_cutover_test
           create_founder_hub_database notifications_test
       - name: Verify one public schema for product and social Ent models
+        if: matrix.suite == 'test'
         run: |
           go test ./internal/publishing -run TestOAuthGrantAndConnectionUseEntInOnePublicSchema -count=1
           go test ./internal/social/tenantpublishing -run TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost -count=1
-      - name: Verify Go formatting
-        run: make fmt-check
-      # The race packages are excluded here; they ran twice against the one
-      # shared test database, once with the detector and once without.
-      - run: make test
+      # The race packages are excluded here; the race leg runs them.
+      - if: matrix.suite == 'test'
+        run: make test
       - name: Verify social migrations are repeatable
+        if: matrix.suite == 'test'
         run: |
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
-      - run: make race
-      - run: make vet
+      - if: matrix.suite == 'race'
+        run: make race
       - name: Save the Go module and build output
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        if: matrix.suite != 'static' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@v4
         with:
           path: |
