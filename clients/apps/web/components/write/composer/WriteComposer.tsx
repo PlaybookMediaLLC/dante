@@ -431,7 +431,7 @@ export function WriteComposer({
     if (!focus || !focusRoot.current) return
     // Hide the library and application chrome without remounting the editor.
     // Inert also removes their controls from keyboard and accessibility focus.
-    const hidden: { element: HTMLElement; hidden: boolean; inert: boolean }[] = []
+    const hidden: { element: HTMLElement; hidden: HTMLElement['hidden']; inert: boolean }[] = []
     let branch: HTMLElement = focusRoot.current
     while (branch.parentElement) {
       for (const sibling of branch.parentElement.children) {
