@@ -296,6 +296,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      # The restored build cache also holds test results, and the database
+      # tests read a schema that CI migrates from SQL outside their binaries:
+      # a cached pass could hide a migration that breaks them. Compiled
+      # packages still come from the cache.
+      GOFLAGS: -count=1
       MAINTENANCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/maintenance_test?sslmode=disable
       SOCIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_test?sslmode=disable
       PUBLISHING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/shared_cutover_test?sslmode=disable
@@ -326,8 +331,13 @@ jobs:
           # dependency bump threw away every compiled first-party package and
           # recompiled the standard library twice (once more for -race).
           cache: false
-      - name: Cache the Go module and build output
-        uses: actions/cache@v4
+      # Restored everywhere, saved only from develop, which every pull request
+      # can read. A pull request's own save was readable by that pull request
+      # alone, and each was gigabytes that pushed develop's out of the
+      # repository's 10 GB, so every run compiled the tree twice from nothing.
+      - name: Restore the Go module and build output
+        id: go-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/go-build
@@ -336,8 +346,7 @@ jobs:
           restore-keys: |
             go-${{ runner.os }}-${{ hashFiles('server/go.sum') }}-
             go-${{ runner.os }}-
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      # psql ships with the runner image.
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
@@ -381,6 +390,14 @@ jobs:
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
       - run: make race
       - run: make vet
+      - name: Save the Go module and build output
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
   # `quality:check` ran format, lint, typecheck and unit tests one after the
   # other in a single job: 5 minutes to the first red, and no way to tell at a

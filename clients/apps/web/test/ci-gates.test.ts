@@ -79,6 +79,13 @@ test('the gate is the context the rulesets require', () => {
   }
 })
 
+test('the Go checks never replay a cached test result', () => {
+  // The restored build cache holds develop's test results, and the database
+  // tests read a schema migrated from SQL outside their binaries.
+  const goChecks = workflow.slice(workflow.indexOf('\n  go-checks:\n'))
+  assert.match(goChecks.slice(0, goChecks.indexOf('\n    steps:\n')), /^ {6}GOFLAGS: -count=1$/m)
+})
+
 test('every check develop requires also reports in its merge queue', () => {
   // A required check that never runs on the queue's commit holds every pull
   // request in the queue until it times out.
