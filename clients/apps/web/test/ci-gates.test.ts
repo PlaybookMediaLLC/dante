@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 import test from 'node:test'
+import ts from 'typescript'
 
 /**
  * `CI validation` is the only required status check on develop and main
@@ -49,6 +51,17 @@ test('the gate runs even when a job it watches failed or was skipped', () => {
     workflow,
     /\n {2}validate:\n[\s\S]*?\n {4}if: always\(\) && github\.event\.action != 'closed'\n/
   )
+})
+
+test('a push run is never cancelled by the next push', () => {
+  // A cancelled develop push left its commit with no full-suite result.
+  for (const file of ['ci.yml', 'founder-hub-integration.yml']) {
+    const source = readFileSync(`../../../.github/workflows/${file}`, 'utf8')
+    assert.match(
+      source,
+      /group: .*\$\{\{ github\.event\.pull_request\.number \|\| github\.run_id \}\}$/m
+    )
+  }
 })
 
 test('the gate is the context the rulesets require', () => {
@@ -104,4 +117,164 @@ test('the sharded unit job runs every workspace test script as written', () => {
       )
     }
   }
+})
+
+const repoRoot = resolve('../../..')
+
+/** The pattern the Plan job matches changed files against for one area job. */
+function areaPattern(area: string): RegExp {
+  const match = workflow.match(new RegExp(`area ${area} '([^']+)'`))
+  assert.ok(match, `ci.yml has no ${area} area`)
+  return new RegExp(match[1]!)
+}
+
+// Selection may skip a job only when nothing its tests read changed. These
+// recompute what each area's tests read, so a new cross-tree read cannot
+// leave a pull request green while the job that would fail is skipped.
+test('the Go checks run when a file outside server/ that Go reads changes', () => {
+  const go = areaPattern('go')
+  const reads = readdirSync(join(repoRoot, 'server'), { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.go'))
+    .flatMap((file) => {
+      const source = readFileSync(join(repoRoot, 'server', file), 'utf8')
+      // Only a path written as one literal can be checked here.
+      assert.doesNotMatch(
+        source,
+        /filepath\.Join\([^)]*"\.\."/,
+        `${file}: write the path as one literal`
+      )
+      return [...source.matchAll(/["`]((?:\.\.\/)+[^"`]+)["`]/g)].map(
+        (match) =>
+          // A directory literal (`"../.github/workflows/" + file`) keeps its slash.
+          relative(repoRoot, resolve(repoRoot, 'server', dirname(file), match[1]!)) +
+          (match[1]!.endsWith('/') ? '/' : '')
+      )
+    })
+    .filter((path) => !path.startsWith('server/'))
+  assert.ok(reads.includes('clients/apps/web/lib/auth/permissions.ts'))
+  assert.deepEqual(
+    reads.filter((path) => !go.test(path)),
+    []
+  )
+})
+
+test('the native clients run when a module their code or tests import changes', () => {
+  const native = areaPattern('native')
+  // The Raycast tests run with the web app's tsconfig (its package.json).
+  const config = ts.getParsedCommandLineOfConfigFile(
+    'tsconfig.json',
+    {},
+    {
+      ...ts.sys,
+      onUnRecoverableConfigFileDiagnostic: () => {},
+    }
+  )
+  assert.ok(config)
+  const options = { ...config.options, resolveJsonModule: true }
+  const raycast = join(repoRoot, 'clients/integrations/raycast')
+  const queue = ['src', 'test'].flatMap((dir) =>
+    readdirSync(join(raycast, dir), { recursive: true, encoding: 'utf8' })
+      .filter((file) => /\.tsx?$/.test(file))
+      .map((file) => join(raycast, dir, file))
+  )
+  const seen = new Set<string>()
+  while (queue.length > 0) {
+    const file = queue.pop()!
+    if (seen.has(file)) continue
+    seen.add(file)
+    if (!/\.tsx?$/.test(file)) continue
+    for (const { fileName } of ts.preProcessFile(readFileSync(file, 'utf8')).importedFiles) {
+      const resolved = ts.resolveModuleName(fileName, file, options, ts.sys).resolvedModule
+      if (resolved && !resolved.resolvedFileName.includes('/node_modules/')) {
+        queue.push(resolved.resolvedFileName)
+      }
+    }
+  }
+  const files = [...seen].map((file) => relative(repoRoot, file))
+  assert.ok(files.includes('clients/apps/web/lib/api/contracts/write.ts'))
+  assert.deepEqual(
+    files.filter((path) => !native.test(path)),
+    []
+  )
+})
+
+test('the content-keyed ESLint cache only serves single-file rules', () => {
+  // A cached result is reused while its file is unchanged, which is safe only
+  // while no rule reads type information from other files.
+  assert.match(workflow, /npm run lint -- --max-warnings=0 --cache-strategy content/)
+  const config = readFileSync('../../eslint.config.mjs', 'utf8')
+  assert.doesNotMatch(config, /projectService|parserOptions:\s*\{[^}]*\bproject\b/)
+})
+
+test('the Go checks never replay a cached test result', () => {
+  // The restored build cache holds develop's test results, and the database
+  // tests read a schema migrated from SQL outside their binaries.
+  const goChecks = workflow.slice(workflow.indexOf('\n  go-checks:\n'))
+  assert.match(goChecks.slice(0, goChecks.indexOf('\n    steps:\n')), /^ {6}GOFLAGS: -count=1$/m)
+})
+
+test('every Go check runs in exactly one leg, and every leg exists', () => {
+  const goChecks = workflow.slice(workflow.indexOf('\n  go-checks:\n') + 1)
+  const job = goChecks.slice(0, goChecks.search(/\n {2}[a-z][a-z0-9-]*:\n/))
+  const suites = job
+    .match(/^ {8}suite: \[([^\]]+)\]$/m)![1]!
+    .split(',')
+    .map((s) => s.trim())
+  // A leg named in a step's condition but missing from the matrix, or the
+  // reverse, would report success having run nothing.
+  const referenced = new Set([...job.matchAll(/matrix\.suite [!=]= '([a-z]+)'/g)].map((m) => m[1]))
+  assert.deepEqual([...referenced].sort(), [...suites].sort())
+  for (const target of ['generate', 'fmt-check', 'vet', 'test', 'race']) {
+    const runs = job.match(new RegExp(`run: make ${target}$`, 'gm')) ?? []
+    assert.equal(runs.length, 1, `make ${target} must run once`)
+  }
+})
+
+test('every check develop requires also reports in its merge queue', () => {
+  // A required check that never runs on the queue's commit holds every pull
+  // request in the queue until it times out.
+  const ruleset = JSON.parse(readFileSync('../../../.github/rulesets/develop.json', 'utf8'))
+  assert.ok(ruleset.rules.some((rule: { type: string }) => rule.type === 'merge_queue'))
+  for (const file of ['ci.yml', 'branch-policy.yml']) {
+    const source = readFileSync(`../../../.github/workflows/${file}`, 'utf8')
+    assert.match(source, /^ {2}merge_group:$/m, `${file} must run on merge_group`)
+  }
+})
+
+// The wiring that turns plan outputs into accepted skips. Each regression
+// below would let `CI validation` pass with checks that never ran.
+test('the gate accepts a skip only for a plan output that exists', () => {
+  const outputs = workflow.slice(
+    workflow.indexOf('\n    outputs:\n'),
+    workflow.indexOf('\n    steps:\n')
+  )
+  const declared = new Set([...outputs.matchAll(/^ {6}([a-z0-9_]+):/gm)].map((match) => match[1]))
+  const used = new Set(
+    [...workflow.matchAll(/needs\.plan\.outputs\.([a-z0-9_]+)/g)].map((match) => match[1])
+  )
+  assert.deepEqual(
+    [...used].filter((name) => !declared.has(name)),
+    []
+  )
+  // An unset output must not read as a reason to skip the stack.
+  assert.doesNotMatch(workflow, /outputs\.stack != 'true'/)
+})
+
+test('nothing may be skipped in the merge queue', () => {
+  assert.match(workflow, /if \[\[ "\$GITHUB_EVENT_NAME" == merge_group \]\]; then SKIPPABLE=''; fi/)
+  assert.match(workflow, /area\(\) \{\n\s+if \[\[ "\$GITHUB_EVENT_NAME" == merge_group \|\|/)
+})
+
+test('a pull request narrows only behind a queue that waits for CI validation', () => {
+  const step = workflow.slice(workflow.indexOf('name: Check the base branch for a merge queue'))
+  assert.match(step, /\.type == "merge_queue"/)
+  assert.match(step, /\.type == "required_status_checks"[\s\S]*\.context == "CI validation"/)
+})
+
+test('the API contract gate never compares the document with itself', () => {
+  assert.match(
+    workflow,
+    /BASE: \$\{\{ github\.event\.pull_request\.base\.sha \|\| github\.event\.merge_group\.base_sha \|\|/
+  )
+  assert.match(workflow, /\[\[ -n "\$BASE" \]\] \|\| \{/)
 })
