@@ -37,8 +37,39 @@ fmt:
 fmt-check:
 	@test -z "$$(gofmt -l .)" || { gofmt -l .; exit 1; }
 
+# CI splits `make test` into SHARD=1/2 and SHARD=2/2, one leg each; without
+# SHARD it runs everything. internal/product runs its tests one at a time
+# against one database and took 92 of the step's 100 s in CI, longer than
+# every other package together, so each shard runs alternate product tests by
+# sorted name and, beside them, alternate other packages: one shard running
+# all the others took 88 s while its product half took 54. Only a SHARD given
+# on the command line counts: one exported by a shell or a CI tool would
+# quietly run half the tests.
+SHARD_INDEX = $(word 1,$(subst /, ,$(SHARD)))
+SHARD_COUNT = $(word 2,$(subst /, ,$(SHARD)))
+
 test:
+ifneq ($(origin SHARD),command line)
 	go test $$(go list ./... | grep -Ev '/($(RACE_PATH_PATTERN))$$')
+else
+	@test "$(words $(subst /, ,$(SHARD)))" -eq 2 && test "$(SHARD_INDEX)" -ge 1 && \
+		test "$(SHARD_INDEX)" -le "$(SHARD_COUNT)" || { echo "SHARD must be i/n with 1 <= i <= n" >&2; exit 1; }
+	@set -e; \
+	list="$$(go test -list . ./internal/product)"; \
+	all="$$(printf '%s\n' "$$list" | grep -E '^(Test|Example|Fuzz)' | LC_ALL=C sort)"; \
+	mine="$$(printf '%s\n' "$$all" | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
+	test -n "$$mine" || { echo "internal/product: shard $(SHARD) has no tests" >&2; exit 1; }; \
+	echo "internal/product: shard $(SHARD) runs $$(echo "$$mine" | wc -l) of $$(echo "$$all" | wc -l) tests"; \
+	packages="$$(go list ./...)"; \
+	packages="$$(printf '%s\n' "$$packages" | grep -Ev '/($(RACE_PATH_PATTERN)|internal/product)$$' | \
+		LC_ALL=C sort | awk 'NR % $(SHARD_COUNT) == $(SHARD_INDEX) % $(SHARD_COUNT)')"; \
+	echo "shard $(SHARD) also runs $$(echo "$$packages" | grep -c .) other packages"; \
+	others=; status=0; \
+	if [ -n "$$packages" ]; then go test $$packages & others=$$!; fi; \
+	go test -run "^($$(echo "$$mine" | paste -sd '|' -))$$" ./internal/product || status=$$?; \
+	if [ -n "$$others" ]; then wait "$$others" || status=1; fi; \
+	exit "$$status"
+endif
 
 race:
 	go test -race $(RACE_PACKAGES)
