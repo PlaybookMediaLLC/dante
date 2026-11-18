@@ -154,6 +154,12 @@ func (c *Configuration) planReleaseCaptures(ctx context.Context, org string, eve
 	if err != nil {
 		return nil, err
 	}
+	return c.choosePages(ctx, candidates, evidence, action.CreditLimit)
+}
+
+// choosePages makes the one model call that picks candidates for the release
+// evidence, and keeps only usable choices.
+func (c *Configuration) choosePages(ctx context.Context, candidates []captureCandidate, evidence string, creditLimit int) (*automation.Generation, error) {
 	screens, err := json.Marshal(candidates)
 	if err != nil {
 		return nil, err
@@ -194,7 +200,7 @@ func (c *Configuration) planReleaseCaptures(ctx context.Context, org string, eve
 		}
 		plan = append(plan, automation.PlannedCapture{RecipeID: planned.RecipeID, Feature: feature})
 	}
-	return &automation.Generation{Credits: creditsFor(usage, action.CreditLimit), Captures: plan}, nil
+	return &automation.Generation{Credits: creditsFor(usage, creditLimit), Captures: plan}, nil
 }
 
 // releaseEvidence is the untrusted text a model may read about a release: the

@@ -292,7 +292,7 @@ open.onsuccess = () => {
 					`<button aria-haspopup="dialog" onclick="fetch('/delete')">Delete report</button><button>Plain button</button>` +
 					`<button type="submit" aria-haspopup="dialog">Continue</button><form><button aria-expanded="false">Next</button></form><button form="elsewhere" aria-haspopup="menu">Go</button>` +
 					`<button role="switch" aria-expanded="false">Dark mode</button><button aria-pressed="false" aria-haspopup="menu">Pinned</button>` +
-					`<table><tr><td><button aria-expanded="false">Expand row</button></td></tr></table><button aria-haspopup="menu">ACME-DEMO menu</button>` +
+					`<table><tr><td><button aria-expanded="false">Expand row</button></td></tr></table><button aria-haspopup="menu">ACME-DEMO menu</button><button aria-expanded="true">Filters</button>` +
 					`<button id="relabel" aria-haspopup="dialog" onclick="fetch('/delete')">Details</button>` +
 					`<div id="export-panel" class="export-panel" role="dialog" hidden style="background:#00ee00;width:300px;height:120px"><h2>Export as CSV</h2></div>`
 			case "/signed-in-tabs":
@@ -526,6 +526,9 @@ func TestRealBrowserNavigatesObservedFeature(t *testing.T) {
 			}
 		}
 		if view.Ready {
+			if !slices.Equal(view.Current, []string{"Detailed report"}) {
+				t.Fatalf("current=%q", view.Current)
+			}
 			id := -1
 			return NavigationChoice{Action: "capture", ControlID: &id}, nil
 		}
@@ -654,6 +657,9 @@ func TestRealBrowserPressesOnlySafeButtons(t *testing.T) {
 	result, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: recipe, State: state, NextNavigation: func(_ context.Context, view NavigationObservation) (NavigationChoice, error) {
 		if view.Ready {
 			return NavigationChoice{Action: "capture", ControlID: new(int(-1))}, nil
+		}
+		if !slices.Equal(view.Current, []string{"Filters"}) {
+			t.Fatalf("current=%q", view.Current)
 		}
 		for _, control := range view.Controls {
 			if control.Kind == "button" {

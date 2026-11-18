@@ -20,9 +20,11 @@ type NavigationControl struct {
 
 // NavigationObservation contains paths, headings and navigation labels. Input
 // values, account elements, masked content and URL queries never reach a model.
+// Current names the selected tabs and open controls, which are not choices.
 type NavigationObservation struct {
 	Path     string              `json:"path"`
 	Headings []string            `json:"headings"`
+	Current  []string            `json:"current"`
 	Controls []NavigationControl `json:"controls"`
 	Ready    bool                `json:"ready"`
 	loading  bool
@@ -60,8 +62,8 @@ const (
 // model saw is exactly the label a press compares. identity, masks and account
 // are in scope; e is an element. Only controls that open something are
 // pressable: a menu, panel, dialog or disclosure, never a toggle, a grid row, a
-// control in a form, one that submits or resets, or one named for a risky
-// action. The network policy refuses writes to other paths, but an allowed GET
+// control in a form, one already open (pressing it closes what it opened), one
+// that submits or resets, or one named for a risky action. The network policy refuses writes to other paths, but an allowed GET
 // or POST path, or what a click stores in the session, can still change state,
 // so the selection itself stays narrow.
 const navigationChecks = `
@@ -73,7 +75,7 @@ const navigationChecks = `
  const mentionsAccount = e => !!account && raw(e).toLowerCase().includes(account.toLowerCase());
  const text = e => { let label = raw(e).trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]'); if (accountPattern) label = label.replace(accountPattern,'[account]'); return label.slice(0,120); };
  const pressable = e => e.matches(pressableSelector) &&
-   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed]') &&
+   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed],[aria-expanded=true]') &&
    !e.closest('form,table,[role=grid],[role=treegrid],[role=row]') &&
    !/\b(delete|remove|destroy|erase|trash|discard|sign[ -]?(out|off)|log[ -]?(out|off)|exit|end session|close account|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|enable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect|start|run|generate|retry|duplicate|switch|impersonate)\b/i.test(raw(e));
 `
@@ -93,6 +95,7 @@ const observeNavigation = `(identity, masks, markers, account, buttons) => {` + 
  if (buttons) for (const e of document.querySelectorAll(pressableSelector)) { if (chosen.length >= 60) break; if (!links.has(e) && pressable(e) && usable(e)) chosen.push(e); }
  const controls = chosen.map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.has(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
  return {headings:Array.from(document.querySelectorAll('h1,h2,[role=heading]')).filter(e=>visible(e)&&!excluded(e)).slice(0,12).map(text),controls,
+   current:Array.from(document.querySelectorAll('[role=tab][aria-selected=true],[aria-expanded=true]')).filter(e=>visible(e)&&!excluded(e)&&!mentionsAccount(e)).slice(0,12).map(text).filter(Boolean),
    loading:Array.from(document.querySelectorAll('[aria-busy=true],[role=progressbar]')).some(visible),
    ready:markers.every(s=>Array.from(document.querySelectorAll(s)).some(visible))};
 }`
@@ -112,7 +115,7 @@ func navigationPath(raw, origin string) (string, bool) {
 }
 
 func (s *scope) observeNavigation(ctx context.Context, input RunInput) (NavigationObservation, error) {
-	view := NavigationObservation{Headings: []string{}, Controls: []NavigationControl{}}
+	view := NavigationObservation{Headings: []string{}, Current: []string{}, Controls: []NavigationControl{}}
 	here, err := s.location()
 	if err != nil || here.Scheme+"://"+here.Host != input.Target.Origin || s.privateResponse.Load() {
 		return view, &Failure{Code: OriginRefused}
@@ -129,6 +132,7 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	}
 	var snapshot struct {
 		Headings []string `json:"headings"`
+		Current  []string `json:"current"`
 		Ready    bool     `json:"ready"`
 		Loading  bool     `json:"loading"`
 		Controls []struct {
@@ -138,7 +142,7 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	if err := json.Unmarshal([]byte(result.Value.JSON("", "")), &snapshot); err != nil {
 		return view, &Failure{Code: PageFailed}
 	}
-	view.Headings, view.Ready = snapshot.Headings, snapshot.Ready
+	view.Headings, view.Current, view.Ready = snapshot.Headings, snapshot.Current, snapshot.Ready
 	view.loading = snapshot.Loading
 	view.Ready = view.Ready && !view.loading
 	for _, control := range snapshot.Controls {
