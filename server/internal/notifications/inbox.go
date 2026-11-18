@@ -123,11 +123,19 @@ func (s *Service) ListFeed(ctx context.Context, p Principal, view, cursor string
 		}
 		page.NextCursor = base64.RawURLEncoding.EncodeToString(raw)
 	}
+	// One role read for the page; resource would repeat it for every item.
+	role, err := s.resourceRole(ctx, p.OrganizationID, p.UserID)
+	if err != nil {
+		return nil, err
+	}
 	for idx := range page.Items {
 		item := &page.Items[idx]
-		ok, _, err := s.resource(ctx, p.OrganizationID, p.UserID, item.resourceType, item.resourceID)
-		if err != nil {
-			return nil, err
+		ok := false
+		if role != "" {
+			ok, _, err = s.resourceForRole(ctx, p.OrganizationID, p.UserID, role, item.resourceType, item.resourceID)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if ok {
 			item.SourceSocialSet, ok, err = sourceSocialSet(ctx, s.DB, p.OrganizationID, p.UserID, item.sourceSocialSetID)

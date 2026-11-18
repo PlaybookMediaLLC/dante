@@ -92,6 +92,8 @@ const provider = betterAuth({
   },
   plugins: [
     jwt({
+      // Nothing reads the set-auth-jwt header; signing it cost a JWKS read on every getSession.
+      disableSettingJwtHeader: true,
       jwks: { keyPairConfig: { alg: 'ES256' } },
       jwt: {
         issuer: new URL('/api/auth', getAuthBaseUrl()).toString(),

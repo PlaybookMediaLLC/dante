@@ -148,19 +148,34 @@ func (c *Configuration) ListWorkspaces(ctx context.Context, actor Actor) ([]List
 	if err != nil {
 		return nil, err
 	}
+	// Every page reads this list, so it is three queries however many workspaces there are.
+	ids := make([]string, 0, len(memberships))
+	for _, membership := range memberships {
+		ids = append(ids, membership.OrganizationID)
+	}
+	orgs, err := c.client.Organization.Query().Where(organization.IDIn(ids...)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	orgByID := make(map[string]*ent.Organization, len(orgs))
+	for _, org := range orgs {
+		orgByID[org.ID] = org
+	}
+	deletions, err := c.client.WorkspaceDeletion.Query().Where(workspacedeletion.OrganizationIDIn(ids...)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	deletionByOrg := make(map[string]*ent.WorkspaceDeletion, len(deletions))
+	for _, deletion := range deletions {
+		deletionByOrg[deletion.OrganizationID] = deletion
+	}
 	items := make([]ListedWorkspace, 0, len(memberships))
 	for _, membership := range memberships {
-		org, err := c.client.Organization.Get(ctx, membership.OrganizationID)
-		if ent.IsNotFound(err) {
+		org := orgByID[membership.OrganizationID]
+		if org == nil {
 			continue
 		}
-		if err != nil {
-			return nil, err
-		}
-		deletion, err := c.client.WorkspaceDeletion.Query().Where(workspacedeletion.OrganizationID(org.ID)).Only(ctx)
-		if err != nil && !ent.IsNotFound(err) {
-			return nil, err
-		}
+		deletion := deletionByOrg[org.ID]
 		if deletion != nil && deletion.Status != workspacedeletion.StatusCANCELLED &&
 			(deletion.Status != workspacedeletion.StatusPENDING || deletion.RequestedByUserID != actor.UserID) {
 			continue

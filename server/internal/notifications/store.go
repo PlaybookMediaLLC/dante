@@ -445,14 +445,25 @@ func audit(ctx context.Context, tx *sql.Tx, p Principal, action, id string) erro
 var resourceTables = map[string]string{"frontend_source": "frontend_source", "frontend_activation": "frontend_activation", "campaign": "campaign", "release": "release", "source_change": "source_change", "source_app": "source_app", "deployment_event": "deployment_event", "asset": "asset", "creative_variant": "creative_variant", "release_spec": "release_spec", "campaign_plan": "campaign_plan", "launch_run": "launch_run", "content_draft": "content_draft", "store_review": "store_review", "product_surface": "product_surface", "scheduled_post": "scheduled_post", "project": "project", "release_automation_run": "release_automation_run"}
 
 func (s *Service) resource(ctx context.Context, org, user, kind, id string) (bool, map[string]any, error) {
+	role, err := s.resourceRole(ctx, org, user)
+	if err != nil || role == "" {
+		return false, nil, err
+	}
+	return s.resourceForRole(ctx, org, user, role, kind, id)
+}
+
+// resourceRole is the recipient's role, or "" when they can see nothing in the workspace.
+func (s *Service) resourceRole(ctx context.Context, org, user string) (string, error) {
 	var role string
 	err := s.DB.QueryRowContext(ctx, `SELECT m.role FROM member m JOIN "user" u ON u.id=m."userId" WHERE m."organizationId"=$1 AND m."userId"=$2 AND COALESCE(u.banned,false)=false AND NOT EXISTS(SELECT 1 FROM workspace_deletion WHERE "organizationId"=$1 AND status<>'CANCELLED')`, org, user).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil, nil
+		return "", nil
 	}
-	if err != nil {
-		return false, nil, err
-	}
+	return role, err
+}
+
+// resourceForRole applies resource's rules for a role resourceRole already read.
+func (s *Service) resourceForRole(ctx context.Context, org, user, role, kind, id string) (bool, map[string]any, error) {
 	if kind == "legacy_activity" {
 		return true, map[string]any{}, nil
 	}
@@ -484,7 +495,8 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 		return false, nil, nil
 	}
 	var raw []byte
-	err = s.DB.QueryRowContext(ctx, `SELECT to_jsonb(r) FROM `+table+` r WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&raw)
+	// A project's document can be a megabyte, and no caller reads it.
+	err := s.DB.QueryRowContext(ctx, `SELECT to_jsonb(r) - 'document' FROM `+table+` r WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&raw)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil, nil
 	}

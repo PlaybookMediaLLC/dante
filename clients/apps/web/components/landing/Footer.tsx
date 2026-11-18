@@ -6,6 +6,7 @@ import { AdSenseScript } from "@/components/AdSenseScript";
 import { CookieSettingsButton } from "@/components/ConsentBanner";
 import { TOOLS } from "@/lib/seo/tools";
 import { guides } from "@/lib/seo/guides";
+import { needsSignIn } from "@/lib/auth/sign-in-gate";
 
 interface FooterProps {
   brandName?: string;
@@ -61,6 +62,7 @@ function FooterNavLink({
   return (
     <Link
       href={href}
+      prefetch={needsSignIn(href) ? false : undefined}
       className="flex w-full flex-1 items-center rounded-md bg-foreground/[0.04] px-4 py-3 text-sm text-foreground/90 ring-1 ring-border transition-colors duration-150 hover:bg-foreground/[0.08] hover:text-foreground"
     >
       {label}
@@ -127,6 +129,8 @@ export function Footer({ brandName = "Shots" }: FooterProps) {
                   {index > 0 && <span aria-hidden="true"> · </span>}
                   <Link
                     href={link.href}
+                    // A gated page's prefetch makes the proxy read the session and plan.
+                    prefetch={needsSignIn(link.href) ? false : undefined}
                     className="transition-colors duration-150 hover:text-foreground"
                   >
                     {link.label}

@@ -295,14 +295,16 @@ function SetWorkspace({
     const end = () => {
       pointing = false
     }
+    // Each refresh downloads the whole set: skip hidden tabs and poll at the canvas's pace.
     const timer = setInterval(() => {
       if (
+        document.visibilityState === 'hidden' ||
         pointing ||
         document.activeElement?.closest('input,textarea,[contenteditable="true"],[role="dialog"]')
       )
         return
       void session.refreshRemote(flushActive)
-    }, 1500)
+    }, 4000)
     window.addEventListener('pointerdown', start, true)
     window.addEventListener('pointerup', end, true)
     window.addEventListener('pointercancel', end, true)
