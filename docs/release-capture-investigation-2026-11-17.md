@@ -281,7 +281,6 @@ or scoped authorization in [the RFC index](rfcs/README.md).
 | Production capture-to-draft UI run | Shots operator with an uninterrupted browser |
 | GitHub App access to the Verifier repository | Oppulence-Engineering organization owner |
 | Cloudflare capture credentials and object storage, to run the real provider outside production (a real model has run; see the measurement) | Platform engineering |
-| Session-lifetime policy above 24 hours | Product owner, against RFC 007's pilot limit |
 
 ## Implemented on this branch
 
@@ -298,9 +297,28 @@ dependencies outside the code remain open: they need people and credentials, not
 | 7. Smaller fixes | `navigation_unconfigured` fails a navigation recipe at once on a worker without a model. Capture jobs show the AI's path and the release change. The account element is optional: without it, the expected account must be an email, shown as visible text in the header or navigation and outside main content, sidebars, tables, option lists and dialogs. IndexedDB-only sessions are pinned as refused. | `TestCaptureNavigationWithoutAModelFailsAtOnce`, `TestRealBrowserProvesTheAccountWithoutASelector`, `TestRealBrowserRefusesAnIndexedDBOnlySession` |
 
 Still open, unchanged by code: the production capture-to-draft run, the GitHub App
-repository grant, a navigation measurement on a real staging app through the real
-provider (Cloudflare Browser Run), and the decision on whether 30 days is the
-right absolute cap for saved sessions.
+repository grant, and a navigation measurement on a real staging app through the
+real provider (Cloudflare Browser Run), left to operators with the steps below.
+The 30-day cap on saved sessions was confirmed on 2026-11-18; RFC 007 records it.
+
+### Operator task: measure on a real staging app
+
+1. Configure capture on the API and the worker: `PLATFORM_CAPTURE_CDP_URL`,
+   `PLATFORM_CAPTURE_CDP_TOKEN` and `PLATFORM_CAPTURE_STATE_KEY`
+   ([server README](../server/README.md)). The worker also needs
+   `OPENROUTER_API_KEY`, or AI recipes fail with `navigation_unconfigured`.
+2. On Workflows → Connections, add a connection for the staging app and sign in
+   once as its demo account in the window it opens.
+3. Add three to five screens whose feature sits behind a link, a tab or a
+   dialog. Fill in "Feature to find", and set "Element that proves the screen"
+   to an element only the feature's state shows, not one every page has.
+4. Run "Test capture" five times per screen. For each run, record whether it
+   captured the right state, or its failure code (`navigation_failed`,
+   `navigation_limit`, `marker_missing`, `navigation_budget`), and the AI path
+   shown on the capture job.
+5. Run one release-matched workflow (`capture_product` with `matchRelease`) on a
+   real deployment, and check the pages it chose and the drafts it made.
+6. Add the results here, beside the synthetic measurement below.
 
 ## Real-model measurement
 
