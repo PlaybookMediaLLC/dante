@@ -8,7 +8,7 @@ RUN apt-get update \
 
 WORKDIR /workspace/clients
 
-COPY clients/package.json clients/package-lock.json ./
+COPY clients/package.json clients/package-lock.json clients/.npmrc ./
 # npm ci links every workspace, so each workspace manifest must exist first.
 # test/workspace-manifests.test.ts fails when a workspace is missing here.
 COPY clients/apps/collab-server/package.json ./apps/collab-server/

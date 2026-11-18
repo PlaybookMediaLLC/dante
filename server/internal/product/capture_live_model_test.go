@@ -10,6 +10,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -81,30 +82,35 @@ func TestLiveModelNavigationAndPageChoice(t *testing.T) {
 		t.Skip("set CAPTURE_LIVE_MODEL, OPENROUTER_API_KEY and CAPTURE_TEST_CHROME")
 	}
 	runs := 5
-	if os.Getenv("CAPTURE_LIVE_TRACE") != "" {
-		runs = 1
-	}
+	var mu sync.Mutex
 	requests := []string{}
-	_, port := liveAppServer(t, func(request string) { requests = append(requests, request) })
+	_, port := liveAppServer(t, func(request string) { mu.Lock(); requests = append(requests, request); mu.Unlock() })
 	b := liveChrome(t)
 	target := browser.Target{Origin: "https://app.example.test:" + port, Hosts: []string{"app.example.test"}, ProtectedPath: "/dashboard",
 		IdentitySelector: "[data-testid=account]", ExpectedAccount: "demo@acme.test"}
 
+	// want is the screen a right capture shows: its path, then the control
+	// that must be selected or open there, if any.
 	type scenario struct {
 		name, objective, change, marker string
-		reachable                       bool
+		want                            []string
 	}
 	scenarios := []scenario{
-		{"link", "Open the reports area and show its summary chart.", "", ".reports-summary", true},
-		{"link then dialog", "Show the reports export dialog.", "CSV export for reports", ".export-dialog", true},
-		{"link then tab", "Show the billing invoice history.", "Invoices now show tax lines", ".invoice-history", true},
-		{"absent feature", "Show the audit log.", "Audit log of every sign-in", ".audit-log", false},
+		{"link", "Open the reports area and show its summary chart.", "", ".reports-summary", []string{"/reports"}},
+		{"link then dialog", "Show the reports export dialog.", "CSV export for reports", ".export-dialog", []string{"/reports", "Export"}},
+		{"link then tab", "Show the billing invoice history.", "Invoices now show tax lines", ".invoice-history", []string{"/billing", "Invoices"}},
+		// The marker proves only the page; the release change is behind a tab.
+		{"change past a ready page", "Show the reports area.", "Weekly report breakdown", ".reports-summary", []string{"/reports", "Weekly"}},
+		// A marker every page shows: ready is true on screens the objective does not name.
+		{"marker on every page", "Show the billing invoice history.", "", "h1", []string{"/billing", "Invoices"}},
+		{"absent feature", "Show the audit log.", "Audit log of every sign-in", ".audit-log", nil},
 	}
-	t.Log("navigation | runs | reached | honest stop | avg steps | avg seconds | total cost USD")
+	t.Log("navigation | runs | reached | wrong state | model stopped | step cap | avg steps | avg seconds | total cost USD")
 	for _, s := range scenarios {
-		reached, stopped, steps, cost := 0, 0, 0, 0.0
+		reached, wrong, stopped, capped, steps, cost := 0, 0, 0, 0, 0, 0.0
 		started := time.Now()
 		for range runs {
+			last, current := "", []string{}
 			recipe := browser.Recipe{SchemaVersion: 1, Viewport: browser.Viewport{Width: 1024, Height: 768}, Steps: []browser.Step{{Kind: browser.StepNavigate, Path: "/dashboard"}},
 				Markers: []string{s.marker}, Navigation: &browser.Navigation{Objective: s.objective, MaxSteps: 4, CreditLimit: 20}}
 			next := func(ctx context.Context, view browser.NavigationObservation) (browser.NavigationChoice, error) {
@@ -116,9 +122,8 @@ func TestLiveModelNavigationAndPageChoice(t *testing.T) {
 				usage, err := model.Structured(ctx, navigationRequest(prompt), &choice)
 				cost += usage.CostUSD
 				steps++
-				if os.Getenv("CAPTURE_LIVE_TRACE") != "" {
-					t.Logf("  %s path=%s ready=%v controls=%d -> %s %v (err=%v)", s.name, view.Path, view.Ready, len(view.Controls), choice.Action, controlLabel(view, choice), err)
-				}
+				last, current = choice.Action, view.Current
+				t.Logf("  %s path=%s ready=%v current=%q -> %s %v (err=%v)", s.name, view.Path, view.Ready, view.Current, choice.Action, controlLabel(view, choice), err)
 				return choice, err
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -126,18 +131,25 @@ func TestLiveModelNavigationAndPageChoice(t *testing.T) {
 			cancel()
 			var failure *browser.Failure
 			switch {
-			case err == nil && s.reachable:
+			case err == nil && s.want == nil:
+				t.Fatalf("%s: captured %s although the feature does not exist", s.name, result.SourcePath)
+			case err == nil && result.SourcePath == s.want[0] && (len(s.want) == 1 || slices.Contains(current, s.want[1])):
 				reached++
 			case err == nil:
-				t.Fatalf("%s: captured %s although the feature does not exist", s.name, result.SourcePath)
-			case errors.As(err, &failure) && !s.reachable && (failure.Code == browser.NavigationFailed || failure.Code == browser.NavigationLimit || failure.Code == browser.MarkerMissing):
+				wrong++
+				t.Logf("%s: captured %s with %q", s.name, result.SourcePath, current)
+			case errors.As(err, &failure) && failure.Code == browser.NavigationFailed && last == "stop":
 				stopped++
+			case errors.As(err, &failure) && failure.Code == browser.NavigationLimit:
+				capped++
 			default:
 				t.Logf("%s: %v", s.name, err)
 			}
 		}
-		t.Logf("%s | %d | %d | %d | %.1f | %.1f | %.4f", s.name, runs, reached, stopped, float64(steps)/float64(runs), time.Since(started).Seconds()/float64(runs), cost)
+		t.Logf("%s | %d | %d | %d | %d | %d | %.1f | %.1f | %.4f", s.name, runs, reached, wrong, stopped, capped, float64(steps)/float64(runs), time.Since(started).Seconds()/float64(runs), cost)
 	}
+	mu.Lock()
+	defer mu.Unlock()
 	for _, request := range requests {
 		if strings.Contains(request, "/logout") || !strings.HasPrefix(request, "GET ") {
 			t.Fatalf("the app received %s", request)

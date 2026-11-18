@@ -75,7 +75,7 @@ const navigationChecks = `
  const mentionsAccount = e => !!account && raw(e).toLowerCase().includes(account.toLowerCase());
  const text = e => { let label = raw(e).trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]'); if (accountPattern) label = label.replace(accountPattern,'[account]'); return label.slice(0,120); };
  const pressable = e => e.matches(pressableSelector) &&
-   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed],[aria-expanded=true]') &&
+   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed],[aria-expanded=true],details[open]>summary') &&
    !e.closest('form,table,[role=grid],[role=treegrid],[role=row]') &&
    !/\b(delete|remove|destroy|erase|trash|discard|sign[ -]?(out|off)|log[ -]?(out|off)|exit|end session|close account|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|enable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect|start|run|generate|retry|duplicate|switch|impersonate)\b/i.test(raw(e));
 `
@@ -95,7 +95,7 @@ const observeNavigation = `(identity, masks, markers, account, buttons) => {` + 
  if (buttons) for (const e of document.querySelectorAll(pressableSelector)) { if (chosen.length >= 60) break; if (!links.has(e) && pressable(e) && usable(e)) chosen.push(e); }
  const controls = chosen.map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.has(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
  return {headings:Array.from(document.querySelectorAll('h1,h2,[role=heading]')).filter(e=>visible(e)&&!excluded(e)).slice(0,12).map(text),controls,
-   current:Array.from(document.querySelectorAll('[role=tab][aria-selected=true],[aria-expanded=true]')).filter(e=>visible(e)&&!excluded(e)&&!mentionsAccount(e)).slice(0,12).map(text).filter(Boolean),
+   current:Array.from(document.querySelectorAll('[role=tab][aria-selected=true],[aria-expanded=true],details[open]>summary')).filter(e=>e.matches('[role=tab],'+pressableSelector)&&!e.closest('table,[role=grid],[role=treegrid],[role=row]')&&visible(e)&&!excluded(e)&&!mentionsAccount(e)).slice(0,12).map(text).filter(Boolean),
    loading:Array.from(document.querySelectorAll('[aria-busy=true],[role=progressbar]')).some(visible),
    ready:markers.every(s=>Array.from(document.querySelectorAll(s)).some(visible))};
 }`

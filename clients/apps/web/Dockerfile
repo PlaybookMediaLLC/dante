@@ -13,7 +13,7 @@ FROM base AS dependencies
 
 WORKDIR /app/clients
 
-COPY clients/package.json clients/package-lock.json ./
+COPY clients/package.json clients/package-lock.json clients/.npmrc ./
 # npm ci links every workspace, so each workspace manifest must exist first.
 # test/workspace-manifests.test.ts fails when a workspace is missing here.
 COPY clients/apps/collab-server/package.json ./apps/collab-server/
@@ -25,10 +25,8 @@ COPY clients/packages/access-control/package.json ./packages/access-control/
 COPY clients/packages/audit-logs/package.json ./packages/audit-logs/
 COPY clients/packages/sso/package.json ./packages/sso/
 COPY clients/packages/whitelabeling/package.json ./packages/whitelabeling/
-# A build does not inherit the workflow's ONNXRUNTIME_NODE_INSTALL_CUDA=skip (#616):
-# without it onnxruntime-node downloads a CUDA provider no server can use, and
-# fails the build when that release download does.
-RUN --mount=type=cache,target=/root/.npm ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci --prefer-offline --no-audit
+# clients/.npmrc skips onnxruntime-node's CUDA download (#616), which no server can use.
+RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
 
 FROM dependencies AS builder
 
