@@ -167,6 +167,26 @@ test('a capture action may name a signed-in recipe instead of a public page', ()
   assert.equal(automationActionSchema.safeParse(tooLong).success, false)
 })
 
+test('a release-matched capture saves as language version 4 with its budget', () => {
+  const action = { type: 'capture_product', matchRelease: true, creditLimit: 5, currentState: true }
+  assert.deepEqual(automationActionSchema.parse(action), action)
+  assert.equal(
+    automationActionSchema.safeParse({
+      type: 'capture_product',
+      matchRelease: true,
+      creditLimit: 51,
+    }).success,
+    false
+  )
+  const node = (matchRelease: boolean) => ({
+    id: 'capture',
+    type: 'action' as const,
+    action: { type: 'capture_product' as const, matchRelease, creditLimit: 5 },
+  })
+  assert.equal(graphSchemaVersion({ nodes: [node(true)] }), 4)
+  assert.equal(graphSchemaVersion({ nodes: [node(false)] }), 3)
+})
+
 test('capture evidence reaches copy generation before editable drafts are reviewed', () => {
   const { graph } = buildWorkflowTemplate('deployment-marketing', {
     brandKitId: 'brand-fixture',

@@ -55,6 +55,10 @@ export const automationActionSchema = z.discriminatedUnion('type', [
     currentState: z.boolean().optional(),
     /** A signed-in capture recipe, which then supplies the page and proof instead. */
     recipeId: z.string().max(64).optional(),
+    /** Let AI choose up to three of the source's signed-in screens that show the release (language v4). */
+    matchRelease: z.boolean().optional(),
+    /** AI credits the page-choosing call may spend, with matchRelease. */
+    creditLimit: z.number().int().min(0).max(50).optional(),
   }),
   z.object({
     type: z.literal('render_creatives'),

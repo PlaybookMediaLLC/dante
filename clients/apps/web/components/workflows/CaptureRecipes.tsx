@@ -4,7 +4,9 @@ import { useState } from 'react'
 import { ConfirmDialog } from '@/components/settings/ConfirmDialog'
 import { Group, Pill, Row, Section } from '@/components/platform-ui'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,6 +27,7 @@ import { useTRPCClient } from '@/lib/trpc/react'
 import {
   CAPTURE_JOB_PHASE,
   CAPTURE_RECIPE_STATUS,
+  captureNavigationSummary,
   captureRecipeInput,
   latestCaptureTest,
   type CaptureRecipeForm,
@@ -32,6 +35,9 @@ import {
 import { CaptureError, CaptureField, useCaptureAction } from './capture-ui'
 import { automationSelectClass } from './ConditionEditor'
 import { relativeTime } from './workflow-ui'
+
+/** The recipe form's text fields; the rest are checkboxes. */
+type RecipeTextField = Exclude<keyof CaptureRecipeForm, 'sharp' | 'cropToMarker'>
 
 /** Radix selects cannot hold an empty value. */
 const EMPTY_OPTION = '__empty_option__'
@@ -54,6 +60,7 @@ const blankRecipe: CaptureRecipeForm = {
 /** A test's outcome. The image goes through the authorized asset route, which rechecks access. */
 function TestResult({ job, recipeName }: { job: CaptureJob; recipeName: string }) {
   const phase = CAPTURE_JOB_PHASE[job.phase]
+  const navigation = captureNavigationSummary(job)
   return (
     <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -63,6 +70,7 @@ function TestResult({ job, recipeName }: { job: CaptureJob; recipeName: string }
       {job.failureCode ? (
         <p className="text-muted-foreground">{captureFailureMessage(job.failureCode)}</p>
       ) : null}
+      {navigation ? <p className="text-muted-foreground">{navigation}</p> : null}
       {job.assetId ? (
         <a
           aria-label={`Open the test capture of ${recipeName} at full size`}
@@ -196,9 +204,8 @@ function RecipeForm({
   const client = useTRPCClient()
   const [form, setForm] = useState(blankRecipe)
   const { busy, error, run } = useCaptureAction()
-  const set = (key: keyof CaptureRecipeForm, value: string) =>
-    setForm((old) => ({ ...old, [key]: value }))
-  const text = (key: keyof CaptureRecipeForm, label: string, hint: string, required = true) => (
+  const set = (key: RecipeTextField, value: string) => setForm((old) => ({ ...old, [key]: value }))
+  const text = (key: RecipeTextField, label: string, hint: string, required = true) => (
     <CaptureField hint={hint} label={label}>
       <Input
         onChange={(event) => set(key, event.target.value)}
@@ -272,7 +279,7 @@ function RecipeForm({
         </CaptureField>
         {text('path', 'Path', 'On the connected app: /billing.')}
         <CaptureField
-          hint="AI can follow the app's navigation links and tabs to find this feature. Leave empty to capture the path directly. Page paths, headings and navigation labels are sent to the AI provider; the account marker, form values, and configured masks are excluded."
+          hint="AI can follow the app's links and tabs and open its menus, panels and dialogs to find this feature. Leave empty to capture the path directly. Page paths, headings and the labels of links, tabs and buttons are sent to the AI provider; the account marker, form values, and configured masks are excluded."
           label="Feature to find (optional)"
         >
           <Textarea
@@ -330,6 +337,32 @@ function RecipeForm({
             value={form.masks}
           />
         </CaptureField>
+        <Label className="flex items-start gap-2 text-sm">
+          <Checkbox
+            checked={form.sharp ?? false}
+            onCheckedChange={(checked) => setForm((old) => ({ ...old, sharp: checked === true }))}
+          />
+          <span>
+            Capture at double resolution
+            <span className="block text-xs leading-5 text-muted-foreground">
+              Sharper creatives; the image is twice the width and height.
+            </span>
+          </span>
+        </Label>
+        <Label className="flex items-start gap-2 text-sm">
+          <Checkbox
+            checked={form.cropToMarker ?? false}
+            onCheckedChange={(checked) =>
+              setForm((old) => ({ ...old, cropToMarker: checked === true }))
+            }
+          />
+          <span>
+            Crop to the element that proves the screen
+            <span className="block text-xs leading-5 text-muted-foreground">
+              The image shows that element and a small margin, so creatives zoom in on the change.
+            </span>
+          </span>
+        </Label>
         <div className="grid grid-cols-2 gap-4">
           <CaptureField label="Width">
             <Input

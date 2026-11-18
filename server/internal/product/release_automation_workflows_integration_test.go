@@ -1,9 +1,13 @@
 package product
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	imagelib "image"
+	"image/png"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +36,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"github.com/lucsky/cuid"
 )
 
@@ -655,15 +660,67 @@ func TestAutomationMilestoneReleasesTakeAssignedPullRequests(t *testing.T) {
 }
 
 // recordingRenderer stands in for the web renderer and records requests.
-type recordingRenderer struct{ requests []AutomationRenderRequest }
+type recordingRenderer struct {
+	requests []AutomationRenderRequest
+	// store, when set, keeps each render as the web does: a stored image linked
+	// to the campaign as a design render.
+	store *Configuration
+}
 
-func (r *recordingRenderer) Render(_ context.Context, request AutomationRenderRequest) ([]AutomationRender, error) {
+func (r *recordingRenderer) Render(ctx context.Context, request AutomationRenderRequest) ([]AutomationRender, error) {
 	r.requests = append(r.requests, request)
 	renders := []AutomationRender{}
 	for _, template := range request.TemplateIDs {
-		renders = append(renders, AutomationRender{TemplateID: template, DesignID: "design-" + template, AssetID: "asset-" + template})
+		id := template
+		if request.Part > 0 {
+			id = fmt.Sprintf("%s-%d", template, request.Part)
+		}
+		render := AutomationRender{TemplateID: template, DesignID: "design-" + id, AssetID: "asset-" + id}
+		if r.store != nil {
+			var image bytes.Buffer
+			if err := png.Encode(&image, imagelib.NewRGBA(imagelib.Rect(0, 0, 160, 90))); err != nil {
+				return nil, err
+			}
+			actor := Actor{OrganizationID: request.OrganizationID, Kind: "service", Display: "renderer", RequestID: request.RunID}
+			stored, err := r.store.storeImage(ctx, actor, image.Bytes(), "image/png", "render-"+id)
+			if err != nil {
+				return nil, err
+			}
+			if _, err := r.store.LinkCampaignAsset(ctx, actor, request.CampaignID, stored, LinkCampaignAssetInput{Kind: "design-render"}); err != nil {
+				return nil, err
+			}
+			render.AssetID = stored
+		}
+		renders = append(renders, render)
 	}
 	return renders, nil
+}
+
+// Each captured change gets its own creative, its own headline and its own
+// part, so the renderer never reuses one capture's design for another.
+func TestAutomationRenderCreativesRendersEachCapturedChange(t *testing.T) {
+	f := newAutomationFixture(t)
+	renderer := &recordingRenderer{}
+	f.repo.WithAutomationRenderer(renderer)
+	event := &ent.ReleaseSourceEvent{Snapshot: automation.Event{Title: "Release 2.4", Notes: "Faster reports\nMore"}}
+	input := automation.Outputs{CampaignID: "campaign", CaptureAssetID: "c1", CaptureAssetIDs: []string{"c1", "c2", "c3"}, CaptureFeatures: []string{"CSV export", "", "Saved filters"}}
+	action := &automation.Action{Type: "render_creatives", TemplateIDs: []string{"layout-browser-launch", "layout-social-phone"}}
+	outputs, err := f.repo.automationRenderCreatives(f.ctx, f.org, "run", "art", event, input, action)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(renderer.requests) != 3 || len(outputs.RenderedAssetIDs) != 3 {
+		t.Fatalf("requests=%+v outputs=%+v", renderer.requests, outputs)
+	}
+	for i, want := range []struct{ capture, template, headline string }{{"c1", "layout-browser-launch", "CSV export"}, {"c2", "layout-social-phone", "Release 2.4"}, {"c3", "layout-browser-launch", "Saved filters"}} {
+		got := renderer.requests[i]
+		if got.Part != i || got.CaptureAssetID != want.capture || !slices.Equal(got.TemplateIDs, []string{want.template}) || got.Headline != want.headline || got.Subheadline != "Faster reports" {
+			t.Fatalf("request %d=%+v", i, got)
+		}
+	}
+	if len(slices.Compact(slices.Clone(outputs.DesignIDs))) != 3 {
+		t.Fatalf("designs collided: %v", outputs.DesignIDs)
+	}
 }
 
 func TestAutomationRenderCreativesUsesTheCurrentCapture(t *testing.T) {
@@ -768,6 +825,21 @@ func TestAutomationCreateCanvasLaysOutTheRelease(t *testing.T) {
 	run := f.db.Client.ReleaseAutomationRun.GetX(f.ctx, runID)
 	if run.Outputs.CanvasID != outputs.CanvasID {
 		t.Fatalf("run outputs=%+v", run.Outputs)
+	}
+	// Only several captures, which only release matching makes, travel as a list
+	// the canvas shows first; one capture keeps the earlier request shape.
+	board := automation.FindNode(f.graph, "board").Action
+	for _, test := range []struct {
+		captures []string
+		want     []string
+	}{{nil, nil}, {[]string{"c1", "c2"}, []string{"c1", "c2"}}} {
+		input := automation.Outputs{ReleaseID: request.ReleaseID, CampaignID: outputs.CampaignID, CaptureAssetID: "c1", CaptureAssetIDs: test.captures}
+		if _, err := f.repo.automationCreateCanvas(f.ctx, f.org, runID, "board", input, board); err != nil {
+			t.Fatal(err)
+		}
+		if sent := canvases.requests[len(canvases.requests)-1]; !slices.Equal(sent.CaptureAssetIDs, test.want) || sent.CaptureAssetID != "c1" {
+			t.Fatalf("captures=%v sent=%+v", test.captures, sent)
+		}
 	}
 }
 
@@ -903,6 +975,7 @@ func (c *countingCapturer) Capture(ctx context.Context, page string) ([]byte, er
 func newCaptureFixture(t *testing.T, page string, action automation.Action) *captureFixture {
 	t.Helper()
 	f := &captureFixture{automationFixture: newAutomationFixture(t), renderer: &recordingRenderer{}, surface: "surface" + cuid.New()[:12]}
+	f.renderer.store = f.repo
 	if _, err := f.repo.defaultSocialSet(f.ctx, f.org); err != nil {
 		t.Fatal(err)
 	}
@@ -1044,7 +1117,7 @@ func TestAutomationCaptureProductProvesTheDeployment(t *testing.T) {
 	f.version.Store("2222222222222222222222222222222222222222")
 	event := f.db.Client.ReleaseSourceEvent.Query().Where(releasesourceevent.OrganizationID(f.org)).OnlyX(f.ctx)
 	action := automation.FindNode(f.graph, "capture").Action
-	retried, err := f.repo.automationCaptureProduct(f.ctx, f.org, event, automation.Outputs{CampaignID: outputs.CampaignID}, action)
+	retried, err := f.repo.automationCaptureProduct(f.ctx, f.org, nil, event, automation.Outputs{CampaignID: outputs.CampaignID}, action)
 	if err != nil || retried.CaptureID != outputs.CaptureID || f.capturer.calls.Load() != 1 {
 		t.Fatalf("retried=%+v err=%v calls=%d", retried, err, f.capturer.calls.Load())
 	}
@@ -1108,14 +1181,26 @@ func TestAutomationCapturedCampaignCreatesEditableDraft(t *testing.T) {
 	if len(model.prompts) != 1 || !strings.Contains(model.prompts[0], "Persisted product capture record:") || !strings.Contains(model.prompts[0], `"releaseRevisionVerified":false`) {
 		t.Fatal("generated copy did not receive honest capture evidence")
 	}
+	// Drafts show the branded render; the original capture stays linked as evidence.
+	if len(outputs.RenderedAssetIDs) == 0 {
+		t.Fatal("no render to attach")
+	}
+	// The render's headline is the first sentence of the generated copy.
+	first := f.db.Client.CampaignPost.GetX(f.ctx, outputs.PostIDs[0])
+	if got, want := f.renderer.requests[0].Headline, releasenotes.Clean(firstSentence(first.Copy), 60); got != want || got == "" {
+		t.Fatalf("headline=%q want %q", got, want)
+	}
+	if _, err := f.repo.GetCampaignAsset(f.ctx, f.owner, outputs.CampaignID, outputs.CaptureAssetID); err != nil {
+		t.Fatalf("original capture unlinked: %v", err)
+	}
 	for _, draft := range drafts {
 		post := f.db.Client.CampaignPost.GetX(f.ctx, optionalText(draft.CampaignPostID))
-		if draft.Status != contentdraft.StatusDraft || draft.PrimaryPlatform == nil || *draft.PrimaryPlatform != post.Channel || !slices.Contains(outputs.PostIDs, post.ID) || optionalText(draft.ReleaseID) != outputs.ReleaseID || !slices.Equal(draft.AssetIds, []string{outputs.CaptureAssetID}) || len(draft.ChannelConnectionIds) != 1 || draft.PlainText != post.Copy {
-			t.Fatal("draft lost its platform, copy, screenshot or release/campaign attribution")
+		if draft.Status != contentdraft.StatusDraft || draft.PrimaryPlatform == nil || *draft.PrimaryPlatform != post.Channel || !slices.Contains(outputs.PostIDs, post.ID) || optionalText(draft.ReleaseID) != outputs.ReleaseID || !slices.Equal(draft.AssetIds, outputs.RenderedAssetIDs[:1]) || len(draft.ChannelConnectionIds) != 1 || draft.PlainText != post.Copy {
+			t.Fatal("draft lost its platform, copy, render or release/campaign attribution")
 		}
 		body, err := json.Marshal(draft.Body)
-		if err != nil || !strings.Contains(string(body), outputs.CaptureAssetID) {
-			t.Fatal("captured media is not attached to the editable post body")
+		if err != nil || !strings.Contains(string(body), outputs.RenderedAssetIDs[0]) {
+			t.Fatal("rendered media is not attached to the editable post body")
 		}
 	}
 	draft := drafts[0]
@@ -1319,7 +1404,7 @@ func TestAutomationAuthenticatedCaptureLinksOriginalAndSuppliesSafeEvidence(t *t
 		t.Fatal(err)
 	}
 	event := &ent.ReleaseSourceEvent{ID: "handoff-event", SourceAppID: w.source.ID, Snapshot: automation.Event{Family: automation.Deployed, ObjectID: "campaign-handoff"}}
-	output, err := w.repo.automationCaptureProduct(w.ctx, w.org, event, automation.Outputs{
+	output, err := w.repo.automationCaptureProduct(w.ctx, w.org, nil, event, automation.Outputs{
 		CampaignID: campaign.ID, PostIDs: []string{campaign.Posts[0].ID}, DestinationIDs: w.graph.Nodes[3].Action.DestinationIDs,
 	}, &automation.Action{RecipeID: recipe.ID})
 	if err != nil {
@@ -1466,7 +1551,7 @@ func TestAutomationPublishedCaptureSelectsSurfaceEnvironment(t *testing.T) {
 			event.Snapshot.Family = automation.Published
 			event.Snapshot.Fields["release.tag"] = automation.StringValue("v1")
 			input := f.db.Client.ReleaseAutomationRun.GetX(f.ctx, runID).Outputs
-			outputs, err := f.repo.automationCaptureProduct(f.ctx, f.org, event, input, automation.FindNode(f.graph, "capture").Action)
+			outputs, err := f.repo.automationCaptureProduct(f.ctx, f.org, nil, event, input, automation.FindNode(f.graph, "capture").Action)
 			if err != nil {
 				t.Fatal(err)
 			}

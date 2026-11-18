@@ -6,13 +6,20 @@ import { z } from 'zod'
 import type { TenantContext } from '@/lib/auth/access'
 import { BackendSDKError } from 'screenshot-studio-backend-sdk'
 import { backendSDK } from '@/lib/backend/sdk'
-import { canvasDocumentSchema } from '@/lib/canvas/document'
+import { type Artboard, canvasDocumentSchema } from '@/lib/canvas/document'
 import { releaseCanvas, releaseEvidence } from '@/lib/canvas/plan'
 import { canvasRecipeSchema, type RecipeScreenshot } from '@/lib/canvas/recipes'
 import { encodeRgbPng } from '@/lib/store-screenshots/export/png'
 import { readTenantObject } from '@/lib/storage/client'
 import { storeGeneratedAsset } from '@/lib/tenant/assets'
 import { createCanvas, getCanvas } from '@/lib/tenant/canvases'
+import { renderDesignForTenant } from '@/lib/design/render-design'
+import {
+  createDesignRenderer,
+  type DesignRenderer,
+  isDesignRendererReady,
+} from '@/lib/design/renderer'
+import { createDesign, getDesign, listCampaignDesigns } from '@/lib/tenant/designs'
 
 /** A worker's request to lay out a canvas from a release; the Go action builds it. */
 export const workflowCanvasRequestSchema = z.strictObject({
@@ -22,6 +29,8 @@ export const workflowCanvasRequestSchema = z.strictObject({
   releaseId: z.string().min(1).max(64),
   campaignId: z.string().max(64).optional(),
   captureAssetId: z.string().max(64).optional(),
+  /** A release-matched run's captures, laid out before the release's screenshots. */
+  captureAssetIds: z.array(z.string().min(1).max(64)).max(3).optional(),
   recipeIds: z.array(canvasRecipeSchema).min(1).max(3),
 })
 /** One of {@link workflowCanvasRequestSchema}. */
@@ -85,7 +94,11 @@ export async function createWorkflowCanvas(request: WorkflowCanvasRequest) {
     requestId: `${request.runId}:${request.nodeId}`,
   }
   const canvasId = workflowCanvasId(request)
-  if (await getCanvas(tenant, canvasId)) return { canvasId }
+  const made = await getCanvas(tenant, canvasId)
+  if (made) {
+    await renderCanvasIntoCampaign(tenant, request, made.document.artboards, made.name)
+    return { canvasId }
+  }
   // A malformed id (400) and a missing one (404) are both not a release of this workspace.
   const release = await backendSDK(tenant)
     .getRelease(request.releaseId)
@@ -95,7 +108,11 @@ export async function createWorkflowCanvas(request: WorkflowCanvasRequest) {
       throw error
     })
   if (!release) throw new WorkflowCanvasRefusedError('The release is not in this workspace.')
-  const ids = [...(release.screenshotAssetIds ?? []).slice(0, 2)]
+  // A release-matched run's captures show this release; otherwise the release's
+  // screenshots come first, then the run's or the latest capture.
+  const ids = request.captureAssetIds?.length
+    ? [...request.captureAssetIds]
+    : [...(release.screenshotAssetIds ?? []).slice(0, 2)]
   if (!ids.length && request.captureAssetId) ids.push(request.captureAssetId)
   const { assets } = ids.length ? await backendSDK(tenant).findAssets({ ids }) : { assets: [] }
   const screenshots: RecipeScreenshot[] = []
@@ -161,15 +178,56 @@ export async function createWorkflowCanvas(request: WorkflowCanvasRequest) {
       ...(request.campaignId ? { campaignId: request.campaignId } : {}),
     },
   })
+  const name = `${release.title.slice(0, 160)} · canvas`
   try {
-    await createCanvas(tenant, {
-      id: canvasId,
-      name: `${release.title.slice(0, 160)} · canvas`,
-      document,
-    })
+    await createCanvas(tenant, { id: canvasId, name, document })
   } catch (error) {
     // A concurrent attempt stored it first; that canvas is the result.
     if (!(await getCanvas(tenant, canvasId))) throw error
   }
+  await renderCanvasIntoCampaign(tenant, request, document.artboards, name)
   return { canvasId }
+}
+
+/** Artboards one canvas renders into its campaign, within the worker's request timeout. */
+const MAX_CANVAS_RENDERS = 3
+
+/**
+ * Render a release-matched run's canvas artboards into its campaign as
+ * designs, so reviewers see them beside the other creatives; the canvas itself
+ * stays editable. Other runs, and any run without a campaign or a running
+ * renderer, keep the canvas as their whole result, as before. A retry reuses
+ * this node's designs and the render cache.
+ */
+async function renderCanvasIntoCampaign(
+  tenant: TenantContext,
+  request: WorkflowCanvasRequest,
+  artboards: readonly Artboard[],
+  title: string
+) {
+  if (!request.campaignId || !request.captureAssetIds?.length || !(await isDesignRendererReady()))
+    return
+  const existing = await listCampaignDesigns(tenant, request.campaignId)
+  const lazy: { renderer?: Promise<DesignRenderer> } = {}
+  const getRenderer = () => (lazy.renderer ??= createDesignRenderer())
+  try {
+    for (const [index, artboard] of artboards.slice(0, MAX_CANVAS_RENDERS).entries()) {
+      const name = `Workflow ${request.nodeId} · canvas ${index + 1}`
+      const reused = existing.find((item) => item.name === name)
+      const design =
+        (reused ? await getDesign(tenant, reused.id) : null) ??
+        (await createDesign(tenant, {
+          campaignId: request.campaignId,
+          document: artboard.document,
+          name,
+        }))
+      const rendered = await renderDesignForTenant(tenant, getRenderer, design)
+      await backendSDK(tenant).linkCampaignAsset(request.campaignId, rendered.asset.id, {
+        caption: `${title} · ${index + 1}`,
+        kind: 'design-render',
+      })
+    }
+  } finally {
+    if (lazy.renderer) await (await lazy.renderer).close().catch(() => undefined)
+  }
 }

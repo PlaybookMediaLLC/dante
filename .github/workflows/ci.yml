@@ -6,17 +6,27 @@ on:
     types: [opened, synchronize, reopened, edited, closed]
   push:
     branches: [develop, main]
+  # The full suite, on the exact tree a pull request will land as. With a
+  # merge queue on develop, a pull request's own run is the fast feedback.
+  merge_group:
 
 permissions:
   contents: read
 
 concurrency:
-  # A merged PR's ref becomes its base; its close event must still cancel only that PR.
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # A new commit cancels its pull request's run, and a merged PR's close event
+  # cancels only that PR. A push run is never cancelled: each gets its own
+  # group, so a newer push cannot cancel it running or replace it pending.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 env:
   NODE_VERSION: '22.23.4'
+  # onnxruntime-node's install script otherwise downloads its CUDA provider
+  # (a 327 MB library) from GitHub releases on every npm ci, in every job.
+  # No runner has a GPU, so CI cannot use it, and a 504 from that download
+  # failed a browser shard's install. The CPU runtime ships in the package.
+  ONNXRUNTIME_NODE_INSTALL_CUDA: skip
   # Each browser shard runs its own stack on its own runner, so this trades
   # concurrent job slots for wall clock. The whole suite is roughly 9,200
   # worker-seconds and each shard runs 4 Playwright workers, so six shards put
@@ -44,6 +54,7 @@ jobs:
       e2e_tier: ${{ steps.e2e.outputs.tier }}
       e2e_matrix: ${{ steps.e2e.outputs.matrix }}
       e2e_run: ${{ steps.e2e.outputs.run == 'true' && steps.release.outputs.reuse != 'true' }}
+      stack: ${{ steps.e2e.outputs.stack }}
     steps:
       # A pull request's merge commit has its base as the first parent, so two
       # commits of history are enough to list what the pull request changes.
@@ -77,20 +88,50 @@ jobs:
         run: |
           set -euo pipefail
           area() {
-            if [[ -z "${FILES//[[:space:]]/}" ]] || grep -qE "$2" <<< "$FILES"; then
+            if [[ "$GITHUB_EVENT_NAME" == merge_group || -z "${FILES//[[:space:]]/}" ]] || grep -qE "$2" <<< "$FILES"; then
               echo "$1=true" >> "$GITHUB_OUTPUT"
             else
               echo "$1=false" >> "$GITHUB_OUTPUT"
             fi
           }
-          area go '^(server/|Makefile$|\.github/workflows/ci\.yml$)'
-          area native '^(clients/integrations/|clients/package-lock\.json$|\.github/workflows/ci\.yml$)'
+          # Each pattern covers every file the area's tests read, including
+          # web files the Go tests compare against and the web modules the
+          # Raycast tests import; test/ci-gates.test.ts recomputes both.
+          area go '^(server/|Makefile$|\.github/workflows/|clients/apps/web/lib/auth/(permissions|api-key-scopes)\.ts$|clients/apps/web/test/workspace-name-cases\.json$)'
+          area native '^(clients/|server/internal/medialimits/|\.github/workflows/ci\.yml$)'
+      # A pull request's run may leave the Docker stack to the merge queue only
+      # when its base has a queue that waits for `CI validation`, so the full
+      # suite still runs before it lands. The queue and the required check may
+      # come from a ruleset or from classic branch protection, which the rules
+      # endpoint does not show. Anything else, including settings that cannot
+      # be read, keeps the full pull request run.
+      - name: Check the base branch for a merge queue
+        id: queue
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          rules="$(gh api "repos/$GITHUB_REPOSITORY/rules/branches/$GITHUB_BASE_REF" || echo '[]')"
+          checks="$(gh api "repos/$GITHUB_REPOSITORY/branches/$GITHUB_BASE_REF" --jq '.protection.required_status_checks.contexts // []' || echo '[]')"
+          queue_id="$(gh api graphql -F owner="${GITHUB_REPOSITORY%/*}" -F name="${GITHUB_REPOSITORY#*/}" -F branch="$GITHUB_BASE_REF" \
+            -f query='query($owner: String!, $name: String!, $branch: String!) { repository(owner: $owner, name: $name) { mergeQueue(branch: $branch) { id } } }' \
+            --jq '.data.repository.mergeQueue.id // empty' || true)"
+          queued="$(jq -n --argjson rules "$rules" --argjson checks "$checks" --arg queue "$queue_id" '
+            ($queue != "" or any($rules[]; .type == "merge_queue"))
+            and (any($checks[]; . == "CI validation") or any($rules[]; .type == "required_status_checks"
+              and any(.parameters.required_status_checks[]; .context == "CI validation")))' || true)"
+          rule_types="$(jq -r '[.[].type] | join(", ")' <<<"$rules" || echo unreadable)"
+          echo "Merge queue on $GITHUB_BASE_REF requiring CI validation: ${queued:-unreadable} (queue: ${queue_id:-none}; ruleset rules: ${rule_types:-none}; protected checks: $checks)." | tee -a "$GITHUB_STEP_SUMMARY"
+          if [[ "$queued" == true ]]; then
+            echo 'merge_queue=true' >> "$GITHUB_OUTPUT"
+          fi
       - name: Plan the browser tests
         id: e2e
         env:
           BASE: ${{ github.base_ref }}
           CHANGED_FILES: ${{ steps.changed.outputs.files }}
           EVENT: ${{ github.event_name }}
+          MERGE_QUEUE: ${{ steps.queue.outputs.merge_queue }}
           REF: ${{ github.ref }}
           SHARDS: ${{ env.E2E_SHARDS }}
         run: node dev/e2e-plan.mjs
@@ -122,7 +163,8 @@ jobs:
   # node_modules per shard, which was about a third of the whole runner budget.
   web-image:
     name: Build web image
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -177,7 +219,8 @@ jobs:
 
   backend-image:
     name: Build backend images
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -230,7 +273,8 @@ jobs:
 
   collab-image:
     name: Build collab image
-    if: github.event.action != 'closed'
+    needs: plan
+    if: needs.plan.outputs.stack == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -262,20 +306,33 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Five legs side by side: code generation, vet, the tests in two shards, and
+  # the race-detector tests. Run one after another they took a median 11.5
+  # minutes, and every server pull request waited on the sum.
   go-checks:
-    name: Go checks
+    name: Go checks (${{ matrix.suite }})
     needs: plan
     if: needs.plan.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [generate, vet, test-1, test-2, race]
     env:
+      # The restored build cache also holds test results, and the database
+      # tests read a schema that CI migrates from SQL outside their binaries:
+      # a cached pass could hide a migration that breaks them. Compiled
+      # packages still come from the cache.
+      GOFLAGS: -count=1
       MAINTENANCE_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/maintenance_test?sslmode=disable
       SOCIAL_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/social_test?sslmode=disable
       PUBLISHING_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/shared_cutover_test?sslmode=disable
       NOTIFICATIONS_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/notifications_test?sslmode=disable
     services:
       postgres:
-        image: postgres:16-bookworm
+        # An empty image starts no container: generate and vet need no database.
+        image: ${{ (matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race') && 'postgres:16-bookworm' || '' }}
         env:
           POSTGRES_DB: publishing_acceptance
           POSTGRES_PASSWORD: postgres
@@ -299,29 +356,49 @@ jobs:
           # dependency bump threw away every compiled first-party package and
           # recompiled the standard library twice (once more for -race).
           cache: false
-      - name: Cache the Go module and build output
-        uses: actions/cache@v4
+      # Restored everywhere, saved only from develop, which every pull request
+      # can read. A pull request's own save was readable by that pull request
+      # alone, and each was gigabytes that pushed develop's out of the
+      # repository's 10 GB, so every run compiled the tree twice from nothing.
+      # Race builds share nothing with the others, so the race leg keeps its
+      # own entry. The generate, vet and second test shard legs read the
+      # first test shard's and save none. Each entry is about 1.1 GB, so it is
+      # keyed on go.sum alone and written once per dependency change: a new
+      # entry per push filled the repository's 10 GB and evicted every other
+      # cache. Packages changed since are recompiled; unchanged ones still hit.
+      - name: Restore the Go module and build output
+        id: go-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-${{ runner.os }}-${{ hashFiles('server/go.sum') }}-${{ github.sha }}
+          key: go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-${{ hashFiles('server/go.sum') }}
           restore-keys: |
-            go-${{ runner.os }}-${{ hashFiles('server/go.sum') }}-
-            go-${{ runner.os }}-
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+            go-${{ runner.os }}-${{ matrix.suite == 'race' && 'race' || 'test' }}-
       # `make` targets, not inlined commands: `make -C server check` then runs
       # exactly what CI runs. The race package list lived here and had drifted
       # to sixteen packages while the Makefile still named seven.
-      - run: make generate
+      - if: matrix.suite == 'generate'
+        run: make generate
       - name: Verify generated clients are current
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- ent internal/social/ent internal/frontenddeploy/vercelapi/client.gen.go
       - name: Verify the module graph is unchanged
+        if: matrix.suite == 'generate'
         run: git diff --exit-code -- go.mod go.sum
+      - name: Verify Go formatting
+        if: matrix.suite == 'generate'
+        run: make fmt-check
+      # On the committed tree: the generate leg fails if generation changes it.
+      - if: matrix.suite == 'vet'
+        run: make vet
+      # psql ships with the runner image.
       - name: Create the social test database
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: psql postgresql://postgres:postgres@127.0.0.1:5432/publishing_acceptance -c 'CREATE DATABASE social_test'
       - name: Create and migrate Founder Hub test databases
+        if: matrix.suite == 'test-1' || matrix.suite == 'test-2' || matrix.suite == 'race'
         run: |
           create_founder_hub_database() {
             database="$1"
@@ -340,20 +417,29 @@ jobs:
           create_founder_hub_database shared_cutover_test
           create_founder_hub_database notifications_test
       - name: Verify one public schema for product and social Ent models
+        if: matrix.suite == 'test-1'
         run: |
           go test ./internal/publishing -run TestOAuthGrantAndConnectionUseEntInOnePublicSchema -count=1
           go test ./internal/social/tenantpublishing -run TestDirectPublisherUsesSharedPublicSchemaWithoutLegacyPost -count=1
-      - name: Verify Go formatting
-        run: make fmt-check
-      # The race packages are excluded here; they ran twice against the one
-      # shared test database, once with the detector and once without.
-      - run: make test
+      # The race packages are excluded here; the race leg runs them. The
+      # Makefile says how the two shards divide the rest.
+      - if: matrix.suite == 'test-1' || matrix.suite == 'test-2'
+        run: make test SHARD=${{ matrix.suite == 'test-1' && '1/2' || '2/2' }}
       - name: Verify social migrations are repeatable
+        if: matrix.suite == 'test-1'
         run: |
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
           DATABASE_URL="$SOCIAL_TEST_DATABASE_URL" go run ./cmd/social-migrate
-      - run: make race
-      - run: make vet
+      - if: matrix.suite == 'race'
+        run: make race
+      - name: Save the Go module and build output
+        if: (matrix.suite == 'test-1' || matrix.suite == 'race') && steps.go-cache.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
   # `quality:check` ran format, lint, typecheck and unit tests one after the
   # other in a single job: 5 minutes to the first red, and no way to tell at a
@@ -381,7 +467,11 @@ jobs:
             eslint-${{ runner.os }}-${{ hashFiles('clients/package-lock.json', 'clients/eslint.config.mjs') }}-
       - run: npm run format:check
         working-directory: clients
-      - run: npm run lint -- --max-warnings=0
+      # A fresh checkout gives every file a new mtime, which invalidates the
+      # default metadata cache entry for every file: the restored cache never
+      # hit. Content hashes survive the checkout. No rule here reads another
+      # file or type information, so a file's result depends on it alone.
+      - run: npm run lint -- --max-warnings=0 --cache-strategy content
         working-directory: clients
 
   client-typecheck:
@@ -402,18 +492,27 @@ jobs:
       # path builds it.
       - run: npm run build:sdk
         working-directory: clients
+      # The web app's script runs TypeScript 7 (tsgo) since it agreed with tsc
+      # on real runs: 16 s against tsc's share of a 65 s step.
       - run: npm run typecheck
         working-directory: clients
 
+  # Two shards side by side: one npm test run held every suite in a row, a
+  # median 114 s of tests in a 2m43s job.
   client-unit:
-    name: Client unit tests
+    name: Client unit tests (${{ matrix.shard }}/2)
     if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # The collaboration server's replica test relays edits through a real Redis.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    # The collaboration server's replica test relays edits through a real
+    # Redis. Only the second shard runs it; an empty image starts no container.
     services:
       redis:
-        image: redis:7.4-alpine
+        image: ${{ matrix.shard == 2 && 'redis:7.4-alpine' || '' }}
         ports:
           - 6379:6379
     env:
@@ -426,20 +525,37 @@ jobs:
           cache: npm
           cache-dependency-path: clients/package-lock.json
       - uses: azure/setup-helm@v4
+        if: matrix.shard == 1
       - run: npm ci --prefer-offline --no-audit
         working-directory: clients
       - run: npm run build:sdk
         working-directory: clients
-      - run: npm run test
+      # The web package's own test script, with --test-shard ahead of the files:
+      # placed after them, Node ignores it and every shard runs every test.
+      # test/ci-gates.test.ts holds this line to the package.json script.
+      - name: Web unit tests
+        working-directory: clients/apps/web
+        run: npx tsx --test --test-shard=${{ matrix.shard }}/2 test/*.test.ts
+      - name: Collaboration server unit tests
+        if: matrix.shard == 2
         working-directory: clients
+        run: npm test -w @shots/collab-server
+      - name: Editor unit tests
+        if: matrix.shard == 1
+        working-directory: clients
+        run: npm test -w @shots/platejs-editor
       # The server-module tier: every test/*.server.ts suite, including the
       # four that had no caller at all before (workspace invitations and
       # membership, GIF search, link images).
       - run: npm run test:server
+        if: matrix.shard == 1
         working-directory: clients
       - run: python3 -m unittest discover -s infra/digitalocean -p 'test_*.py'
+        if: matrix.shard == 1
       - run: python3 dev/verify-rfcs.py
+        if: matrix.shard == 1
       - name: Validate local development configuration
+        if: matrix.shard == 1
         run: |
           ./dev/studio status
           docker compose --env-file .local/dev.env --file dev/compose.yaml config --quiet
@@ -447,10 +563,14 @@ jobs:
             --file dev/compose.e2e.yaml --file dev/compose.social-gate.yaml config --quiet
       # Formerly its own workflow (helm.yml), which duplicated these four
       # commands on a trigger surface this workflow already covers.
-      - run: helm lint infra/charts/screenshot-studio
-      - run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
-      - run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
-      - run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
+      - if: matrix.shard == 1
+        run: helm lint infra/charts/screenshot-studio
+      - if: matrix.shard == 1
+        run: helm template screenshot-studio infra/charts/screenshot-studio > /dev/null
+      - if: matrix.shard == 1
+        run: helm lint infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local
+      - if: matrix.shard == 1
+        run: helm template screenshot-studio infra/charts/screenshot-studio --values infra/charts/screenshot-studio/values-kind.yaml --set existingSecret=screenshot-studio-local > /dev/null
 
   native-clients:
     name: Native clients
@@ -514,9 +634,11 @@ jobs:
         run: npx tsc -p packages/shots-api-client/tsconfig.json --noEmit
       - name: Block unintended breaking API changes
         env:
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           document=server/internal/shotsapi/openapi.json
+          # An empty base would read the document from the index and compare it with itself.
+          [[ -n "$BASE" ]] || { echo 'No base revision to compare the OpenAPI document against.' >&2; exit 1; }
           if ! git cat-file -e "$BASE:$document" 2>/dev/null; then
             echo "The base revision has no OpenAPI document to compare against."
             exit 0
@@ -738,7 +860,7 @@ jobs:
     name: Social publishing gate
     needs: plan
     # A prose-only pull request cannot change what the worker publishes.
-    if: github.event_name != 'pull_request' || needs.plan.outputs.docs_only != 'true'
+    if: needs.plan.outputs.stack == 'true' && (github.event_name != 'pull_request' || needs.plan.outputs.docs_only != 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -837,9 +959,11 @@ jobs:
         env:
           RESULTS: ${{ toJSON(needs) }}
           SKIPPABLE: >-
-            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
+            ${{ needs.plan.outputs.go != 'true' && 'go-checks ' || '' }}${{ needs.plan.outputs.native != 'true' && 'native-clients ' || '' }}${{ needs.plan.outputs.e2e_run != 'true' && 'integration ' || '' }}${{ needs.plan.outputs.stack == 'false' && 'web-image backend-image collab-image social-gate ' || '' }}${{ github.event_name == 'pull_request' && needs.plan.outputs.docs_only == 'true' && 'social-gate' || '' }}
         run: |
           set -euo pipefail
+          # The merge queue is where the full suite runs: nothing may be skipped.
+          if [[ "$GITHUB_EVENT_NAME" == merge_group ]]; then SKIPPABLE=''; fi
           failed=''
           {
             echo '| Gate | Result |'

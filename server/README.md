@@ -208,8 +208,10 @@ Authenticated capture stays off unless the API and the worker both have
 separate from the design renderer's), and `PLATFORM_CAPTURE_STATE_KEY` (32 bytes,
 base64). `PLATFORM_CAPTURE_STATE_KEY_PREVIOUS` reads state during a key rotation;
 state is re-encrypted on its next validated use. `PLATFORM_CAPTURE_STATE_MAX_AGE`
-(a Go duration, default `24h`) is how long saved sign-in state is kept before a
-person must sign in again. The worker registers the `platform-capture` queue only
+(a Go duration, default `24h`) is how long saved sign-in state is kept without a
+successful capture. Each verified capture renews it for that long again, never past
+30 days (or the max age, if longer) after the person last signed in; the app's own
+session expiry still ends it sooner. The worker registers the `platform-capture` queue only
 when capture is configured. See [authenticated capture](../docs/rfcs/authenticated-release-capture-review.md#10-implementation-status).
 
 ## Social code (`internal/social`)

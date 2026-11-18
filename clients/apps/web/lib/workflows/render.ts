@@ -3,6 +3,7 @@ import 'server-only'
 import { z } from 'zod'
 import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
+import { BRAND_LOGO_ID } from '@/lib/brand/apply'
 import { patchDesignDocument } from '@/lib/design/document'
 import { renderDesignForTenant } from '@/lib/design/render-design'
 import {
@@ -28,6 +29,8 @@ export const workflowRenderRequestSchema = z.strictObject({
     .array(z.string().regex(/^[a-z0-9-]{1,64}$/))
     .min(1)
     .max(3),
+  /** Which of the node's captures this is; part 0 keeps the node's original design names. */
+  part: z.number().int().min(0).max(2).optional(),
 })
 
 /** One rendered creative, linked to the campaign as a design render. */
@@ -85,7 +88,7 @@ export async function renderWorkflowCreatives(request: WorkflowRenderRequest) {
   try {
     const renders: z.infer<typeof workflowRenderSchema>[] = []
     for (const template of templates) {
-      const name = `Workflow ${request.nodeId} · ${template.id}`
+      const name = `Workflow ${request.nodeId} · ${template.id}${request.part ? ` · ${request.part + 1}` : ''}`
       const reused = existing.find((item) => item.name === name && item.templateId === template.id)
       let design = reused ? await getDesign(tenant, reused.id) : null
       if (!design) {
@@ -95,6 +98,19 @@ export async function renderWorkflowCreatives(request: WorkflowRenderRequest) {
           subheadline: request.subheadline,
         })
         if (kit) document = patchDesignDocument(document, brandDesignChanges(kit, document.texts))
+        // The brand logo, small in the top left corner, above everything else.
+        if (kit?.logoAssetId)
+          document = patchDesignDocument(document, {
+            overlays: [
+              ...document.overlays,
+              {
+                id: BRAND_LOGO_ID,
+                position: { x: 0.08, y: 0.09 },
+                size: 0.09,
+                src: `asset:${kit.logoAssetId}`,
+              },
+            ],
+          })
         design = await createDesign(tenant, {
           campaignId: request.campaignId,
           document,

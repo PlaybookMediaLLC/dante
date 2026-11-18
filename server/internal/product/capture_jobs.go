@@ -88,11 +88,37 @@ type CaptureJobRecord struct {
 	Attempts          int       `json:"attempts"`
 	CreatedAt         time.Time `json:"createdAt"`
 	UpdatedAt         time.Time `json:"updatedAt"`
+	// ReleaseChange is what a release-matched capture was steered to show.
+	ReleaseChange *string `json:"releaseChange"`
+	// NavigationActions is the newest attempt's AI path: control kinds and paths.
+	NavigationActions []map[string]string `json:"navigationActions,omitempty"`
 }
 
 func captureJobRecord(row *ent.CaptureJob) CaptureJobRecord {
 	return CaptureJobRecord{ID: row.ID, RecipeID: row.RecipeID, RecipeVersion: row.RecipeVersion, Kind: string(row.Kind), Phase: string(row.Phase), SurfaceID: row.SurfaceID, ConnectionID: row.AppConnectionID,
-		DeploymentEventID: row.DeploymentEventID, ExpectedRevision: row.ExpectedRevision, SurfaceCaptureID: row.SurfaceCaptureID, AssetID: row.AssetID, FailureCode: row.FailureCode, Attempts: row.Attempts, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt}
+		DeploymentEventID: row.DeploymentEventID, ExpectedRevision: row.ExpectedRevision, SurfaceCaptureID: row.SurfaceCaptureID, AssetID: row.AssetID, FailureCode: row.FailureCode, Attempts: row.Attempts, CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		ReleaseChange: row.ObjectiveEvidence}
+}
+
+// withNavigation adds each job's newest recorded AI navigation path.
+func (c *Configuration) withNavigation(ctx context.Context, org string, records []CaptureJobRecord) error {
+	ids := make([]string, 0, len(records))
+	for _, record := range records {
+		ids = append(ids, record.ID)
+	}
+	attempts, err := c.client.CaptureAttempt.Query().Where(captureattempt.OrganizationID(org), captureattempt.CaptureJobIDIn(ids...), captureattempt.NavigationActionsNotNil()).
+		Order(ent.Asc(captureattempt.FieldAttemptNumber)).All(ctx)
+	if err != nil {
+		return err
+	}
+	paths := map[string][]map[string]string{}
+	for _, attempt := range attempts {
+		paths[attempt.CaptureJobID] = attempt.NavigationActions
+	}
+	for i := range records {
+		records[i].NavigationActions = paths[records[i].ID]
+	}
+	return nil
 }
 
 func decodeCaptureRecipe(row *ent.CaptureRecipe) (browser.Recipe, error) {
@@ -106,8 +132,9 @@ func decodeCaptureRecipe(row *ent.CaptureRecipe) (browser.Recipe, error) {
 
 // admitCaptureJob is the one way a capture job is created: a test, a person's
 // or agent's request, the deployment trigger, and the workflow action all arrive
-// here. The same key always finds the same job.
-func admitCaptureJob(ctx context.Context, tx *ent.Tx, actor Actor, recipe *ent.CaptureRecipe, connection *ent.PlatformAppConnection, kind capturejob.Kind, deployment *ent.DeploymentEvent, key string, triggerRunID *string) (*ent.CaptureJob, error) {
+// here. The same key always finds the same job. Evidence, when set, is the
+// release change this job's AI navigation is steered toward.
+func admitCaptureJob(ctx context.Context, tx *ent.Tx, actor Actor, recipe *ent.CaptureRecipe, connection *ent.PlatformAppConnection, kind capturejob.Kind, deployment *ent.DeploymentEvent, key string, triggerRunID *string, evidence *string) (*ent.CaptureJob, error) {
 	existing, err := tx.CaptureJob.Query().Where(capturejob.OrganizationID(actor.OrganizationID), capturejob.IdempotencyKey(key)).Only(ctx)
 	if err == nil {
 		return existing, nil
@@ -121,7 +148,7 @@ func admitCaptureJob(ctx context.Context, tx *ent.Tx, actor Actor, recipe *ent.C
 	}
 	create := tx.CaptureJob.Create().SetID(cuid.New()).SetOrganizationID(actor.OrganizationID).SetRecipeID(recipe.ID).SetRecipeVersion(recipe.Version).SetKind(kind).SetIdempotencyKey(key).
 		SetNillableSurfaceID(recipe.SurfaceID).SetNillableAppConnectionID(recipe.AppConnectionID).SetConnectionGeneration(connection.Generation).SetNillableRecipeHash(recipe.DefinitionHash).
-		SetDeadlineAt(time.Now().UTC().Add(captureJobDeadline)).SetNillableTriggerRunID(triggerRunID)
+		SetDeadlineAt(time.Now().UTC().Add(captureJobDeadline)).SetNillableTriggerRunID(triggerRunID).SetNillableObjectiveEvidence(evidence)
 	if actor.UserID != "" {
 		create.SetRequestedByUserID(actor.UserID)
 	}
@@ -259,7 +286,7 @@ func (c *Configuration) RequestCaptureJob(ctx context.Context, actor Actor, reci
 	if connection.Status == platformappconnection.StatusREVOKED {
 		return nil, publishing.ErrInvalidState
 	}
-	job, err := admitCaptureJob(ctx, tx, actor, recipe, connection, kind, nil, string(kind)+":"+recipe.ID+":"+cuid.New(), request.SourceID)
+	job, err := admitCaptureJob(ctx, tx, actor, recipe, connection, kind, nil, string(kind)+":"+recipe.ID+":"+cuid.New(), request.SourceID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +335,7 @@ func (c *Configuration) admitDeploymentCaptures(ctx context.Context, deployment 
 			if err != nil {
 				return nil, err
 			}
-			if _, err := admitCaptureJob(ctx, tx, actor, recipe, connection, capturejob.KindDeployment, deployment, captureDeploymentKey(deployment.ID, recipe.ID, connection.Generation), nil); err != nil {
+			if _, err := admitCaptureJob(ctx, tx, actor, recipe, connection, capturejob.KindDeployment, deployment, captureDeploymentKey(deployment.ID, recipe.ID, connection.Generation), nil, nil); err != nil {
 				_ = tx.Rollback()
 				return nil, err
 			}
@@ -340,7 +367,7 @@ func (c *Configuration) ListCaptureJobs(ctx context.Context, actor Actor) ([]Cap
 	for _, row := range rows {
 		records = append(records, captureJobRecord(row))
 	}
-	return records, nil
+	return records, c.withNavigation(ctx, actor.OrganizationID, records)
 }
 
 // GetCaptureJob reads one job in the workspace.
@@ -355,8 +382,11 @@ func (c *Configuration) GetCaptureJob(ctx context.Context, actor Actor, id strin
 	if err != nil {
 		return nil, err
 	}
-	record := captureJobRecord(row)
-	return &record, nil
+	records := []CaptureJobRecord{captureJobRecord(row)}
+	if err := c.withNavigation(ctx, actor.OrganizationID, records); err != nil {
+		return nil, err
+	}
+	return &records[0], nil
 }
 
 // CancelCaptureJob stops a job; a result arriving later cannot commit.
@@ -620,8 +650,10 @@ func parkCaptureJob(ctx context.Context, tx *ent.Tx, job *ent.CaptureJob, code s
 	if err := job.Update().SetPhase(capturejob.PhaseNEEDS_AUTH).SetStatus(capturejob.StatusQUEUED).SetFailureCode(code).SetDeadlineAt(now.Add(captureAuthDeadline)).Exec(ctx); err != nil {
 		return err
 	}
-	if job.SurfaceID != nil {
-		return activity.Emit(ctx, tx, job.OrganizationID, "capture.failed", "product_surface", *job.SurfaceID, "", "job:"+job.ID+":needs_auth", map[string]any{"background": true})
+	// One lapsed sign-in parks every queued job; the people who can fix it hear once.
+	if job.SurfaceID != nil && job.AppConnectionID != nil {
+		key := fmt.Sprintf("connection:%s:%d:needs_auth", *job.AppConnectionID, job.ConnectionGeneration)
+		return activity.Emit(ctx, tx, job.OrganizationID, "capture.needs_auth", "product_surface", *job.SurfaceID, "", key, map[string]any{"background": true})
 	}
 	return nil
 }
@@ -678,7 +710,7 @@ func (c *Configuration) RunCaptureJob(ctx context.Context, org, id string) (*Cap
 	}
 	navigate := c.captureNavigator(claim, recipe.Navigation)
 	if recipe.Navigation != nil && navigate == nil {
-		return c.failCapture(ctx, claim, &browser.Failure{Code: browser.NavigationUnavailable})
+		return c.failCapture(ctx, claim, &browser.Failure{Code: browser.NavigationUnconfigured})
 	}
 	session, err := c.captureRunner.Allocate(ctx, claim.connection.Hosts, captureRunKeepAlive)
 	if err != nil {
@@ -717,6 +749,13 @@ func (c *Configuration) RunCaptureJob(ctx context.Context, org, id string) (*Cap
 	}
 	defer tx.Rollback()
 	update := tx.CaptureAttempt.UpdateOneID(claim.attempt.ID).SetAssetID(stored).SetRefusedRequests(result.RefusedRequests)
+	if len(result.NavigationActions) > 0 {
+		trace := make([]map[string]string, 0, len(result.NavigationActions))
+		for _, action := range result.NavigationActions {
+			trace = append(trace, map[string]string{"kind": action.Kind, "path": action.Path})
+		}
+		update.SetNavigationActions(trace)
+	}
 	if result.SourcePath != "" {
 		update.SetSourceURL(claim.connection.Origin + result.SourcePath)
 	}
@@ -733,7 +772,7 @@ func (c *Configuration) RunCaptureJob(ctx context.Context, org, id string) (*Cap
 	}
 	if recipe.Navigation != nil {
 		if err := appendConfigurationAudit(ctx, tx, actor, "product.capture_navigation_completed", "capture", claim.attempt.ID,
-			map[string]any{"captureJobId": claim.job.ID, "recipeId": claim.recipe.ID, "assetId": stored, "path": result.SourcePath, "actions": result.NavigationActions}); err != nil {
+			map[string]any{"captureJobId": claim.job.ID, "recipeId": claim.recipe.ID, "assetId": stored, "path": result.SourcePath, "actions": result.NavigationActions, "focus": result.Focus, "steered": claim.job.ObjectiveEvidence != nil}); err != nil {
 			return nil, err
 		}
 	}
@@ -826,7 +865,8 @@ func (c *Configuration) failCapture(ctx context.Context, claim *captureClaim, ca
 		if err := setCaptureJobTerminal(job.Update(), capturejob.PhaseFAILED, string(code)).Exec(ctx); err != nil {
 			return nil, err
 		}
-		if job.SurfaceID != nil {
+		// A capture steered toward one release change failing says nothing about the page.
+		if job.SurfaceID != nil && job.ObjectiveEvidence == nil {
 			if err := tx.ProductSurface.UpdateOneID(*job.SurfaceID).SetLastCaptureFailureCode(string(code)).Exec(ctx); err != nil && !ent.IsNotFound(err) {
 				return nil, err
 			}
@@ -903,6 +943,10 @@ func (c *Configuration) commitCapture(ctx context.Context, claim *captureClaim, 
 		}
 		update.SetStateCiphertext(sealed).AddStateRevision(1)
 	}
+	// This attempt just proved the session as the expected account.
+	if expiry := slidingStateExpiry(connection, now, c.captureStateAge); expiry != nil {
+		update.SetStateExpiresAt(*expiry)
+	}
 	if err := update.Exec(ctx); err != nil {
 		return nil, err
 	}
@@ -911,12 +955,16 @@ func (c *Configuration) commitCapture(ctx context.Context, claim *captureClaim, 
 		actor.UserID = *job.RequestedByUserID
 	}
 	jobUpdate := setCaptureJobTerminal(job.Update(), capturejob.PhaseSUCCEEDED, "").SetAssetID(assetID).ClearFailureCode()
-	if job.Kind == capturejob.KindTest {
+	switch {
+	case job.Kind == capturejob.KindTest:
 		// A test proves the recipe. It never replaces the surface's current image.
 		if err := tx.CaptureRecipe.UpdateOneID(job.RecipeID).SetTestedAt(now).Exec(ctx); err != nil {
 			return nil, err
 		}
-	} else {
+	case job.ObjectiveEvidence != nil:
+		// A capture steered toward one release change is that run's evidence. The
+		// deployment's own job keeps the page's history and its one receipt.
+	default:
 		receipt, err := c.recordJobCapture(ctx, tx, actor, job, assetID, observed)
 		if err != nil {
 			return nil, err

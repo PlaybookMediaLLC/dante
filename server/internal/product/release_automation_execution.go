@@ -254,7 +254,7 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 		case "generate_copy":
 			outputs, err = c.automationGenerateCopy(ctx, actor, prior, event, input, node.Action)
 		case "capture_product":
-			outputs, err = c.automationCaptureProduct(ctx, org, event, input, node.Action)
+			outputs, err = c.automationCaptureProduct(ctx, org, prior, event, input, node.Action)
 		case "render_creatives":
 			outputs, err = c.automationRenderCreatives(ctx, org, id, nodeID, event, input, node.Action)
 		case "create_canvas":
@@ -323,8 +323,10 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 	if outputs.CodeProjectID != "" {
 		run.Outputs.CodeProjectID = outputs.CodeProjectID
 	}
-	if outputs.CaptureID != "" {
+	// A steered capture has an image but no page receipt, so the image decides.
+	if outputs.CaptureAssetID != "" {
 		run.Outputs.CaptureID, run.Outputs.CaptureAssetID, run.Outputs.CaptureProof = outputs.CaptureID, outputs.CaptureAssetID, outputs.CaptureProof
+		run.Outputs.CaptureAssetIDs, run.Outputs.CaptureFeatures = outputs.CaptureAssetIDs, outputs.CaptureFeatures
 	}
 	if outputs.CreditsCharged > 0 {
 		// Sum receipts rather than increment: a late duplicate completion of
@@ -568,6 +570,8 @@ func automationFailureCode(err error) string {
 		return "needs_auth"
 	case errors.Is(err, ErrCapturePending):
 		return "capture_pending"
+	case errors.Is(err, ErrCaptureUnmatched):
+		return "capture_unmatched"
 	case errors.Is(err, ErrCaptureSuperseded):
 		return captureSuperseded
 	case errors.Is(err, errAutomationDraftDestination):
@@ -582,5 +586,5 @@ func automationFailureCode(err error) string {
 func PermanentAutomationError(err error) bool {
 	var entitlement *FeatureNotEntitledError
 	var prohibited *ProhibitedTermsError
-	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrQuotaExceeded) || errors.Is(err, ErrCaptureMissing) || errors.Is(err, ErrCaptureRefused) || errors.Is(err, ErrCaptureNeedsAuth) || errors.Is(err, ErrCaptureSuperseded) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
+	return errors.Is(err, ErrInvalidInput) || errors.Is(err, ErrQuotaExceeded) || errors.Is(err, ErrCaptureMissing) || errors.Is(err, ErrCaptureRefused) || errors.Is(err, ErrCaptureNeedsAuth) || errors.Is(err, ErrCaptureSuperseded) || errors.Is(err, ErrCaptureUnmatched) || errors.Is(err, ErrAutomationStopped) || errors.Is(err, publishing.ErrForbidden) || errors.Is(err, publishing.ErrUnauthorized) || errors.Is(err, publishing.ErrNotFound) || errors.Is(err, publishing.ErrInvalidState) || ent.IsNotFound(err) || errors.As(err, &entitlement) || errors.As(err, &prohibited)
 }

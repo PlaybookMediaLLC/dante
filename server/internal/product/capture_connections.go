@@ -30,9 +30,30 @@ const (
 	captureConnectWindow = 10 * time.Minute
 	captureLiveViewStart = 5 * time.Minute
 	captureLoginKeep     = 15 * time.Minute
-	// captureDefaultStateAge is RFC 007's retention limit for a first pilot.
+	// captureDefaultStateAge is RFC 007's retention limit for a first pilot: how
+	// long a session stays saved without a successful capture proving it.
 	captureDefaultStateAge = 24 * time.Hour
+	// captureStateAbsoluteAge caps a person's sign-in however often captures
+	// renew it; the app's own session expiry still ends it sooner.
+	captureStateAbsoluteAge = 30 * 24 * time.Hour
 )
+
+// slidingStateExpiry renews a saved session after a verified capture: another
+// idle window, never past the absolute cap from the person's last sign-in, and
+// never shorter than it already is.
+func slidingStateExpiry(connection *ent.PlatformAppConnection, now time.Time, age time.Duration) *time.Time {
+	if connection.ValidatedAt == nil || connection.StateExpiresAt == nil {
+		return nil
+	}
+	next := now.Add(age)
+	if limit := connection.ValidatedAt.Add(max(age, captureStateAbsoluteAge)); next.After(limit) {
+		next = limit
+	}
+	if !next.After(*connection.StateExpiresAt) {
+		return nil
+	}
+	return &next
+}
 
 // CaptureRunner drives remote browsers; browser.Runner is the real one.
 type CaptureRunner interface {

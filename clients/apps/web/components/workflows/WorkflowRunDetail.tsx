@@ -316,6 +316,19 @@ export function WorkflowRunDetail({
               </Suspense>
             </Row>
           ) : null}
+          {run.outputs.captureFeatures?.length ? (
+            <Row
+              description="AI chose these signed-in screens from the release and steered each capture toward the change. Check each one shows what it names before approving."
+              label={`Changes captured · ${run.outputs.captureFeatures.length}`}
+              layout="stacked"
+            >
+              <ul className="list-disc space-y-1 pl-5 text-sm">
+                {run.outputs.captureFeatures.map((feature, index) => (
+                  <li key={`${index}-${feature}`}>{feature}</li>
+                ))}
+              </ul>
+            </Row>
+          ) : null}
           {run.outputs.canvasId ? (
             <Row
               description="Laid out from the release record. Refine it, then export or hand it to a campaign."

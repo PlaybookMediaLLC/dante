@@ -32,6 +32,9 @@ bash .github/rulesets/apply.sh
 The script sets the default branch to develop and idempotently creates or
 updates the named [develop](../.github/rulesets/develop.json) and
 [main](../.github/rulesets/main.json) rulesets. It preserves unrelated rulesets.
+It configures the repository the checkout's `origin` remote names, or
+`GH_REPO` when set, and prints it first. It then reads develop's rules back and
+fails unless the merge queue and the required checks are in force.
 Both branches require PRs, resolved review conversations, and the Branch policy
 and CI validation checks. `CI validation` is the single gate for everything CI
 runs: it names every job, asserts each result, and accepts a skip only for the
@@ -39,12 +42,21 @@ reason the `Plan` job recorded (see [the CI pipeline](ci.md)). Main used to
 require the browser shards by name as well, `integration (1/3)` to
 `integration (3/3)`; those contexts are gone, because the shard count now comes
 from the measured duration manifest and a release PR may legitimately reuse the
-suite the push to develop already ran on the same commit. Develop requires an up-to-date work branch. Main uses
+suite the push to develop already ran on the same commit. Develop merges
+through a merge queue: the queue runs the full CI suite on each pull request
+applied to the current develop, and a pull request's own CI run is the fast
+subset its diff can reach ([the CI pipeline](ci.md)). The queue merges with a
+merge commit, which keeps the upstream sync's parents intact; a work PR's own
+commits therefore reach develop's history and Release Please, so they follow
+the commit convention like its title. Before turning the queue off, re-run CI
+on open develop PRs: a green run from behind the queue skipped the image
+builds, browser shards and social gate. Main uses
 checks on the release merge candidate without requiring a back-merge of its
 previous release-only merge commit into develop. Force pushes and branch
 deletion are prohibited. No bypass actors or new approval-count requirement
 are introduced. Main accepts merge commits only; work PRs may use squash,
-merge or rebase. Squash is the normal choice for a single work change.
+merge or rebase. With the merge queue on, develop's queue
+decides the method.
 
 These files describe the required settings; committing them does not install
 GitHub rules. Confirm both rulesets are active and the default branch is

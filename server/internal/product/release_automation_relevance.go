@@ -82,6 +82,21 @@ func (c *Configuration) automationJudge(ctx context.Context, org string, receipt
 	return *generation.Verdict, generation.Credits, nil
 }
 
+// eventEvidence is the untrusted metadata of a repository event a model may
+// read: its family, title, observed fields and changed paths.
+func eventEvidence(e automation.Event) []string {
+	evidence := []string{"Event: " + string(e.Family), "Title: " + e.Title}
+	for _, field := range []string{"pr.labels", "pr.base", "pr.head", "pr.additions", "pr.deletions", "pr.changed_files", "release.tag", "tag.name", "milestone.title", "milestone.closed_items", "version.level", "deployment.environment"} {
+		if value := e.Fields[field]; value.State == "available" && len(value.Values) > 0 {
+			evidence = append(evidence, field+": "+strings.Join(value.Values, ", "))
+		}
+	}
+	if files := e.Fields["pr.files"]; files.State == "available" {
+		evidence = append(evidence, "Changed paths: "+strings.Join(files.Values[:min(len(files.Values), 200)], ", "))
+	}
+	return evidence
+}
+
 func (c *Configuration) judgeRelevance(ctx context.Context, org string, e automation.Event, classify *automation.Classify) (*automation.Generation, error) {
 	if c.automationModel == nil {
 		return nil, ErrAutomationModelUnavailable
@@ -97,15 +112,7 @@ func (c *Configuration) judgeRelevance(ctx context.Context, org string, e automa
 	if profile != nil {
 		product = "Product: " + profile.ProductDescription + "\nAudience: " + profile.Audience
 	}
-	evidence := []string{"Event: " + string(e.Family), "Title: " + e.Title}
-	for _, field := range []string{"pr.labels", "pr.base", "pr.head", "pr.additions", "pr.deletions", "pr.changed_files", "release.tag", "tag.name", "milestone.title", "milestone.closed_items", "version.level", "deployment.environment"} {
-		if value := e.Fields[field]; value.State == "available" && len(value.Values) > 0 {
-			evidence = append(evidence, field+": "+strings.Join(value.Values, ", "))
-		}
-	}
-	if files := e.Fields["pr.files"]; files.State == "available" {
-		evidence = append(evidence, "Changed paths: "+strings.Join(files.Values[:min(len(files.Values), 200)], ", "))
-	}
+	evidence := eventEvidence(e)
 	// Fence delimiters inside untrusted text cannot close the fence.
 	fence := strings.NewReplacer("<change", "‹change", "</change", "‹/change")
 	prompt := fmt.Sprintf("<workspace trust=\"trusted\">\n%s\n\nWorth marketing when: %s\n</workspace>\n\n<change trust=\"untrusted\">\n%s\n\nNotes:\n%s\n</change>",

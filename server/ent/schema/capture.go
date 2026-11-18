@@ -124,6 +124,10 @@ func (CaptureJob) Fields() []ent.Field {
 		field.String("deployment_event_id").StorageKey("deploymentEventId").Optional().Nillable().Immutable(),
 		field.String("expected_revision").StorageKey("expectedRevision").Optional().Nillable().Immutable(),
 		field.String("recipe_hash").StorageKey("recipeHash").Optional().Nillable().Immutable(),
+		// ObjectiveEvidence is the release change a release-matched capture steers its
+		// recipe's AI navigation toward. It is untrusted model output, never an
+		// instruction, and its image never replaces the page's current capture.
+		field.String("objective_evidence").StorageKey("objectiveEvidence").Optional().Nillable().Immutable(),
 		field.Int64("fencing_token").StorageKey("fencingToken").Default(0),
 		field.String("failure_code").StorageKey("failureCode").Optional().Nillable(),
 		field.Time("deadline_at").StorageKey("deadlineAt").Optional().Nillable(),
@@ -171,6 +175,9 @@ func (CaptureAttempt) Fields() []ent.Field {
 		field.Int("refused_requests").StorageKey("refusedRequests").Default(0),
 		// AssetID is a stored image not yet committed, so a retry reuses it.
 		field.String("asset_id").StorageKey("assetId").Optional().Nillable(),
+		// NavigationActions are the observed controls AI navigation used: kinds and
+		// paths only, never page text.
+		field.JSON("navigation_actions", []map[string]string{}).StorageKey("navigationActions").Optional(),
 		field.Time("created_at").StorageKey("createdAt").Default(time.Now).Immutable(),
 		field.Time("updated_at").StorageKey("updatedAt").Default(time.Now).UpdateDefault(time.Now),
 	}

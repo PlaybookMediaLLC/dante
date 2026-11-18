@@ -15,6 +15,7 @@ import {
   activeRecipeForSurface,
   captureConnectionInput,
   captureInProgress,
+  captureNavigationSummary,
   captureRecipeInput,
   latestCaptureTest,
   workflowCaptureRecipes,
@@ -202,6 +203,48 @@ test('a recipe form opens the screen and requires its element', () => {
     captureRecipeInput({ ...recipeForm, width: '4000' })
   )
   assert.equal(huge.error?.issues[0]?.message, 'Use a viewport from 320×320 up to 1920×1080.')
+})
+
+test('a recipe may capture at double resolution and crop to its element', () => {
+  const sharp = captureRecipeInput({ ...recipeForm, sharp: true, cropToMarker: true })
+  assert.deepEqual(sharp.definition.viewport, { height: 900, width: 1440, scale: 2 })
+  assert.equal(sharp.definition.crop, 'marker')
+  assert.equal(captureRecipeInputSchema.safeParse(sharp).success, true)
+  const tooSharp = {
+    ...sharp,
+    definition: { ...sharp.definition, viewport: { height: 900, width: 1440, scale: 3 } },
+  }
+  assert.equal(captureRecipeInputSchema.safeParse(tooSharp).success, false)
+})
+
+test('an AI capture shows its path as kinds and paths, never page text', () => {
+  assert.equal(captureNavigationSummary({}), null)
+  assert.equal(
+    captureNavigationSummary({
+      navigationActions: [
+        { kind: 'link', path: '/reports' },
+        { kind: 'button', path: '/reports' },
+        { kind: 'frame', path: '/reports' },
+      ],
+    }),
+    'AI opened /reports, then pressed a button on /reports, then framed the result on /reports.'
+  )
+})
+
+test('a connection may prove its account by text alone', () => {
+  const connectionForm = {
+    environment: 'demo' as const,
+    expectedAccount: 'demo@example.com',
+    hosts: 'app.example.com',
+    identitySelector: '',
+    loginHosts: '',
+    name: 'Demo',
+    origin: 'https://app.example.com',
+    protectedPath: '/settings',
+    sourceAppId: '',
+  }
+  const input = captureConnectionInput(connectionForm)
+  assert.equal(captureConnectionInputSchema.safeParse(input).success, true)
 })
 
 test('the page polls while a sign-in is being checked or a job can still move', () => {

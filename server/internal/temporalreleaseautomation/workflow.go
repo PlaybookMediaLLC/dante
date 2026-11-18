@@ -210,7 +210,13 @@ func execute(ctx workflow.Context, input Input, finish *Finish) error {
 		// deployed commit, so these attempts back off for about ten minutes, and
 		// each one reuses a receipt that an earlier attempt left.
 		if node.Type == "action" && node.Action.Type == "capture_product" {
-			nodeCtx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 3 * time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: 15 * time.Second, MaximumInterval: 2 * time.Minute, MaximumAttempts: 8, NonRetryableErrorTypes: []string{StoppedError, PermanentError}}})
+			attempts := int32(8)
+			// Version 4 only: chosen release pages queue behind the deployment's own
+			// captures, one at a time per workspace, so wait out their 30-minute deadline.
+			if node.Action.MatchRelease {
+				attempts = 20
+			}
+			nodeCtx = workflow.WithActivityOptions(ctx, workflow.ActivityOptions{StartToCloseTimeout: 3 * time.Minute, RetryPolicy: &temporal.RetryPolicy{InitialInterval: 15 * time.Second, MaximumInterval: 2 * time.Minute, MaximumAttempts: attempts, NonRetryableErrorTypes: []string{StoppedError, PermanentError}}})
 		}
 		if err := workflow.ExecuteActivity(nodeCtx, NodeActivity, step).Get(ctx, nil); err != nil {
 			return err

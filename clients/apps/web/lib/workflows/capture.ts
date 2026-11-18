@@ -126,6 +126,10 @@ export type CaptureRecipeForm = {
   objective: string
   navigationSteps: string
   navigationCredits: string
+  /** Capture at twice the pixel density. */
+  sharp?: boolean
+  /** Make the image the proving element and a small margin around it. */
+  cropToMarker?: boolean
 }
 
 /**
@@ -142,7 +146,12 @@ export function captureRecipeInput(form: CaptureRecipeForm): CaptureRecipeInput 
       markers: [form.marker.trim()],
       schemaVersion: 1,
       steps: [{ kind: 'NAVIGATE', path: form.path.trim() }],
-      viewport: { height: Number(form.height), width: Number(form.width) },
+      viewport: {
+        height: Number(form.height),
+        width: Number(form.width),
+        ...(form.sharp ? { scale: 2 as const } : {}),
+      },
+      ...(form.cropToMarker ? { crop: 'marker' as const } : {}),
       ...(masks.length ? { masks } : {}),
       ...(versionPath ? { version: { path: versionPath } } : {}),
       ...(objective
@@ -158,4 +167,19 @@ export function captureRecipeInput(form: CaptureRecipeForm): CaptureRecipeInput 
     name: form.name,
     surfaceId: form.surfaceId,
   }
+}
+
+const NAVIGATION_STEP: Record<string, string> = {
+  link: 'opened',
+  tab: 'selected a tab on',
+  button: 'pressed a button on',
+  frame: 'framed the result on',
+}
+
+/** The AI's path to the screen as one sentence, or null without one. */
+export function captureNavigationSummary(job: Pick<CaptureJob, 'navigationActions'>) {
+  if (!job.navigationActions?.length) return null
+  return `AI ${job.navigationActions
+    .map((step) => `${NAVIGATION_STEP[step.kind] ?? step.kind} ${step.path}`)
+    .join(', then ')}.`
 }

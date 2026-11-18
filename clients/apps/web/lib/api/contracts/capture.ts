@@ -21,7 +21,8 @@ export const captureConnectionInputSchema = z.object({
     .max(10, 'Approve at most 10 hosts.'),
   loginHosts: z.array(hostSchema).max(10, 'Approve at most 10 sign-in hosts.'),
   protectedPath: pathSchema,
-  identitySelector: selectorSchema,
+  /** Empty proves the account from its text in the app's header or navigation. */
+  identitySelector: z.union([z.literal(''), selectorSchema]),
   expectedAccount: z.string().trim().min(1).max(200),
 })
 
@@ -62,6 +63,8 @@ export const captureRecipeDefinitionSchema = z.object({
   viewport: z.object({
     width: z.number().int().min(320, VIEWPORT_LIMITS).max(1920, VIEWPORT_LIMITS),
     height: z.number().int().min(320, VIEWPORT_LIMITS).max(1080, VIEWPORT_LIMITS),
+    /** 2 captures at twice the pixel density; omitted is 1. */
+    scale: z.union([z.literal(1), z.literal(2)]).optional(),
   }),
   steps: z
     .array(
@@ -81,6 +84,8 @@ export const captureRecipeDefinitionSchema = z.object({
     .object({ path: pathSchema.optional(), selector: selectorSchema.optional() })
     .optional(),
   allowedPostPaths: z.array(pathSchema).max(5).optional(),
+  /** `marker` makes the image the first marker and a small margin, not the whole viewport. */
+  crop: z.enum(['marker']).optional(),
   navigation: z
     .object({
       objective: z.string().trim().min(1).max(1000),
@@ -137,6 +142,10 @@ export const captureJobSchema = z.object({
   attempts: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** What a release-matched capture was steered to show; untrusted text from release notes. */
+  releaseChange: z.string().nullable().optional(),
+  /** The newest attempt's AI path: control kinds and paths only. */
+  navigationActions: z.array(z.object({ kind: z.string(), path: z.string() })).optional(),
 })
 
 /** Everything a member may read about this workspace's authenticated capture. */

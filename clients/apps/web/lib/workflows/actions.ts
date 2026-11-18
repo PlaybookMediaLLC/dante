@@ -90,7 +90,7 @@ export const WORKFLOW_ACTIONS = {
     type: 'capture_product',
     label: 'Capture this deployment',
     description:
-      'Takes a screenshot of one product page or signed-in screen for this deployment, for a later render to show instead of the latest image. Your app must first report the deployed commit at a path you set; without that proof the image is labeled as the current state only.',
+      'Takes a screenshot of one product page or signed-in screen for this deployment, for a later render to show instead of the latest image, or lets AI choose up to three signed-in screens that show what the release changed. Your app must first report the deployed commit; without that proof an image is labeled as the current state only.',
     input: 'campaignId',
     output: 'campaignId',
     minSchemaVersion: 3,
@@ -197,12 +197,19 @@ export const WORKFLOW_CLASSIFY = {
  */
 export const WORKFLOW_SCHEMA_VERSION = 2
 
+/** The language version in which capture product chooses its pages from the release. */
+export const RELEASE_MATCH_SCHEMA_VERSION = 4
+
 /** The language version a graph needs, so only graphs using a newer action need a newer worker. */
 export function graphSchemaVersion(graph: Pick<AutomationGraph, 'nodes'>): number {
   return Math.max(
     WORKFLOW_SCHEMA_VERSION,
     ...graph.nodes.map((node) =>
-      node.action ? WORKFLOW_ACTIONS[node.action.type].minSchemaVersion : 0
+      node.action?.type === 'capture_product' && node.action.matchRelease
+        ? RELEASE_MATCH_SCHEMA_VERSION
+        : node.action
+          ? WORKFLOW_ACTIONS[node.action.type].minSchemaVersion
+          : 0
     )
   )
 }
