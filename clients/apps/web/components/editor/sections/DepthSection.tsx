@@ -10,6 +10,7 @@ import { orderedLayerIds } from '@/lib/editor/layer-order';
 import { reorderLayer } from '@/lib/editor/use-layer-depth';
 import { useDeviceUIStore } from '@/lib/store/device-ui';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import type { ImageOverlay, ImageOverlayTilt, ImageShadow } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
@@ -106,7 +107,26 @@ export function DepthSection() {
     removeAnnotation,
     updateAnnotation,
     removeBlurRegion,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      imageName: state.imageName,
+      imageOverlays: state.imageOverlays,
+      textOverlays: state.textOverlays,
+      annotations: state.annotations,
+      blurRegions: state.blurRegions,
+      selectedOverlayId: state.selectedOverlayId,
+      isMainImageSelected: state.isMainImageSelected,
+      setIsMainImageSelected: state.setIsMainImageSelected,
+      addImageOverlay: state.addImageOverlay,
+      updateImageOverlay: state.updateImageOverlay,
+      removeImageOverlay: state.removeImageOverlay,
+      updateTextOverlay: state.updateTextOverlay,
+      removeTextOverlay: state.removeTextOverlay,
+      removeAnnotation: state.removeAnnotation,
+      updateAnnotation: state.updateAnnotation,
+      removeBlurRegion: state.removeBlurRegion,
+    }))
+  );
 
   // Selection is the editor's own, so the inspector shows whatever is picked here.
   const hasScreens = useImageStore((state) => isScreenScene(state) && state.mockups.length > 0);

@@ -17,6 +17,7 @@ import { useAutosaveDraft } from '@/hooks/useAutosaveDraft'
 import { useHistoryGestures } from '@/lib/editor/history-gestures'
 import { MobileBanner } from './MobileBanner'
 import { useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { trackEditorOpen } from '@/lib/analytics'
 import { cn } from '@/lib/utils'
 import { hasVisibleMockups, shouldRenderSourceImage } from '@/lib/device-mockups/layouts'
@@ -124,7 +125,16 @@ function EditorMain() {
   const isMobile = useIsMobile()
   const [mobileSheetOpen, setMobileSheetOpen] = React.useState(false)
   const { uploadedImageUrl, slides, mockups, editorMode, showTimeline, toggleTimeline } =
-    useImageStore()
+    useImageStore(
+      useShallow((state) => ({
+        uploadedImageUrl: state.uploadedImageUrl,
+        slides: state.slides,
+        mockups: state.mockups,
+        editorMode: state.editorMode,
+        showTimeline: state.showTimeline,
+        toggleTimeline: state.toggleTimeline,
+      }))
+    )
 
   // enable autosave
   useAutosaveDraft()

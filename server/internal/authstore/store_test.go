@@ -149,6 +149,74 @@ func TestAuthStoreRunsBetterAuthOperations(t *testing.T) {
 		t.Fatalf("incremented row = %#v", bumped.Row)
 	}
 
+	// Native joins: a session arrives with its user, a user with its sessions.
+	run(Request{Op: "create", Model: "session", Data: map[string]any{
+		"id": id + "s", "token": id + "token", "userId": id + "a", "expiresAt": "2030-01-01T00:00:00.000Z",
+		"createdAt": "2026-10-14T12:00:00.000Z", "updatedAt": "2026-10-14T12:00:00.000Z",
+	}})
+	toUser := map[string]Join{"user": {Limit: 1, On: JoinOn{From: "userId", To: "id"}, Relation: "one-to-one"}}
+	session := run(Request{Op: "findOne", Model: "session", Join: toUser, Where: []Where{{Field: "token", Value: id + "token"}}})
+	if user, _ := session.Row["user"].(map[string]any); session.Row["id"] != id+"s" || user["email"] != id+"a@example.test" {
+		t.Fatalf("session with user = %#v", session.Row)
+	}
+	if none := run(Request{Op: "findOne", Model: "session", Join: toUser, Where: []Where{{Field: "token", Value: "absent"}}}); none.Row != nil {
+		t.Fatalf("missing session = %#v", none.Row)
+	}
+	toSessions := map[string]Join{"session": {Limit: 10, On: JoinOn{From: "id", To: "userId"}, Relation: "one-to-many"}}
+	users := run(Request{Op: "findMany", Model: "user", Join: toSessions, Where: []Where{{Field: "id", Operator: "starts_with", Value: id}},
+		SortBy: &struct {
+			Direction string `json:"direction"`
+			Field     string `json:"field"`
+		}{Direction: "asc", Field: "createdAt"}})
+	if len(users.Rows) != 2 {
+		t.Fatalf("users with sessions = %#v", users.Rows)
+	}
+	ada, _ := users.Rows[0]["session"].([]map[string]any)
+	bob, _ := users.Rows[1]["session"].([]map[string]any)
+	if len(ada) != 1 || ada[0]["id"] != id+"s" || bob == nil || len(bob) != 0 {
+		t.Fatalf("users with sessions = %#v", users.Rows)
+	}
+	// A base row without the joined key gets the empty value for its relation.
+	noOrg := run(Request{Op: "findOne", Model: "session", Where: []Where{{Field: "id", Value: id + "s"}},
+		Join: map[string]Join{"organization": {Limit: 1, On: JoinOn{From: "activeOrganizationId", To: "id"}, Relation: "one-to-one"}}})
+	if org, present := noOrg.Row["organization"]; !present || org != nil {
+		t.Fatalf("null join key = %#v", noOrg.Row)
+	}
+	// Joined reads are ordinary reads of their model, so its guards still apply:
+	// an access token leaves the join once its session expires.
+	var clientID string
+	if err := db.SQL.QueryRowContext(ctx, `SELECT "clientId" FROM "oauthClient" WHERE id='platform-founder-hub'`).Scan(&clientID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `INSERT INTO "oauthAccessToken" (id,token,"clientId","sessionId","userId","expiresAt","createdAt",scopes) VALUES ($1,$1,$2,$3,$4,'2030-01-01',now(),'[]')`, id+"t", clientID, id+"s", id+"a"); err != nil {
+		t.Fatal(err)
+	}
+	toTokens := map[string]Join{"oauthAccessToken": {Limit: 10, On: JoinOn{From: "id", To: "userId"}, Relation: "one-to-many"}}
+	tokens := func() []map[string]any {
+		found := run(Request{Op: "findOne", Model: "user", Join: toTokens, Where: []Where{{Field: "id", Value: id + "a"}}})
+		joined, _ := found.Row["oauthAccessToken"].([]map[string]any)
+		return joined
+	}
+	if live := tokens(); len(live) != 1 {
+		t.Fatalf("live session tokens = %#v", live)
+	}
+	if _, err := db.SQL.ExecContext(ctx, `UPDATE session SET "expiresAt"=now()-interval '1 minute' WHERE id=$1`, id+"s"); err != nil {
+		t.Fatal(err)
+	}
+	if expired := tokens(); len(expired) != 0 {
+		t.Fatalf("expired session tokens joined = %#v", expired)
+	}
+	for _, join := range []map[string]Join{
+		{"campaign": {Limit: 1, On: JoinOn{From: "userId", To: "id"}, Relation: "one-to-one"}},
+		{"user": {Limit: 1, On: JoinOn{From: "userId", To: "id; DROP TABLE user"}, Relation: "one-to-one"}},
+		{"user": {Limit: 1, On: JoinOn{From: "missing", To: "id"}, Relation: "one-to-one"}},
+		{"user": {Limit: 1, On: JoinOn{From: "userId", To: "id"}, Relation: "many-to-many"}},
+	} {
+		if _, err := store.Execute(ctx, Request{Op: "findOne", Model: "session", Join: join, Where: []Where{{Field: "id", Value: id + "s"}}}); !errors.Is(err, ErrInvalid) {
+			t.Fatalf("join %+v accepted: %v", join, err)
+		}
+	}
+
 	deleted := run(Request{Op: "deleteMany", Model: "user", Where: []Where{{Field: "id", Operator: "starts_with", Value: id}}})
 	if *deleted.Count != 2 {
 		t.Fatalf("deleteMany count = %d", *deleted.Count)

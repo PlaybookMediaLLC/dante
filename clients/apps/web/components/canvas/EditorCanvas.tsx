@@ -1,6 +1,7 @@
 "use client";
 
 import { useImageStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { CleanUploadState } from "@/components/controls/CleanUploadState";
 import { useLayoutEffect, useState } from "react";
 import { toast } from 'sonner';
@@ -30,7 +31,20 @@ export function EditorCanvas() {
     uploadedImageUrl,
     showTimeline,
     backgroundConfig,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      slides: state.slides,
+      setActiveSlide: state.setActiveSlide,
+      activeSlideId: state.activeSlideId,
+      removeSlide: state.removeSlide,
+      previewIndex: state.previewIndex,
+      isPreviewing: state.isPreviewing,
+      stopPreview: state.stopPreview,
+      uploadedImageUrl: state.uploadedImageUrl,
+      showTimeline: state.showTimeline,
+      backgroundConfig: state.backgroundConfig,
+    }))
+  );
   const backgroundReady = useBackgroundImageReady(backgroundConfig);
 
   const hasRenderableContent = useImageStore(hasCanvasContent);

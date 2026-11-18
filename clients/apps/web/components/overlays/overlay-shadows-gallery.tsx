@@ -1,6 +1,7 @@
 'use client'
 
 import { useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions'
 import { Button } from '@/components/ui/button'
 
@@ -14,7 +15,13 @@ const OVERLAY_SHADOW_URLS = OVERLAY_SHADOW_IDS.map(
 )
 
 export function OverlayShadowsGallery() {
-  const { addImageOverlay, imageOverlays, removeImageOverlay } = useImageStore()
+  const { addImageOverlay, imageOverlays, removeImageOverlay } = useImageStore(
+    useShallow((state) => ({
+      addImageOverlay: state.addImageOverlay,
+      imageOverlays: state.imageOverlays,
+      removeImageOverlay: state.removeImageOverlay,
+    }))
+  )
   const responsiveDimensions = useResponsiveCanvasDimensions()
 
   const getFullCanvasOverlay = () => {

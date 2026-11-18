@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { TimelineControls } from './TimelineControls';
 import { useTimelinePlayback } from './hooks/useTimelinePlayback';
@@ -321,7 +322,12 @@ function ResizableAnimationClip({
 
 /* ─── Animation Track ────────────────────────────────────────── */
 function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimation?: () => void }) {
-  const { timeline, animationClips } = useImageStore();
+  const { timeline, animationClips } = useImageStore(
+    useShallow((state) => ({
+      timeline: state.timeline,
+      animationClips: state.animationClips,
+    }))
+  );
   const [selectedClipId, setSelectedClipId] = React.useState<string | null>(null);
   const trackWidth = width - TRACK_LABEL_WIDTH;
 
@@ -405,7 +411,17 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
 
 /* ─── Video / Media Track ────────────────────────────────────── */
 function VideoTrack({ width }: { width: number }) {
-  const { slides, uploadedImageUrl, imageName, timeline, removeSlide, setActiveSlide, activeSlideId } = useImageStore();
+  const { slides, uploadedImageUrl, imageName, timeline, removeSlide, setActiveSlide, activeSlideId } = useImageStore(
+    useShallow((state) => ({
+      slides: state.slides,
+      uploadedImageUrl: state.uploadedImageUrl,
+      imageName: state.imageName,
+      timeline: state.timeline,
+      removeSlide: state.removeSlide,
+      setActiveSlide: state.setActiveSlide,
+      activeSlideId: state.activeSlideId,
+    }))
+  );
   const durationSeconds = timeline.duration / 1000;
   const trackWidth = width - TRACK_LABEL_WIDTH;
 
@@ -572,7 +588,15 @@ function SlideDurationHandle({
 
 /* ─── Main Timeline Editor ───────────────────────────────────── */
 export function TimelineEditor() {
-  const { timeline, uploadedImageUrl, slides, showTimeline, toggleTimeline } = useImageStore();
+  const { timeline, uploadedImageUrl, slides, showTimeline, toggleTimeline } = useImageStore(
+    useShallow((state) => ({
+      timeline: state.timeline,
+      uploadedImageUrl: state.uploadedImageUrl,
+      slides: state.slides,
+      showTimeline: state.showTimeline,
+      toggleTimeline: state.toggleTimeline,
+    }))
+  );
   const motionRows = useImageStore((state) => motionRowCount(state.motion));
   const playhead = usePlaybackStore((state) => state.playhead);
   const [viewportWidth, setViewportWidth] = React.useState(0);

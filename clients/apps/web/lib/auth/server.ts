@@ -85,6 +85,8 @@ const provider = betterAuth({
     sendResetPassword: async ({ url, user }) =>
       sendPasswordResetEmail({ actionUrl: url, to: user.email }),
   },
+  // The adapter reads a session and its user in one backend call (see backend-adapter.ts).
+  experimental: { joins: true },
   emailVerification: {
     sendOnSignIn: true,
     sendVerificationEmail: async ({ url, user }) =>

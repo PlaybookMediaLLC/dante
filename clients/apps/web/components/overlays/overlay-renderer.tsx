@@ -2,11 +2,19 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { getR2ImageUrl } from '@/lib/r2'
 import { isOverlayPath } from '@/lib/r2-overlays'
 
 export function OverlayRenderer() {
-  const { imageOverlays, updateImageOverlay, selectedOverlayId, setSelectedOverlayId } = useImageStore()
+  const { imageOverlays, updateImageOverlay, selectedOverlayId, setSelectedOverlayId } = useImageStore(
+    useShallow((state) => ({
+      imageOverlays: state.imageOverlays,
+      updateImageOverlay: state.updateImageOverlay,
+      selectedOverlayId: state.selectedOverlayId,
+      setSelectedOverlayId: state.setSelectedOverlayId,
+    }))
+  )
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -229,7 +230,14 @@ const PRESETS: TransformPreset[] = [
 ];
 
 export function Perspective3DControls() {
-  const { perspective3D, setPerspective3D, imageShadow, setImageShadow } = useImageStore();
+  const { perspective3D, setPerspective3D, imageShadow, setImageShadow } = useImageStore(
+    useShallow((state) => ({
+      perspective3D: state.perspective3D,
+      setPerspective3D: state.setPerspective3D,
+      imageShadow: state.imageShadow,
+      setImageShadow: state.setImageShadow,
+    }))
+  );
   const [selectedPresetIndex, setSelectedPresetIndex] = React.useState<number | null>(null);
 
   React.useEffect(() => {

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { SectionWrapper } from './SectionWrapper';
 import { getR2ImageUrl } from '@/lib/r2';
 import { isOverlayPath } from '@/lib/r2-overlays';
@@ -26,7 +27,16 @@ function getThumbSrc(overlay: { src: string; isCustom?: boolean }) {
 
 export function ImageOverlaySection() {
   const { imageOverlays, textOverlays, elements, annotations, blurRegions, addImageOverlay } =
-    useImageStore();
+    useImageStore(
+    useShallow((state) => ({
+      imageOverlays: state.imageOverlays,
+      textOverlays: state.textOverlays,
+      elements: state.elements,
+      annotations: state.annotations,
+      blurRegions: state.blurRegions,
+      addImageOverlay: state.addImageOverlay,
+    }))
+  );
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleAddImage = React.useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

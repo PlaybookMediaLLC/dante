@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react';
 import { useEditorPanels } from '@/lib/store/editor-panels';
 import { useImageStore, withTypingHistory } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
 import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
 import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
@@ -63,7 +64,15 @@ export const TextLayerList = () => {
     updateTextOverlay,
     removeTextOverlay,
     clearTextOverlays,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      textOverlays: state.textOverlays,
+      addTextOverlay: state.addTextOverlay,
+      updateTextOverlay: state.updateTextOverlay,
+      removeTextOverlay: state.removeTextOverlay,
+      clearTextOverlays: state.clearTextOverlays,
+    }))
+  );
   const selectedOverlayId = useImageStore((state) => state.selectedTextId);
   const setSelectedOverlayId = useImageStore((state) => state.setSelectedTextId);
 
@@ -160,7 +169,12 @@ export const TextLayerList = () => {
 
 /** Properties of the selected text layer, or nothing when no text is selected. */
 export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) => {
-  const { textOverlays, updateTextOverlay } = useImageStore();
+  const { textOverlays, updateTextOverlay } = useImageStore(
+    useShallow((state) => ({
+      textOverlays: state.textOverlays,
+      updateTextOverlay: state.updateTextOverlay,
+    }))
+  );
   const selectedOverlayId = useImageStore((state) => state.selectedTextId);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
   const selectedOverlay = textOverlays.find((o) => o.id === selectedOverlayId);

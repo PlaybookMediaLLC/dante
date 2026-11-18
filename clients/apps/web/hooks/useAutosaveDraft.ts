@@ -108,7 +108,6 @@ function definedOnly<T extends object>(obj: T): Partial<T> {
 }
 
 export function useAutosaveDraft() {
-  const imageStore = useImageStore();
   const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
   const hasLoadedRef = useRef(false);
   const restoreRef = useRef<Promise<void> | null>(null);
@@ -391,13 +390,19 @@ export function useAutosaveDraft() {
     return pendingDraftSave;
   }, []);
 
+  // A store subscription, not a hook read: the editor root mounts this hook, and
+  // reading the whole store re-rendered the editor on every change (each drag move).
   useEffect(() => {
-    if (!hasLoadedRef.current) return;
-    saveTimeoutRef.current = setTimeout(() => void saveNow(), AUTOSAVE_DELAY);
+    const unsubscribe = useImageStore.subscribe(() => {
+      if (!hasLoadedRef.current) return;
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(() => void saveNow(), AUTOSAVE_DELAY);
+    });
     return () => {
+      unsubscribe();
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
-  }, [imageStore, saveNow]);
+  }, [saveNow]);
 
   useEffect(() => {
     const flush = () => void saveNow();
@@ -436,6 +441,7 @@ export function useAutosaveDraft() {
       await deleteDraft();
       conflictRef.current = false;
       toast.dismiss('draft-conflict');
+      const imageStore = useImageStore.getState();
       imageStore.resetSlideshow();
       imageStore.clearImage();
       imageStore.clearTextOverlays();

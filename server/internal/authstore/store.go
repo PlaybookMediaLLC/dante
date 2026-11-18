@@ -47,6 +47,22 @@ type Request struct {
 		Field     string `json:"field"`
 	} `json:"sortBy"`
 	Where []Where `json:"where"`
+	// Join nests related rows into a read, as Better Auth's native joins do, so
+	// a session and its user arrive in one call instead of two.
+	Join map[string]Join `json:"join,omitempty"`
+}
+
+// Join reads a model's rows whose On.To equals the base row's On.From.
+type Join struct {
+	Limit    int    `json:"limit"`
+	On       JoinOn `json:"on"`
+	Relation string `json:"relation"`
+}
+
+// JoinOn names the base row's field and the joined model's matching field.
+type JoinOn struct {
+	From string `json:"from"`
+	To   string `json:"to"`
 }
 
 // Result carries exactly one of a row, rows, or a count, by operation.
@@ -400,7 +416,11 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 			statement += " ORDER BY " + column + " " + direction
 		}
 		if request.Op == "findOne" {
-			return s.one(ctx, statement+" LIMIT 1", q.args)
+			result, err := s.one(ctx, statement+" LIMIT 1", q.args)
+			if err != nil {
+				return nil, err
+			}
+			return s.joined(ctx, request, result)
 		}
 		if request.Limit > 0 {
 			statement += fmt.Sprintf(" LIMIT %d", request.Limit)
@@ -415,7 +435,7 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 		if rows == nil {
 			rows = []map[string]any{}
 		}
-		return &Result{Rows: rows}, nil
+		return s.joined(ctx, request, &Result{Rows: rows})
 	case "count":
 		filter, err := q.filter(request.Where)
 		if err != nil {
@@ -480,6 +500,52 @@ func (s *Store) Execute(ctx context.Context, request Request) (*Result, error) {
 		return s.affected(ctx, fmt.Sprintf("DELETE FROM %s WHERE %s", q.table, filter), q.args)
 	}
 	return nil, fmt.Errorf("%w: operation %q", ErrInvalid, request.Op)
+}
+
+// joined nests each join's rows under its model name. Every join is an
+// ordinary read of that model through Execute, so its scoping and guards apply.
+func (s *Store) joined(ctx context.Context, request Request, result *Result) (*Result, error) {
+	rows := result.Rows
+	if request.Op == "findOne" {
+		if result.Row == nil {
+			return result, nil
+		}
+		rows = []map[string]any{result.Row}
+	}
+	for model, join := range request.Join {
+		one := join.Relation == "one-to-one"
+		if !one && join.Relation != "one-to-many" {
+			return nil, fmt.Errorf("%w: join relation %q", ErrInvalid, join.Relation)
+		}
+		for _, row := range rows {
+			value, selected := row[join.On.From]
+			if !selected {
+				return nil, fmt.Errorf("%w: join %q needs %q selected", ErrInvalid, model, join.On.From)
+			}
+			if value == nil {
+				if one {
+					row[model] = nil
+				} else {
+					row[model] = []map[string]any{}
+				}
+				continue
+			}
+			read := Request{Model: model, Op: "findMany", Limit: join.Limit, Where: []Where{{Field: join.On.To, Value: value}}}
+			if one {
+				read.Op = "findOne"
+			}
+			found, err := s.Execute(ctx, read)
+			if err != nil {
+				return nil, err
+			}
+			if one {
+				row[model] = found.Row
+			} else {
+				row[model] = found.Rows
+			}
+		}
+	}
+	return result, nil
 }
 
 func (s *Store) affected(ctx context.Context, statement string, args []any) (*Result, error) {

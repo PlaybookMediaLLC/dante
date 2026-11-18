@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import type { AnnotationToolType, BlurRegionStyle } from '@/lib/store';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
@@ -113,7 +114,23 @@ export function AnnotateSection() {
     updateBlurRegion,
     removeBlurRegion,
     clearBlurRegions,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      annotations: state.annotations,
+      activeAnnotationTool: state.activeAnnotationTool,
+      setActiveAnnotationTool: state.setActiveAnnotationTool,
+      selectedAnnotationId: state.selectedAnnotationId,
+      setSelectedAnnotationId: state.setSelectedAnnotationId,
+      clearAnnotations: state.clearAnnotations,
+      annotationDefaults: state.annotationDefaults,
+      setAnnotationDefaults: state.setAnnotationDefaults,
+      updateAnnotation: state.updateAnnotation,
+      blurRegions: state.blurRegions,
+      updateBlurRegion: state.updateBlurRegion,
+      removeBlurRegion: state.removeBlurRegion,
+      clearBlurRegions: state.clearBlurRegions,
+    }))
+  );
 
   const selectedAnnotation = selectedAnnotationId
     ? annotations.find((a) => a.id === selectedAnnotationId) ?? null
