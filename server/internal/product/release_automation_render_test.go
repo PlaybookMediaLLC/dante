@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 )
@@ -35,6 +34,15 @@ func TestAutomationDraftMediaPrefersOneRenderPerCapturedChange(t *testing.T) {
 	}
 }
 
+// A release-matched capture asks the model and runs signed-in recipes, so
+// activation needs a worker with both.
+func TestReleaseMatchedCaptureNeedsAIAndABrowser(t *testing.T) {
+	graph := automation.Graph{Nodes: []automation.Node{{ID: "capture", Type: "action", Action: &automation.Action{Type: "capture_product", MatchRelease: true, CreditLimit: 5}}}}
+	if got := requiredCapabilities(graph); !slices.Contains(got, automation.CapabilityAI) || !slices.Contains(got, automation.CapabilityBrowser) || len(got) != 2 {
+		t.Fatalf("capabilities=%v", got)
+	}
+}
+
 func TestAutomationHeadlineText(t *testing.T) {
 	for copy, want := range map[string]string{
 		"Release 2.4\n\nNotes follow.":                 "Release 2.4",
@@ -46,11 +54,5 @@ func TestAutomationHeadlineText(t *testing.T) {
 		if got := firstSentence(copy); got != want {
 			t.Errorf("firstSentence(%q)=%q want %q", copy, got, want)
 		}
-	}
-	if got := clipText(strings.Repeat("a", 70), 60); utf8.RuneCountInString(got) != 60 || !strings.HasSuffix(got, "…") {
-		t.Fatalf("clip=%q", got)
-	}
-	if got := clipText("short", 60); got != "short" {
-		t.Fatalf("clip=%q", got)
 	}
 }

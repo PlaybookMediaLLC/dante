@@ -36,6 +36,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/platformai"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"github.com/lucsky/cuid"
 )
 
@@ -825,6 +826,21 @@ func TestAutomationCreateCanvasLaysOutTheRelease(t *testing.T) {
 	if run.Outputs.CanvasID != outputs.CanvasID {
 		t.Fatalf("run outputs=%+v", run.Outputs)
 	}
+	// Only several captures, which only release matching makes, travel as a list
+	// the canvas shows first; one capture keeps the earlier request shape.
+	board := automation.FindNode(f.graph, "board").Action
+	for _, test := range []struct {
+		captures []string
+		want     []string
+	}{{nil, nil}, {[]string{"c1", "c2"}, []string{"c1", "c2"}}} {
+		input := automation.Outputs{ReleaseID: request.ReleaseID, CampaignID: outputs.CampaignID, CaptureAssetID: "c1", CaptureAssetIDs: test.captures}
+		if _, err := f.repo.automationCreateCanvas(f.ctx, f.org, runID, "board", input, board); err != nil {
+			t.Fatal(err)
+		}
+		if sent := canvases.requests[len(canvases.requests)-1]; !slices.Equal(sent.CaptureAssetIDs, test.want) || sent.CaptureAssetID != "c1" {
+			t.Fatalf("captures=%v sent=%+v", test.captures, sent)
+		}
+	}
 }
 
 func TestAutomationCreateCanvasNeedsABuilder(t *testing.T) {
@@ -1168,6 +1184,11 @@ func TestAutomationCapturedCampaignCreatesEditableDraft(t *testing.T) {
 	// Drafts show the branded render; the original capture stays linked as evidence.
 	if len(outputs.RenderedAssetIDs) == 0 {
 		t.Fatal("no render to attach")
+	}
+	// The render's headline is the first sentence of the generated copy.
+	first := f.db.Client.CampaignPost.GetX(f.ctx, outputs.PostIDs[0])
+	if got, want := f.renderer.requests[0].Headline, releasenotes.Clean(firstSentence(first.Copy), 60); got != want || got == "" {
+		t.Fatalf("headline=%q want %q", got, want)
 	}
 	if _, err := f.repo.GetCampaignAsset(f.ctx, f.owner, outputs.CampaignID, outputs.CaptureAssetID); err != nil {
 		t.Fatalf("original capture unlinked: %v", err)

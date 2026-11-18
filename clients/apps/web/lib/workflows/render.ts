@@ -3,11 +3,8 @@ import 'server-only'
 import { z } from 'zod'
 import type { TenantContext } from '@/lib/auth/access'
 import { backendSDK } from '@/lib/backend/sdk'
-import {
-  type DesignDocument,
-  designDocumentSchema,
-  patchDesignDocument,
-} from '@/lib/design/document'
+import { BRAND_LOGO_ID } from '@/lib/brand/apply'
+import { patchDesignDocument } from '@/lib/design/document'
 import { renderDesignForTenant } from '@/lib/design/render-design'
 import {
   createDesignRenderer,
@@ -45,17 +42,6 @@ export const workflowRenderSchema = z.strictObject({
 
 /** A workflow render request. */
 export type WorkflowRenderRequest = z.infer<typeof workflowRenderRequestSchema>
-
-/** The brand kit's logo, small in the top left corner, above everything else. */
-export function withBrandLogo(document: DesignDocument, logoAssetId: string): DesignDocument {
-  return designDocumentSchema.parse({
-    ...document,
-    overlays: [
-      ...document.overlays,
-      { id: 'brand-logo', position: { x: 0.08, y: 0.09 }, size: 0.09, src: `asset:${logoAssetId}` },
-    ],
-  })
-}
 
 /** The renderer is off or unreachable; the worker retries later. */
 export class WorkflowRenderUnavailableError extends Error {
@@ -112,7 +98,19 @@ export async function renderWorkflowCreatives(request: WorkflowRenderRequest) {
           subheadline: request.subheadline,
         })
         if (kit) document = patchDesignDocument(document, brandDesignChanges(kit, document.texts))
-        if (kit?.logoAssetId) document = withBrandLogo(document, kit.logoAssetId)
+        // The brand logo, small in the top left corner, above everything else.
+        if (kit?.logoAssetId)
+          document = patchDesignDocument(document, {
+            overlays: [
+              ...document.overlays,
+              {
+                id: BRAND_LOGO_ID,
+                position: { x: 0.08, y: 0.09 },
+                size: 0.09,
+                src: `asset:${kit.logoAssetId}`,
+              },
+            ],
+          })
         design = await createDesign(tenant, {
           campaignId: request.campaignId,
           document,

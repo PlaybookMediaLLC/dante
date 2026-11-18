@@ -33,7 +33,7 @@ string, and GitHub connection callbacks return to `/workflows`.
 | Campaign context              | Folded into generation: brand profile voice, audience, CTA conventions, prohibited terms, product text.                       |
 | Product screenshots           | Production deployments keep the existing capture pipeline in automation mode. `capture_product` (v3) captures one page for the run; with `matchRelease` (v4) AI chooses up to three signed-in screens that show the release. |
 | Render creatives              | Executable (v2): fills 1–3 design templates with the run's captures, or the latest product capture, through the web renderer; one creative per captured change. |
-| Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder, showing a release-matched run's captures first, and renders its artboards into the campaign when the web renderer is on. |
+| Create a canvas               | Executable (v2): lays out a canvas from the release with 1–3 canvas templates through the web's canvas builder; a release-matched run's canvas shows its captures first and renders up to three artboards into the campaign when the web renderer is on. |
 | Hand off approved content     | Not exposed: no trigger exists for "approved", and scheduling stays in the human flow.                                        |
 | Manual campaign               | Linked: `/campaigns/new` builds a campaign by hand under the same review rules.                                               |
 | Recurring campaigns (RFC 041) | Planned, shown disabled. Nothing in RFC 041 is built.                                                                         |
@@ -179,9 +179,14 @@ bills again. Recipes without version proof are candidates only with
 steered toward that change: the navigator sees it as `untrustedReleaseChange`, and its
 image is the run's evidence, never the page's current capture or deployment receipt. A
 recipe without navigation shares the deployment's job. The node waits for every chosen
-capture, leaves out pages that failed, and outputs `captureAssetIds` and
-`captureFeatures` beside the first capture. No chosen page stops the run as
-`needs_attention` / `capture_unmatched`. The worker needs both `ai` and `browser`.
+capture, for up to about 34 minutes because the captures queue one at a time per
+workspace, leaves out pages that failed, and outputs `captureAssetIds` and
+`captureFeatures` beside the first capture. A page waiting for a person to sign in
+again stops the run as `needs_auth`, as a single recipe does. Choices that name an
+unlisted recipe, repeat one, or carry a link or address are dropped; a malformed reply
+fails the node rather than paying for the call again. A change naming a prohibited
+term keeps the usual headline. No chosen page stops the run as `needs_attention` /
+`capture_unmatched`. The worker needs both `ai` and `browser`.
 
 For a public page, the action has an explicit proof choice, and the validator requires
 exactly one:

@@ -96,10 +96,13 @@ func (t Target) Validate() error {
 	if !ValidPath(t.ProtectedPath) {
 		return errors.New("Set a page only a signed-in user can reach.")
 	}
-	// Text alone needs enough of it to be the account, not a common word.
-	if (t.IdentitySelector != "" && !ValidSelector(t.IdentitySelector)) || (t.IdentitySelector == "" && len(strings.TrimSpace(t.ExpectedAccount)) < 3) ||
-		t.ExpectedAccount == "" || len(t.ExpectedAccount) > 200 {
+	if (t.IdentitySelector != "" && !ValidSelector(t.IdentitySelector)) || strings.TrimSpace(t.ExpectedAccount) == "" || len(t.ExpectedAccount) > 200 {
 		return errors.New("Say what the signed-in account shows, such as its email, and optionally the element that shows it.")
+	}
+	// Text alone must be the account's email: a name or workspace may appear on
+	// any page, as a logo or in a list.
+	if t.IdentitySelector == "" && strings.Index(strings.TrimSpace(t.ExpectedAccount), "@") < 1 {
+		return errors.New("Without an account element, the expected account must be its email address.")
 	}
 	return nil
 }
@@ -119,8 +122,21 @@ func HostApproved(host string, approved []string) bool {
 	return false
 }
 
+// signsOut reports a path that ends the session, such as /logout or
+// /auth/sign-out: a GET there would destroy the saved state.
+func signsOut(path string) bool {
+	for _, segment := range strings.Split(strings.ToLower(path), "/") {
+		switch strings.NewReplacer("-", "", "_", "", ".", "").Replace(segment) {
+		case "logout", "logoff", "signout", "signoff":
+			return true
+		}
+	}
+	return false
+}
+
 // requestAllowed is the browser's own network policy. Guardrails are the
-// outer boundary; this one adds methods and refuses literal private addresses.
+// outer boundary; this one adds methods, refuses literal private addresses,
+// and refuses any request that would sign the session out.
 func requestAllowed(method, raw string, hosts, postPaths []string) bool {
 	target, err := url.Parse(raw)
 	if err != nil {
@@ -139,7 +155,7 @@ func requestAllowed(method, raw string, hosts, postPaths []string) bool {
 	if address, err := netip.ParseAddr(target.Hostname()); err == nil && !publicnet.IsPublic(address) {
 		return false
 	}
-	if !HostApproved(target.Hostname(), hosts) {
+	if !HostApproved(target.Hostname(), hosts) || signsOut(target.Path) {
 		return false
 	}
 	switch method {
@@ -383,12 +399,22 @@ func (s *scope) navigate(ctx context.Context, target Target, path string, timeou
 	return nil
 }
 
-// accountTextScript finds the expected account in the page's header,
-// navigation and account controls. Main content never counts: another account
-// may list this one in a member table.
-const accountTextScript = `(expected) => Array.from(document.querySelectorAll(
-	'header,nav,aside,[role=banner],[role=navigation],[role=complementary],[aria-label*=account i],[aria-label*=profile i],[data-testid*=account i],[data-testid*=user i]'))
-	.some((e) => (e.textContent || '').includes(expected))`
+// accountTextScript finds the expected account, in any letter case, as visible
+// text whose own element sits in the page's header or navigation. Text in main
+// content, articles, sidebars, tables, grids, option lists, dialogs or hidden
+// elements never counts, wherever its container is: another account may list
+// this one among members or keep it in an account switcher.
+const accountTextScript = `(expected) => {
+	const wanted = expected.toLowerCase();
+	const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+	for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+		const e = node.parentElement;
+		if (e && node.nodeValue.toLowerCase().includes(wanted) && e.closest('header,nav,[role=banner],[role=navigation]') &&
+			!e.closest('main,article,aside,[role=main],[role=complementary],table,[role=table],[role=grid],[role=treegrid],[role=listbox],[role=dialog],[role=tabpanel]') &&
+			e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})) return true;
+	}
+	return false;
+}`
 
 // accountShown reports whether the expected account is on the page, without
 // waiting: through the configured element, or the account text.
@@ -423,11 +449,14 @@ func (s *scope) waitAccountText(ctx context.Context, expected, requested string)
 	waitCtx, cancel := context.WithTimeout(ctx, defaultStepTimeout)
 	defer cancel()
 	for {
-		if found, err := s.evalBool(waitCtx, accountTextScript, expected); err == nil && found {
-			return nil
-		}
+		// A sign-in or code step may show the email in its header; it is not a session.
 		if s.signedOut(waitCtx, requested) {
 			return &Failure{Code: NeedsAuth}
+		}
+		if found, err := s.evalBool(waitCtx, accountTextScript, expected); err == nil && found {
+			if code, err := s.evalBool(waitCtx, `() => !!document.querySelector('input[autocomplete=one-time-code]')`); err == nil && !code {
+				return nil
+			}
 		}
 		select {
 		case <-waitCtx.Done():
@@ -592,6 +621,13 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 			return nil, err
 		}
 	}
+	crop := input.Recipe.Crop == CropMarker
+	// A crop scrolls to its marker first, so what scrolling reveals is checked and masked too.
+	if crop {
+		if _, err := s.markerBox(ctx, input.Recipe.Markers[0], true); err != nil {
+			return nil, &Failure{Code: PageFailed}
+		}
+	}
 	for _, selector := range input.Recipe.Forbidden {
 		present, err := s.evalBool(ctx, `(selector) => !!document.querySelector(selector)`, selector)
 		if err != nil || present {
@@ -610,8 +646,7 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 		return nil, &Failure{Code: OriginRefused}
 	}
 	result.SourcePath = here.EscapedPath()
-	crop := input.Recipe.Crop == CropMarker
-	box, err := s.markerBox(ctx, input.Recipe.Markers[0], crop)
+	box, err := s.markerBox(ctx, input.Recipe.Markers[0], false)
 	if err != nil {
 		return nil, &Failure{Code: PageFailed}
 	}
@@ -630,7 +665,7 @@ func Run(ctx context.Context, browser *rod.Browser, input RunInput) (*RunResult,
 		return nil, &Failure{Code: PageFailed}
 	}
 	config, _, err := goimage.DecodeConfig(bytes.NewReader(shot))
-	if err != nil || len(shot) > maxImageBytes || math.Abs(float64(config.Width)-width*float64(scale)) > 2 || math.Abs(float64(config.Height)-height*float64(scale)) > 2 {
+	if err != nil || len(shot) > maxImageBytes*scale || math.Abs(float64(config.Width)-width*float64(scale)) > 2 || math.Abs(float64(config.Height)-height*float64(scale)) > 2 {
 		return nil, &Failure{Code: ImageInvalid}
 	}
 	result.Image, result.Width, result.Height = shot, config.Width, config.Height
@@ -653,8 +688,8 @@ type markerBox struct {
 	Width, Height            float64
 }
 
-// markerBox measures the first visible element matching selector. Only a
-// crop scrolls it into view: an uncropped capture keeps the page as it is.
+// markerBox measures the first visible element matching selector. Only a crop
+// scrolls it into view, before masking: an uncropped capture keeps the page as it is.
 func (s *scope) markerBox(ctx context.Context, selector string, scroll bool) (markerBox, error) {
 	var box markerBox
 	result, err := s.page.Context(ctx).Eval(`(selector, scroll) => {
@@ -687,11 +722,12 @@ func (b markerBox) focus() *Focus {
 }
 
 // crop is the screenshot clip around the visible marker, in page coordinates.
+// A marker with no visible area of its own has nothing to crop to.
 func (b markerBox) crop(margin float64) *proto.PageViewport {
-	left, top, right, bottom, ok := b.visible(margin)
-	if !ok {
+	if _, _, _, _, ok := b.visible(0); !ok {
 		return nil
 	}
+	left, top, right, bottom, _ := b.visible(margin)
 	return &proto.PageViewport{X: left + b.ScrollX, Y: top + b.ScrollY, Width: right - left, Height: bottom - top, Scale: 1}
 }
 

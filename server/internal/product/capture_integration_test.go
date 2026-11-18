@@ -961,10 +961,13 @@ func TestCaptureExpiredSessionParksTheJobUntilAPersonReconnects(t *testing.T) {
 	if n := w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.Type("activity.capture.needs_auth")).CountX(w.ctx); n != 1 {
 		t.Fatalf("needs-auth notifications=%d", n)
 	}
-	// Running again without a person does nothing.
+	// Running again without a person does nothing, and tells no one twice.
 	runs := w.browser.runs.Load()
 	if outcome := w.run(t, job.ID); !outcome.Done || w.browser.runs.Load() != runs {
 		t.Fatalf("a parked job ran: %+v", outcome)
+	}
+	if n := w.db.Client.OutboxEvent.Query().Where(outboxevent.OrganizationID(w.org), outboxevent.Type("activity.capture.needs_auth")).CountX(w.ctx); n != 1 {
+		t.Fatalf("needs-auth notifications after a rerun=%d", n)
 	}
 	// A reconnect resumes the same authorized job under a new generation, through
 	// a new workflow.
@@ -1534,8 +1537,6 @@ func TestCaptureReleaseMatchChoosesPagesAndSteersNavigation(t *testing.T) {
 		}
 		return normal(input)
 	}
-	renderer := &recordingRenderer{}
-	w.repo.WithAutomationRenderer(renderer)
 	if err := w.repo.AdvertiseReleaseAutomationExecutor(w.ctx, "release-worker"+w.id, w.repo.AutomationCapabilities()...); err != nil {
 		t.Fatal(err)
 	}
@@ -1572,10 +1573,14 @@ func TestCaptureReleaseMatchChoosesPagesAndSteersNavigation(t *testing.T) {
 			t.Fatalf("%s: %v", node, err)
 		}
 	}
+	beforePlan := charged()
 	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0); !errors.Is(err, ErrCapturePending) {
 		t.Fatalf("pending: %v", err)
 	}
 	beforeWait := charged()
+	if beforeWait != beforePlan+2 {
+		t.Fatalf("choosing pages charged %d credits, want 2", beforeWait-beforePlan)
+	}
 	if model.plans != 1 || !strings.Contains(model.planPrompt, `<release trust="untrusted">`) || !strings.Contains(model.planPrompt, recipe.ID) || !strings.Contains(model.planPrompt, "Open the reports area") {
 		t.Fatalf("plans=%d prompt=%q", model.plans, model.planPrompt)
 	}
@@ -1617,9 +1622,23 @@ func TestCaptureReleaseMatchChoosesPagesAndSteersNavigation(t *testing.T) {
 	if model.plans != 1 {
 		t.Fatalf("plans=%d", model.plans)
 	}
+	// The run reports the captured change, and copy can describe the steered image.
+	if run := w.db.Client.ReleaseAutomationRun.GetX(w.ctx, runID); !slices.Equal(run.Outputs.CaptureFeatures, []string{feature}) || run.Outputs.CaptureAssetID != *finished.AssetID {
+		t.Fatalf("run outputs=%+v", run.Outputs)
+	}
+	evidence, err := w.repo.automationCaptureEvidence(w.ctx, w.org, outputs)
+	if err != nil || !strings.Contains(evidence, `"surface":"App"`) || !strings.Contains(evidence, `"releaseRevisionVerified":true`) {
+		t.Fatalf("evidence=%q err=%v", evidence, err)
+	}
 	// Drafts carry the steered image.
-	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "review", nil, 0); err != nil {
-		t.Fatal(err)
+	review, err := w.repo.AutomationNode(w.ctx, w.org, runID, "review", nil, 0)
+	if err != nil || len(review.DraftIDs) == 0 {
+		t.Fatalf("review=%+v err=%v", review, err)
+	}
+	for _, id := range review.DraftIDs {
+		if draft := w.db.Client.ContentDraft.GetX(w.ctx, id); !slices.Equal(draft.AssetIds, []string{*finished.AssetID}) {
+			t.Fatalf("draft media=%v", draft.AssetIds)
+		}
 	}
 
 	t.Run("no page shows the release", func(t *testing.T) {
@@ -1649,6 +1668,125 @@ func TestCaptureReleaseMatchChoosesPagesAndSteersNavigation(t *testing.T) {
 			t.Fatalf("unmatched: %v", err)
 		}
 	})
+}
+
+// Several chosen pages: one captured, one failed, one waiting for a person. The
+// node stops for the person, then reports the captured pages with their
+// changes in order and the failed one left out.
+func TestCaptureReleaseMatchCombinesSeveralPages(t *testing.T) {
+	w := newCaptureWorld(t)
+	model, meter := &releasePlanModel{}, &recordingMonthlyMeter{}
+	w.repo.WithAutomationModel(model).WithMonthlyMeter(meter)
+	navigate := func(r *browser.Recipe) {
+		r.Navigation = &browser.Navigation{Objective: "Open the screen", MaxSteps: 2, CreditLimit: 2}
+	}
+	connection, dashboard := w.ready(t, navigate)
+	addRecipe := func(name string) *CaptureRecipeRecord {
+		surface := "surface-" + strings.ToLower(name) + w.id
+		w.exec(t, `INSERT INTO product_surface (id,"organizationId",name,slug,url,"featureTags","screenshotAssetIds","createdAt","updatedAt") VALUES ($1,$2,$3,$4,$5,'[]','[]',now(),now())`,
+			surface, w.org, name, strings.ToLower(name), "https://app.example.com/"+strings.ToLower(name))
+		definition := browser.Recipe{SchemaVersion: 1, Viewport: browser.Viewport{Width: 800, Height: 600}, Steps: []browser.Step{{Kind: browser.StepNavigate, Path: "/" + strings.ToLower(name)}},
+			Markers: []string{"[data-testid=ready]"}, Version: &browser.VersionCheck{Path: "/api/version"}}
+		navigate(&definition)
+		recipe, err := w.repo.CreateCaptureRecipe(w.ctx, w.owner, CreateCaptureRecipeInput{Name: name, SurfaceID: surface, ConnectionID: connection.ID, Definition: definition})
+		if err != nil {
+			t.Fatal(err)
+		}
+		test, err := w.repo.RequestCaptureJob(w.ctx, w.owner, recipe.ID, CaptureJobRequest{Test: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		w.run(t, test.ID)
+		if recipe, err = w.repo.ActivateCaptureRecipe(w.ctx, w.owner, recipe.ID); err != nil {
+			t.Fatal(err)
+		}
+		return recipe
+	}
+	reports, billing := addRecipe("Reports"), addRecipe("Billing")
+	// A duplicate and an invented recipe are dropped, not failed.
+	model.plan = fmt.Sprintf(`{"captures":[{"recipeId":%q,"feature":"New dashboard cards"},{"recipeId":%q,"feature":"CSV export"},{"recipeId":%q,"feature":"Invoice history"},{"recipeId":%q,"feature":"Duplicate"},{"recipeId":"invented","feature":"Not listed"}]}`,
+		dashboard.ID, reports.ID, billing.ID, dashboard.ID)
+	outcomes := map[string]browser.Code{"/reports": browser.MarkerMissing, "/billing": browser.NeedsAuth}
+	normal := w.browser.run
+	w.browser.run = func(input browser.RunInput) (*browser.RunResult, error) {
+		if code := outcomes[input.Recipe.Steps[0].Path]; code != "" {
+			return nil, &browser.Failure{Code: code}
+		}
+		return normal(input)
+	}
+	if err := w.repo.AdvertiseReleaseAutomationExecutor(w.ctx, "several-worker"+w.id, w.repo.AutomationCapabilities()...); err != nil {
+		t.Fatal(err)
+	}
+	w.graph.SchemaVersion, w.graph.Family = 4, automation.Deployed
+	w.graph.Qualification = automation.Condition{Field: "deployment.environment", Operator: "eq", Values: []string{"production"}}
+	w.graph.Nodes[1].Condition = &automation.Condition{Field: "deployment.state", Operator: "eq", Values: []string{"success"}}
+	w.graph.Nodes = append(w.graph.Nodes, automation.Node{ID: "capture", Type: "action", Action: &automation.Action{Type: "capture_product", Input: &automation.Reference{NodeID: "campaign", Output: "campaignId"}, MatchRelease: true, CreditLimit: 5}})
+	w.graph.Nodes[4].Action.Input.NodeID = "capture"
+	w.graph.Edges[4].To = "capture"
+	w.graph.Edges = append(w.graph.Edges, automation.Edge{From: "capture", To: "review", Branch: "next"})
+	active := w.activate(t)
+	sha := "abcdef1234567890abcdef1234567890abcdef12"
+	body := fmt.Sprintf(`{"installation":{"id":%d},"repository":{"id":1001,"full_name":"acme/app"},"deployment":{"id":903,"sha":%q,"environment":"production"},"deployment_status":{"id":1903,"state":"success","created_at":%q}}`, w.installation, sha, time.Now().Format(time.RFC3339Nano))
+	if _, err := w.repo.AcceptGitHubEvent(w.ctx, AcceptGitHubEventInput{DeliveryID: "release-several", EventName: "deployment_status", Body: []byte(body)}); err != nil {
+		t.Fatal(err)
+	}
+	history, err := w.repo.ListAutomationHistory(w.ctx, w.owner, AutomationHistoryFilter{})
+	if err != nil || len(history) == 0 {
+		t.Fatalf("history=%d err=%v", len(history), err)
+	}
+	runID := history[0].Run.ID
+	for _, step := range []func() error{
+		func() error { _, err := w.repo.LoadReleaseAutomation(w.ctx, w.org, runID, 0); return err },
+		func() error { _, err := w.repo.CollectAutomationChange(w.ctx, w.org, runID, 0); return err },
+		func() error { return w.repo.SelectReleaseAutomation(w.ctx, w.org, runID, *active.ActiveVersionID, 0) },
+		func() error { _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "release", nil, 0); return err },
+		func() error { _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "campaign", nil, 0); return err },
+	} {
+		if err := step(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0); !errors.Is(err, ErrCapturePending) {
+		t.Fatalf("pending: %v", err)
+	}
+	jobs := w.db.Client.CaptureJob.Query().Where(capturejob.OrganizationID(w.org), capturejob.ObjectiveEvidenceNotNil()).AllX(w.ctx)
+	if len(jobs) != 3 {
+		t.Fatalf("steered jobs=%d", len(jobs))
+	}
+	byRecipe := map[string]*ent.CaptureJob{}
+	for _, job := range jobs {
+		byRecipe[job.RecipeID] = job
+	}
+	for _, id := range []string{dashboard.ID, reports.ID, billing.ID} {
+		w.run(t, byRecipe[id].ID)
+	}
+	if _, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0); !errors.Is(err, ErrCaptureNeedsAuth) {
+		t.Fatalf("a page waiting for a person did not stop the run: %v", err)
+	}
+	// A person signs in again; the parked page resumes and succeeds.
+	delete(outcomes, "/billing")
+	w.signIn(t, connection.ID)
+	w.run(t, byRecipe[billing.ID].ID)
+	outputs, err := w.repo.AutomationNode(w.ctx, w.org, runID, "capture", nil, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(outputs.CaptureFeatures, []string{"New dashboard cards", "Invoice history"}) || len(outputs.CaptureAssetIDs) != 2 || outputs.CaptureAssetID != outputs.CaptureAssetIDs[0] ||
+		outputs.CaptureProof != automation.CaptureProofVersion {
+		t.Fatalf("outputs=%+v", outputs)
+	}
+	for i, id := range []string{dashboard.ID, billing.ID} {
+		if job := w.db.Client.CaptureJob.GetX(w.ctx, byRecipe[id].ID); job.AssetID == nil || *job.AssetID != outputs.CaptureAssetIDs[i] {
+			t.Fatalf("capture %d is not its recipe's image", i)
+		}
+		if _, err := w.repo.GetCampaignAsset(w.ctx, w.owner, outputs.CampaignID, outputs.CaptureAssetIDs[i]); err != nil {
+			t.Fatalf("capture %d not linked: %v", i, err)
+		}
+	}
+	// The failed page flags nothing on its product page: the deployment's own job owns that.
+	if code := w.db.Client.ProductSurface.GetX(w.ctx, *byRecipe[reports.ID].SurfaceID).LastCaptureFailureCode; code != nil {
+		t.Fatalf("a steered failure flagged the page: %s", *code)
+	}
 }
 
 // A published release can arrive before its code is live: the run waits for a

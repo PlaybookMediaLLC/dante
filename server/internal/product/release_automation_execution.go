@@ -323,8 +323,10 @@ func (c *Configuration) AutomationNode(ctx context.Context, org, id, nodeID stri
 	if outputs.CodeProjectID != "" {
 		run.Outputs.CodeProjectID = outputs.CodeProjectID
 	}
-	if outputs.CaptureID != "" {
+	// A steered capture has an image but no page receipt, so the image decides.
+	if outputs.CaptureAssetID != "" {
 		run.Outputs.CaptureID, run.Outputs.CaptureAssetID, run.Outputs.CaptureProof = outputs.CaptureID, outputs.CaptureAssetID, outputs.CaptureProof
+		run.Outputs.CaptureAssetIDs, run.Outputs.CaptureFeatures = outputs.CaptureAssetIDs, outputs.CaptureFeatures
 	}
 	if outputs.CreditsCharged > 0 {
 		// Sum receipts rather than increment: a late duplicate completion of

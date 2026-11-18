@@ -650,8 +650,10 @@ func parkCaptureJob(ctx context.Context, tx *ent.Tx, job *ent.CaptureJob, code s
 	if err := job.Update().SetPhase(capturejob.PhaseNEEDS_AUTH).SetStatus(capturejob.StatusQUEUED).SetFailureCode(code).SetDeadlineAt(now.Add(captureAuthDeadline)).Exec(ctx); err != nil {
 		return err
 	}
-	if job.SurfaceID != nil {
-		return activity.Emit(ctx, tx, job.OrganizationID, "capture.needs_auth", "product_surface", *job.SurfaceID, "", "job:"+job.ID+":needs_auth", map[string]any{"background": true})
+	// One lapsed sign-in parks every queued job; the people who can fix it hear once.
+	if job.SurfaceID != nil && job.AppConnectionID != nil {
+		key := fmt.Sprintf("connection:%s:%d:needs_auth", *job.AppConnectionID, job.ConnectionGeneration)
+		return activity.Emit(ctx, tx, job.OrganizationID, "capture.needs_auth", "product_surface", *job.SurfaceID, "", key, map[string]any{"background": true})
 	}
 	return nil
 }
@@ -863,7 +865,8 @@ func (c *Configuration) failCapture(ctx context.Context, claim *captureClaim, ca
 		if err := setCaptureJobTerminal(job.Update(), capturejob.PhaseFAILED, string(code)).Exec(ctx); err != nil {
 			return nil, err
 		}
-		if job.SurfaceID != nil {
+		// A capture steered toward one release change failing says nothing about the page.
+		if job.SurfaceID != nil && job.ObjectiveEvidence == nil {
 			if err := tx.ProductSurface.UpdateOneID(*job.SurfaceID).SetLastCaptureFailureCode(string(code)).Exec(ctx); err != nil && !ent.IsNotFound(err) {
 				return nil, err
 			}

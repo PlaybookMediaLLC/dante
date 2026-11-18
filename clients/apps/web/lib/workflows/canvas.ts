@@ -189,14 +189,15 @@ export async function createWorkflowCanvas(request: WorkflowCanvasRequest) {
   return { canvasId }
 }
 
-/** Artboards one canvas renders into its campaign. */
-const MAX_CANVAS_RENDERS = 6
+/** Artboards one canvas renders into its campaign, within the worker's request timeout. */
+const MAX_CANVAS_RENDERS = 3
 
 /**
- * Render the canvas's artboards into its campaign as designs, so reviewers
- * see them beside the other creatives; the canvas itself stays editable.
- * Without a campaign or a running renderer the canvas is the whole result,
- * as before. A retry reuses this node's designs and the render cache.
+ * Render a release-matched run's canvas artboards into its campaign as
+ * designs, so reviewers see them beside the other creatives; the canvas itself
+ * stays editable. Other runs, and any run without a campaign or a running
+ * renderer, keep the canvas as their whole result, as before. A retry reuses
+ * this node's designs and the render cache.
  */
 async function renderCanvasIntoCampaign(
   tenant: TenantContext,
@@ -204,7 +205,8 @@ async function renderCanvasIntoCampaign(
   artboards: readonly Artboard[],
   title: string
 ) {
-  if (!request.campaignId || !(await isDesignRendererReady())) return
+  if (!request.campaignId || !request.captureAssetIds?.length || !(await isDesignRendererReady()))
+    return
   const existing = await listCampaignDesigns(tenant, request.campaignId)
   const lazy: { renderer?: Promise<DesignRenderer> } = {}
   const getRenderer = () => (lazy.renderer ??= createDesignRenderer())

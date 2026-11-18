@@ -60,6 +60,7 @@ const blankRecipe: CaptureRecipeForm = {
 /** A test's outcome. The image goes through the authorized asset route, which rechecks access. */
 function TestResult({ job, recipeName }: { job: CaptureJob; recipeName: string }) {
   const phase = CAPTURE_JOB_PHASE[job.phase]
+  const navigation = captureNavigationSummary(job)
   return (
     <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -69,9 +70,7 @@ function TestResult({ job, recipeName }: { job: CaptureJob; recipeName: string }
       {job.failureCode ? (
         <p className="text-muted-foreground">{captureFailureMessage(job.failureCode)}</p>
       ) : null}
-      {captureNavigationSummary(job) ? (
-        <p className="text-muted-foreground">{captureNavigationSummary(job)}</p>
-      ) : null}
+      {navigation ? <p className="text-muted-foreground">{navigation}</p> : null}
       {job.assetId ? (
         <a
           aria-label={`Open the test capture of ${recipeName} at full size`}

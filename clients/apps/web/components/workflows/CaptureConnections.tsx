@@ -268,7 +268,7 @@ function ConnectionForm({
         {text(
           'identitySelector',
           'Account element (optional)',
-          'Leave empty and Shots looks for the account text in the app’s header or navigation. Or give the CSS selector of what shows it: [data-testid=account-email].',
+          'Leave empty and Shots looks for the account’s email in the app’s header or navigation; the expected account must then be that email. Or give the CSS selector of what shows it: [data-testid=account-email].',
           false
         )}
       </div>

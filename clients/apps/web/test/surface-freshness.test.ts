@@ -40,6 +40,7 @@ test('every safe code from signed-in capture has its own sentence', () => {
     'image_invalid',
     'page_failed',
     'provider_unavailable',
+    'navigation_unconfigured',
     'connection_missing',
     'connection_revoked',
     'connect_expired',

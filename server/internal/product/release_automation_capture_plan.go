@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -44,6 +45,9 @@ type captureCandidate struct {
 
 // maxCaptureCandidates bounds the screens one choosing call can see.
 const maxCaptureCandidates = 40
+
+// unsafeFeature finds a link or an address in a chosen change's text.
+var unsafeFeature = regexp.MustCompile(`(?i)https?://|www\.|\S@\S`)
 
 // automationCapturePlan chooses the release's pages once per receipt. The plan
 // is stored before the charge flag, so a retry, or a run still waiting for its
@@ -102,19 +106,22 @@ func (c *Configuration) releaseCaptureCandidates(ctx context.Context, org string
 	if err != nil {
 		return nil, err
 	}
+	surfaceIDs := make([]string, 0, len(recipes))
+	for _, recipe := range recipes {
+		surfaceIDs = append(surfaceIDs, *recipe.SurfaceID)
+	}
+	surfaces, err := c.client.ProductSurface.Query().Where(productsurface.IDIn(surfaceIDs...), productsurface.OrganizationID(org)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
 	candidates := []captureCandidate{}
 	for _, recipe := range recipes {
 		definition, err := decodeCaptureRecipe(recipe)
-		if err != nil || (definition.Version == nil && !currentState) {
+		i := slices.IndexFunc(surfaces, func(s *ent.ProductSurface) bool { return s.ID == *recipe.SurfaceID })
+		if err != nil || i < 0 || (definition.Version == nil && !currentState) {
 			continue
 		}
-		surface, err := c.client.ProductSurface.Query().Where(productsurface.ID(*recipe.SurfaceID), productsurface.OrganizationID(org)).Only(ctx)
-		if ent.IsNotFound(err) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
+		surface := surfaces[i]
 		candidate := captureCandidate{ID: recipe.ID, Name: recipe.Name, Page: surface.Name, Tags: surface.FeatureTags}
 		if page, err := url.Parse(surface.URL); err == nil {
 			candidate.Path = page.Path
@@ -162,30 +169,30 @@ func (c *Configuration) planReleaseCaptures(ctx context.Context, org string, eve
 			"properties": map[string]any{"recipeId": map[string]any{"type": "string", "enum": ids}, "feature": map[string]any{"type": "string"}},
 		}}},
 	})
-	// Fence delimiters inside untrusted text cannot close the fence.
-	fence := strings.NewReplacer("<release", "‹release", "</release", "‹/release")
-	prompt := fmt.Sprintf("<screens trust=\"trusted\">\n%s\n</screens>\n\n<release trust=\"untrusted\">\n%s\n</release>", screens, fence.Replace(evidence))
+	// No tag inside untrusted text can close the fence or open another block.
+	prompt := fmt.Sprintf("<screens trust=\"trusted\">\n%s\n</screens>\n\n<release trust=\"untrusted\">\n%s\n</release>", screens, strings.ReplaceAll(evidence, "<", "‹"))
 	var reply struct {
 		Captures []automation.PlannedCapture `json:"captures"`
 	}
 	usage, err := c.automationModel.Structured(ctx, platformai.Request{Role: platformai.RoleFast, System: capturePlanInstructions, Prompt: prompt, Schema: schema, SchemaName: "workflow_capture_plan", MaxTokens: 800}, &reply)
 	if err != nil {
 		var provider *platformai.Error
-		if errors.As(err, &provider) && !provider.Retryable {
-			return nil, ErrInvalidInput
+		// A malformed reply is final: retrying the node would pay for the call again unbilled.
+		if errors.As(err, &provider) && !provider.Retryable || errors.Is(err, platformai.ErrSchema) {
+			return nil, fmt.Errorf("%w: %w", ErrInvalidInput, err)
 		}
 		return nil, err
 	}
+	// Keep the usable choices: a listed recipe, once, with a change that reads as
+	// one. A link or address in model text from release notes is never kept.
 	plan := []automation.PlannedCapture{}
 	for _, planned := range reply.Captures {
 		feature := releasenotes.Clean(planned.Feature, 160)
-		if !slices.Contains(ids, planned.RecipeID) || feature == "" || slices.ContainsFunc(plan, func(p automation.PlannedCapture) bool { return p.RecipeID == planned.RecipeID }) {
-			return nil, platformai.ErrSchema
+		if len(plan) == automation.MaxReleaseCaptures || !slices.Contains(ids, planned.RecipeID) || feature == "" || unsafeFeature.MatchString(feature) ||
+			slices.ContainsFunc(plan, func(p automation.PlannedCapture) bool { return p.RecipeID == planned.RecipeID }) {
+			continue
 		}
 		plan = append(plan, automation.PlannedCapture{RecipeID: planned.RecipeID, Feature: feature})
-	}
-	if len(plan) > automation.MaxReleaseCaptures {
-		return nil, platformai.ErrSchema
 	}
 	return &automation.Generation{Credits: creditsFor(usage, action.CreditLimit), Captures: plan}, nil
 }
@@ -193,15 +200,7 @@ func (c *Configuration) planReleaseCaptures(ctx context.Context, org string, eve
 // releaseEvidence is the untrusted text a model may read about a release: the
 // event, and the features and merged pull requests its release recorded.
 func (c *Configuration) releaseEvidence(ctx context.Context, org string, e automation.Event, releaseID string) (string, error) {
-	lines := []string{"Event: " + string(e.Family), "Title: " + e.Title}
-	for _, field := range []string{"pr.labels", "release.tag", "tag.name", "milestone.title", "version.level", "deployment.environment"} {
-		if value := e.Fields[field]; value.State == "available" && len(value.Values) > 0 {
-			lines = append(lines, field+": "+strings.Join(value.Values, ", "))
-		}
-	}
-	if files := e.Fields["pr.files"]; files.State == "available" {
-		lines = append(lines, "Changed paths: "+strings.Join(files.Values[:min(len(files.Values), 100)], ", "))
-	}
+	lines := eventEvidence(e)
 	if releaseID != "" {
 		row, err := c.client.Release.Query().Where(release.ID(releaseID), release.OrganizationID(org)).Only(ctx)
 		if err != nil {

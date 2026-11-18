@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
@@ -176,10 +175,18 @@ func (c *Configuration) automationRenderCreatives(ctx context.Context, org, runI
 		}
 		title := headline
 		if part < len(input.CaptureFeatures) && input.CaptureFeatures[part] != "" {
-			title = input.CaptureFeatures[part]
+			// The change came from release notes: a prohibited term keeps the usual headline.
+			err := requireAllowedCopy(ctx, c.client, org, nil, input.CaptureFeatures[part])
+			var prohibited *ProhibitedTermsError
+			switch {
+			case err == nil:
+				title = input.CaptureFeatures[part]
+			case !errors.As(err, &prohibited):
+				return automation.Outputs{}, err
+			}
 		}
 		renders, err := c.automationRenderer.Render(ctx, AutomationRenderRequest{OrganizationID: org, CampaignID: input.CampaignID, RunID: runID, NodeID: nodeID,
-			BrandKitID: input.BrandKitID, CaptureAssetID: captureAssetID, Headline: clipText(title, 60), Subheadline: clipText(subheadline, 100), TemplateIDs: templates, Part: part})
+			BrandKitID: input.BrandKitID, CaptureAssetID: captureAssetID, Headline: releasenotes.Clean(title, 60), Subheadline: releasenotes.Clean(subheadline, 100), TemplateIDs: templates, Part: part})
 		if errors.Is(err, ErrRendererRefused) {
 			return automation.Outputs{}, ErrInvalidInput
 		}
@@ -226,15 +233,6 @@ func firstSentence(copy string) string {
 		}
 	}
 	return strings.TrimSpace(line)
-}
-
-// clipText fits text to limit runes, marking a cut with an ellipsis.
-func clipText(text string, limit int) string {
-	text = strings.TrimSpace(text)
-	if utf8.RuneCountInString(text) <= limit {
-		return text
-	}
-	return strings.TrimSpace(string([]rune(text)[:limit-1])) + "…"
 }
 
 // currentCapture is the newest current capture with an uploaded image, of one

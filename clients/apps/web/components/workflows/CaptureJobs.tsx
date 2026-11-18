@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button'
 import type { CaptureJob, CaptureRecipe } from '@/lib/api/contracts/capture'
 import { captureFailureMessage } from '@/lib/tenant/surface-freshness'
 import { useTRPCClient } from '@/lib/trpc/react'
-import { CAPTURE_JOB_PHASE, captureJobOpen, captureNavigationSummary } from '@/lib/workflows/capture'
+import {
+  CAPTURE_JOB_PHASE,
+  captureJobOpen,
+  captureNavigationSummary,
+} from '@/lib/workflows/capture'
 import { CaptureError, useCaptureAction } from './capture-ui'
 import { relativeTime } from './workflow-ui'
 
@@ -30,6 +34,7 @@ function JobRow({
   const client = useTRPCClient()
   const { busy, error, run } = useCaptureAction()
   const phase = CAPTURE_JOB_PHASE[job.phase]
+  const navigation = captureNavigationSummary(job)
   const cancel = () =>
     run(async () => {
       await client.capture.cancelJob.mutate({ id: job.id })
@@ -56,9 +61,7 @@ function JobRow({
           {job.releaseChange ? (
             <p className="text-sm text-muted-foreground">Steered to show: {job.releaseChange}</p>
           ) : null}
-          {captureNavigationSummary(job) ? (
-            <p className="text-sm text-muted-foreground">{captureNavigationSummary(job)}</p>
-          ) : null}
+          {navigation ? <p className="text-sm text-muted-foreground">{navigation}</p> : null}
           <CaptureError message={error} />
         </div>
         {canManage && captureJobOpen(job.phase) ? (

@@ -56,38 +56,46 @@ const (
 	NavigationRetryLimit   Code = "navigation_retry_limit"
 )
 
-// No arbitrary click: navigation links, explicit tabs, and buttons that open
-// menus, panels or dialogs. Links navigate directly, so their click handlers
-// cannot submit forms or open other windows. A button inside a form, one that
-// submits or resets, or one whose label names a risky action is never offered;
-// the network policy still refuses every write a click might attempt.
-const observeNavigation = `(identity, masks, markers, account) => {
+// navigationChecks are the checks observation and press share, so a label the
+// model saw is exactly the label a press compares. identity, masks and account
+// are in scope; e is an element. Only controls that open something are
+// pressable: a menu, panel, dialog or disclosure, never a toggle, a grid row, a
+// control in a form, one that submits or resets, or one named for a risky
+// action. The network policy refuses writes to other paths, but an allowed GET
+// or POST path, or what a click stores in the session, can still change state,
+// so the selection itself stays narrow.
+const navigationChecks = `
+ const pressableSelector = 'button[aria-haspopup],button[aria-expanded],[role=button][aria-haspopup],[role=button][aria-expanded],[role=menuitem][aria-haspopup],summary';
  const visible = e => !!e && e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
  const excluded = e => { const selectors=[identity,...(masks || []),'form','[contenteditable=true]'].filter(Boolean).join(','); return !!e.closest(selectors) || !!e.querySelector(selectors); };
- const text = e => (e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').split(account).join('[account]').slice(0,120);
- const mentionsAccount = e => (e.innerText || e.getAttribute('aria-label') || '').includes(account);
+ const raw = e => e.innerText || e.getAttribute('aria-label') || '';
+ const accountPattern = account ? new RegExp(account.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+ const mentionsAccount = e => !!account && raw(e).toLowerCase().includes(account.toLowerCase());
+ const text = e => { let label = raw(e).trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]'); if (accountPattern) label = label.replace(accountPattern,'[account]'); return label.slice(0,120); };
+ const pressable = e => e.matches(pressableSelector) &&
+   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed]') &&
+   !e.closest('form,table,[role=grid],[role=treegrid],[role=row]') &&
+   !/\b(delete|remove|destroy|erase|trash|discard|sign[ -]?(out|off)|log[ -]?(out|off)|exit|end session|close account|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|enable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect|start|run|generate|retry|duplicate|switch|impersonate)\b/i.test(raw(e));
+`
+
+// observeNavigation offers navigation links, explicit tabs and, when allowed,
+// pressable controls, stopping at 60. Links navigate directly, so their click
+// handlers cannot submit forms or open other windows.
+const observeNavigation = `(identity, masks, markers, account, buttons) => {` + navigationChecks + `
  const selector = e => { const parts=[]; while(e && e.tagName!=='HTML' && parts.length<12) {
    const siblings=Array.from(e.parentElement.children);
    parts.unshift(':nth-child('+(siblings.indexOf(e)+1)+')'); e=e.parentElement;
  } const path=parts.join('>'); return document.querySelectorAll(path).length===1?path:''; };
- const links = Array.from(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'));
- const buttons = Array.from(document.querySelectorAll('` + pressableSelector + `')).filter(e => !links.includes(e) && ` + pressableCheck + `);
- const controls = [...links, ...buttons]
-   .filter(e => visible(e) && !excluded(e) && !mentionsAccount(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true')
-   .slice(0,60).map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.includes(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
+ const usable = e => visible(e) && !excluded(e) && !mentionsAccount(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true';
+ const links = new Set(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'));
+ const chosen = [];
+ for (const e of links) { if (chosen.length >= 60) break; if (usable(e)) chosen.push(e); }
+ if (buttons) for (const e of document.querySelectorAll(pressableSelector)) { if (chosen.length >= 60) break; if (!links.has(e) && pressable(e) && usable(e)) chosen.push(e); }
+ const controls = chosen.map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.has(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
  return {headings:Array.from(document.querySelectorAll('h1,h2,[role=heading]')).filter(e=>visible(e)&&!excluded(e)).slice(0,12).map(text),controls,
    loading:Array.from(document.querySelectorAll('[aria-busy=true],[role=progressbar]')).some(visible),
    ready:markers.every(s=>Array.from(document.querySelectorAll(s)).some(visible))};
 }`
-
-// pressableSelector finds buttons and the controls that open menus, panels and
-// dialogs. Anchors never count: a link is followed only from navigation.
-const pressableSelector = `button,[role=button],[aria-haspopup],[aria-expanded],[role=menuitem],summary`
-
-// pressableCheck refuses a control whose press could submit, reset or name a
-// risky action; e is the element. The same check runs before every press.
-const pressableCheck = `!e.matches('a[href],input,[form],button[type=submit],button[type=reset]') && !e.closest('form') &&
- !/\b(delete|remove|destroy|erase|sign ?out|log ?out|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect)\b/i.test(e.innerText || e.getAttribute('aria-label') || '')`
 
 func navigationPath(raw, origin string) (string, bool) {
 	u, err := url.Parse(raw)
@@ -113,7 +121,9 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	if err := s.checkIdentity(ctx, input.Target, view.Path); err != nil {
 		return view, err
 	}
-	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers, input.Target.ExpectedAccount)
+	// A recipe that allows POST paths may expose a write behind any control, so it navigates by links and tabs only.
+	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers, input.Target.ExpectedAccount,
+		len(input.Recipe.AllowedPostPaths) == 0)
 	if err != nil {
 		return view, &Failure{Code: PageFailed}
 	}
@@ -176,16 +186,15 @@ func (s *scope) waitNavigation(ctx context.Context, input RunInput, before Navig
 	}
 }
 
-// pressButton presses the observed button only if it is still the same safe,
-// visible, enabled control with the same label.
-func (s *scope) pressButton(ctx context.Context, selector, label string) error {
-	pressed, err := s.evalBool(ctx, `(selector, expected) => {
+// pressButton presses the observed control only if it still passes every check
+// the observation applied and has the same label; the page may change while the
+// model chooses.
+func (s *scope) pressButton(ctx context.Context, input RunInput, selector, label string) error {
+	pressed, err := s.evalBool(ctx, `(selector, expected, identity, masks, account) => {`+navigationChecks+`
 		const e = document.querySelector(selector);
-		if (!e || !e.matches('`+pressableSelector+`') || !(`+pressableCheck+`)) return false;
-		if ((e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').slice(0,120) !== expected ||
-			!e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}) || e.disabled || e.getAttribute('aria-disabled')==='true') return false;
+		if (!e || !pressable(e) || excluded(e) || mentionsAccount(e) || !visible(e) || e.disabled || e.getAttribute('aria-disabled')==='true' || text(e) !== expected) return false;
 		e.click(); return true;
-	}`, selector, label)
+	}`, selector, label, input.Target.IdentitySelector, input.Recipe.Masks, input.Target.ExpectedAccount)
 	if err != nil {
 		return &Failure{Code: PageFailed}
 	}
@@ -263,7 +272,7 @@ func (s *scope) navigateFeature(ctx context.Context, input RunInput) ([]Navigati
 		case "tab":
 			err = s.selectTab(ctx, Step{Selector: control.selector}, view.Path, control.Label)
 		case "button":
-			err = s.pressButton(ctx, control.selector, control.Label)
+			err = s.pressButton(ctx, input, control.selector, control.Label)
 		default:
 			return actions, &Failure{Code: NavigationInvalid}
 		}
