@@ -18,6 +18,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/brandprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/captureattempt"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/capturejob"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/productsurface"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseautomationnode"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
@@ -277,33 +278,54 @@ func (c *Configuration) automationCaptureEvidence(ctx context.Context, org strin
 	if input.CaptureID == "" && input.CaptureAssetID == "" {
 		return "No product capture was supplied to this copy step.", nil
 	}
-	receipt, err := c.client.SurfaceCapture.Query().Where(surfacecapture.OrganizationID(org), surfacecapture.ID(input.CaptureID), surfacecapture.AssetID(input.CaptureAssetID)).Only(ctx)
+	assetID, surfaceID := input.CaptureAssetID, ""
+	var observed *string
+	if input.CaptureID != "" {
+		receipt, err := c.client.SurfaceCapture.Query().Where(surfacecapture.OrganizationID(org), surfacecapture.ID(input.CaptureID), surfacecapture.AssetID(input.CaptureAssetID)).Only(ctx)
+		if err != nil {
+			return "", err
+		}
+		assetID, surfaceID, observed = receipt.AssetID, receipt.SurfaceID, receipt.ObservedRevision
+	}
+	media, err := c.client.Asset.Query().Where(asset.OrganizationID(org), asset.ID(assetID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
 	if err != nil {
 		return "", err
 	}
-	media, err := c.client.Asset.Query().Where(asset.OrganizationID(org), asset.ID(receipt.AssetID), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
-	if err != nil {
-		return "", err
+	var attempt *ent.CaptureAttempt
+	if media.CaptureID != nil {
+		attempt, err = c.client.CaptureAttempt.Query().Where(captureattempt.OrganizationID(org), captureattempt.ID(*media.CaptureID)).Only(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return "", err
+		}
 	}
-	surface, err := c.client.ProductSurface.Query().Where(productsurface.OrganizationID(org), productsurface.ID(receipt.SurfaceID)).Only(ctx)
+	// A capture steered toward a release change keeps no page receipt: its
+	// attempt names the job, the job names the page, and the attempt holds the proof.
+	if surfaceID == "" {
+		if attempt == nil {
+			return "", ErrCaptureRefused
+		}
+		job, err := c.client.CaptureJob.Query().Where(capturejob.OrganizationID(org), capturejob.ID(attempt.CaptureJobID)).Only(ctx)
+		if err != nil {
+			return "", err
+		}
+		if job.SurfaceID == nil {
+			return "", ErrCaptureRefused
+		}
+		surfaceID, observed = *job.SurfaceID, attempt.ObservedRevision
+	}
+	surface, err := c.client.ProductSurface.Query().Where(productsurface.OrganizationID(org), productsurface.ID(surfaceID)).Only(ctx)
 	if err != nil {
 		return "", err
 	}
 	path := ""
-	if media.CaptureID != nil {
-		attempt, err := c.client.CaptureAttempt.Query().Where(captureattempt.OrganizationID(org), captureattempt.ID(*media.CaptureID)).Only(ctx)
-		if err != nil && !ent.IsNotFound(err) {
-			return "", err
-		}
-		if attempt != nil {
-			if parsed, err := url.Parse(attempt.SourceURL); err == nil && parsed.User == nil {
-				path = parsed.EscapedPath()
-			}
+	if attempt != nil {
+		if parsed, err := url.Parse(attempt.SourceURL); err == nil && parsed.User == nil {
+			path = parsed.EscapedPath()
 		}
 	}
 	encoded, err := json.Marshal(map[string]any{
 		"surface": releasenotes.Clean(surface.Name, 200), "environment": releasenotes.Clean(surface.Environment, 50),
-		"path": releasenotes.Clean(path, 500), "releaseRevisionVerified": input.CaptureProof == automation.CaptureProofVersion && optionalText(receipt.ObservedRevision) != "",
+		"path": releasenotes.Clean(path, 500), "releaseRevisionVerified": input.CaptureProof == automation.CaptureProofVersion && optionalText(observed) != "",
 	})
 	if err != nil {
 		return "", err

@@ -134,6 +134,11 @@ func RecipeHash(v string) predicate.CaptureJob {
 	return predicate.CaptureJob(sql.FieldEQ(FieldRecipeHash, v))
 }
 
+// ObjectiveEvidence applies equality check predicate on the "objective_evidence" field. It's identical to ObjectiveEvidenceEQ.
+func ObjectiveEvidence(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldEQ(FieldObjectiveEvidence, v))
+}
+
 // FencingToken applies equality check predicate on the "fencing_token" field. It's identical to FencingTokenEQ.
 func FencingToken(v int64) predicate.CaptureJob {
 	return predicate.CaptureJob(sql.FieldEQ(FieldFencingToken, v))
@@ -1117,6 +1122,81 @@ func RecipeHashEqualFold(v string) predicate.CaptureJob {
 // RecipeHashContainsFold applies the ContainsFold predicate on the "recipe_hash" field.
 func RecipeHashContainsFold(v string) predicate.CaptureJob {
 	return predicate.CaptureJob(sql.FieldContainsFold(FieldRecipeHash, v))
+}
+
+// ObjectiveEvidenceEQ applies the EQ predicate on the "objective_evidence" field.
+func ObjectiveEvidenceEQ(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldEQ(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceNEQ applies the NEQ predicate on the "objective_evidence" field.
+func ObjectiveEvidenceNEQ(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldNEQ(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceIn applies the In predicate on the "objective_evidence" field.
+func ObjectiveEvidenceIn(vs ...string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldIn(FieldObjectiveEvidence, vs...))
+}
+
+// ObjectiveEvidenceNotIn applies the NotIn predicate on the "objective_evidence" field.
+func ObjectiveEvidenceNotIn(vs ...string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldNotIn(FieldObjectiveEvidence, vs...))
+}
+
+// ObjectiveEvidenceGT applies the GT predicate on the "objective_evidence" field.
+func ObjectiveEvidenceGT(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldGT(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceGTE applies the GTE predicate on the "objective_evidence" field.
+func ObjectiveEvidenceGTE(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldGTE(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceLT applies the LT predicate on the "objective_evidence" field.
+func ObjectiveEvidenceLT(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldLT(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceLTE applies the LTE predicate on the "objective_evidence" field.
+func ObjectiveEvidenceLTE(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldLTE(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceContains applies the Contains predicate on the "objective_evidence" field.
+func ObjectiveEvidenceContains(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldContains(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceHasPrefix applies the HasPrefix predicate on the "objective_evidence" field.
+func ObjectiveEvidenceHasPrefix(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldHasPrefix(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceHasSuffix applies the HasSuffix predicate on the "objective_evidence" field.
+func ObjectiveEvidenceHasSuffix(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldHasSuffix(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceIsNil applies the IsNil predicate on the "objective_evidence" field.
+func ObjectiveEvidenceIsNil() predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldIsNull(FieldObjectiveEvidence))
+}
+
+// ObjectiveEvidenceNotNil applies the NotNil predicate on the "objective_evidence" field.
+func ObjectiveEvidenceNotNil() predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldNotNull(FieldObjectiveEvidence))
+}
+
+// ObjectiveEvidenceEqualFold applies the EqualFold predicate on the "objective_evidence" field.
+func ObjectiveEvidenceEqualFold(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldEqualFold(FieldObjectiveEvidence, v))
+}
+
+// ObjectiveEvidenceContainsFold applies the ContainsFold predicate on the "objective_evidence" field.
+func ObjectiveEvidenceContainsFold(v string) predicate.CaptureJob {
+	return predicate.CaptureJob(sql.FieldContainsFold(FieldObjectiveEvidence, v))
 }
 
 // FencingTokenEQ applies the EQ predicate on the "fencing_token" field.

@@ -1189,6 +1189,16 @@ func AssetIDContainsFold(v string) predicate.CaptureAttempt {
 	return predicate.CaptureAttempt(sql.FieldContainsFold(FieldAssetID, v))
 }
 
+// NavigationActionsIsNil applies the IsNil predicate on the "navigation_actions" field.
+func NavigationActionsIsNil() predicate.CaptureAttempt {
+	return predicate.CaptureAttempt(sql.FieldIsNull(FieldNavigationActions))
+}
+
+// NavigationActionsNotNil applies the NotNil predicate on the "navigation_actions" field.
+func NavigationActionsNotNil() predicate.CaptureAttempt {
+	return predicate.CaptureAttempt(sql.FieldNotNull(FieldNavigationActions))
+}
+
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
 func CreatedAtEQ(v time.Time) predicate.CaptureAttempt {
 	return predicate.CaptureAttempt(sql.FieldEQ(FieldCreatedAt, v))

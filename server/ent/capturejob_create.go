@@ -226,6 +226,20 @@ func (_c *CaptureJobCreate) SetNillableRecipeHash(v *string) *CaptureJobCreate {
 	return _c
 }
 
+// SetObjectiveEvidence sets the "objective_evidence" field.
+func (_c *CaptureJobCreate) SetObjectiveEvidence(v string) *CaptureJobCreate {
+	_c.mutation.SetObjectiveEvidence(v)
+	return _c
+}
+
+// SetNillableObjectiveEvidence sets the "objective_evidence" field if the given value is not nil.
+func (_c *CaptureJobCreate) SetNillableObjectiveEvidence(v *string) *CaptureJobCreate {
+	if v != nil {
+		_c.SetObjectiveEvidence(*v)
+	}
+	return _c
+}
+
 // SetFencingToken sets the "fencing_token" field.
 func (_c *CaptureJobCreate) SetFencingToken(v int64) *CaptureJobCreate {
 	_c.mutation.SetFencingToken(v)
@@ -596,6 +610,10 @@ func (_c *CaptureJobCreate) createSpec() (*CaptureJob, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.RecipeHash(); ok {
 		_spec.SetField(capturejob.FieldRecipeHash, field.TypeString, value)
 		_node.RecipeHash = &value
+	}
+	if value, ok := _c.mutation.ObjectiveEvidence(); ok {
+		_spec.SetField(capturejob.FieldObjectiveEvidence, field.TypeString, value)
+		_node.ObjectiveEvidence = &value
 	}
 	if value, ok := _c.mutation.FencingToken(); ok {
 		_spec.SetField(capturejob.FieldFencingToken, field.TypeInt64, value)

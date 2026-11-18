@@ -48,6 +48,8 @@ const CAPTURE_FAILURES: Record<string, string> = {
   provider_unavailable: 'The browser provider is unavailable. Try again shortly.',
   navigation_unavailable:
     'AI navigation is unavailable or timed out. Check the AI provider and retry.',
+  navigation_unconfigured:
+    'This recipe uses AI navigation, but no AI model is configured for capture. Configure the AI provider, then run it again.',
   navigation_invalid: 'The AI returned an invalid navigation choice. No screenshot was accepted.',
   navigation_failed:
     'The AI could not verify the requested feature. Clarify the objective and test again.',

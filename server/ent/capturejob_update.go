@@ -383,6 +383,9 @@ func (_u *CaptureJobUpdate) sqlSave(ctx context.Context) (_node int, err error) 
 	if _u.mutation.RecipeHashCleared() {
 		_spec.ClearField(capturejob.FieldRecipeHash, field.TypeString)
 	}
+	if _u.mutation.ObjectiveEvidenceCleared() {
+		_spec.ClearField(capturejob.FieldObjectiveEvidence, field.TypeString)
+	}
 	if value, ok := _u.mutation.FencingToken(); ok {
 		_spec.SetField(capturejob.FieldFencingToken, field.TypeInt64, value)
 	}
@@ -829,6 +832,9 @@ func (_u *CaptureJobUpdateOne) sqlSave(ctx context.Context) (_node *CaptureJob, 
 	}
 	if _u.mutation.RecipeHashCleared() {
 		_spec.ClearField(capturejob.FieldRecipeHash, field.TypeString)
+	}
+	if _u.mutation.ObjectiveEvidenceCleared() {
+		_spec.ClearField(capturejob.FieldObjectiveEvidence, field.TypeString)
 	}
 	if value, ok := _u.mutation.FencingToken(); ok {
 		_spec.SetField(capturejob.FieldFencingToken, field.TypeInt64, value)

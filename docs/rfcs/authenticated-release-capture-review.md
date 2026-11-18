@@ -823,7 +823,9 @@ the current state. Authenticated capture is off unless `PLATFORM_CAPTURE_CDP_URL
   attempts, as `CaptureAttempt`. `platform_app_connection` is new. RFC 007's
   `platform_capture_*` tables are not created; its limits apply: a 10-minute sign-in
   window, state kept 24 hours unless `PLATFORM_CAPTURE_STATE_MAX_AGE` changes it, one
-  active capture per workspace, a 90-second run, and 10 steps.
+  active capture per workspace, a 90-second run, and 10 steps. Since 2026-11-17 each
+  verified capture renews the state for that long again, capped 30 days after the
+  person's last sign-in ([investigation](../release-capture-investigation-2026-11-17.md)).
 - **`go-rod`, not `chromedp`.** The spike's first question was authorization headers.
   `chromedp` exposes no way to set them on the socket. Rod does, but its built-in
   reader failed on what Browser Run sends and its client panics on any frame that is
@@ -919,7 +921,8 @@ Run on 2026-11-04 against Browser Run and `staging.eigenn.io`.
   the full suite runs on `develop`.
 - **Portable state is cookies and local storage.** Session storage, IndexedDB,
   device-bound sessions, and passkeys are not exported. An app relying on them fails
-  validation and stays unconnected.
+  validation and stays unconnected; `TestRealBrowserRefusesAnIndexedDBOnlySession`
+  pins that an IndexedDB-only session fails at sign-in as `session_restore_failed`.
 - **Client-side controls are not an egress boundary.** The WebSocket, worker, and popup
   lockdown runs in page JavaScript. Fetch interception sees HTTP only. DNS rebinding is
   caught on the response, which refuses the result but cannot unsend a request or its

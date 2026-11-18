@@ -20,9 +20,11 @@ type NavigationControl struct {
 
 // NavigationObservation contains paths, headings and navigation labels. Input
 // values, account elements, masked content and URL queries never reach a model.
+// Current names the selected tabs and open controls, which are not choices.
 type NavigationObservation struct {
 	Path     string              `json:"path"`
 	Headings []string            `json:"headings"`
+	Current  []string            `json:"current"`
 	Controls []NavigationControl `json:"controls"`
 	Ready    bool                `json:"ready"`
 	loading  bool
@@ -46,27 +48,54 @@ type NextNavigationAction func(context.Context, NavigationObservation) (Navigati
 
 const (
 	NavigationUnavailable Code = "navigation_unavailable"
-	NavigationInvalid     Code = "navigation_invalid"
-	NavigationFailed      Code = "navigation_failed"
-	NavigationLimit       Code = "navigation_limit"
-	NavigationBudget      Code = "navigation_budget"
-	NavigationRetryLimit  Code = "navigation_retry_limit"
+	// NavigationUnconfigured is final: this worker has no model or meter, so
+	// retrying here until the job's deadline could never succeed.
+	NavigationUnconfigured Code = "navigation_unconfigured"
+	NavigationInvalid      Code = "navigation_invalid"
+	NavigationFailed       Code = "navigation_failed"
+	NavigationLimit        Code = "navigation_limit"
+	NavigationBudget       Code = "navigation_budget"
+	NavigationRetryLimit   Code = "navigation_retry_limit"
 )
 
-// No arbitrary click: only navigation links and explicit tabs. Links navigate
-// directly, so their click handlers cannot submit forms or open other windows.
-const observeNavigation = `(identity, masks, markers) => {
+// navigationChecks are the checks observation and press share, so a label the
+// model saw is exactly the label a press compares. identity, masks and account
+// are in scope; e is an element. Only controls that open something are
+// pressable: a menu, panel, dialog or disclosure, never a toggle, a grid row, a
+// control in a form, one already open (pressing it closes what it opened), one
+// that submits or resets, or one named for a risky action. The network policy refuses writes to other paths, but an allowed GET
+// or POST path, or what a click stores in the session, can still change state,
+// so the selection itself stays narrow.
+const navigationChecks = `
+ const pressableSelector = 'button[aria-haspopup],button[aria-expanded],[role=button][aria-haspopup],[role=button][aria-expanded],[role=menuitem][aria-haspopup],summary';
  const visible = e => !!e && e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
- const excluded = e => { const selectors=[identity,...(masks || []),'form','[contenteditable=true]'].join(','); return !!e.closest(selectors) || !!e.querySelector(selectors); };
- const text = e => (e.innerText || e.getAttribute('aria-label') || '').trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]').slice(0,120);
+ const excluded = e => { const selectors=[identity,...(masks || []),'form','[contenteditable=true]'].filter(Boolean).join(','); return !!e.closest(selectors) || !!e.querySelector(selectors); };
+ const raw = e => e.innerText || e.getAttribute('aria-label') || '';
+ const accountPattern = account ? new RegExp(account.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') : null;
+ const mentionsAccount = e => !!account && raw(e).toLowerCase().includes(account.toLowerCase());
+ const text = e => { let label = raw(e).trim().replace(/\s+/g,' ').replace(/[^\s@]+@[^\s@]+/g,'[private]'); if (accountPattern) label = label.replace(accountPattern,'[account]'); return label.slice(0,120); };
+ const pressable = e => e.matches(pressableSelector) &&
+   !e.matches('a[href],input,[form],button[type=submit],button[type=reset],[role=switch],[role=checkbox],[role=radio],[role=option],[aria-checked],[aria-pressed],[aria-expanded=true],details[open]>summary') &&
+   !e.closest('form,table,[role=grid],[role=treegrid],[role=row]') &&
+   !/\b(delete|remove|destroy|erase|trash|discard|sign[ -]?(out|off)|log[ -]?(out|off)|exit|end session|close account|unsubscribe|cancel|buy|purchase|pay|checkout|publish|send|submit|save|invite|confirm|revoke|leave|transfer|deactivate|disable|enable|reset|archive|approve|reject|merge|deploy|uninstall|disconnect|start|run|generate|retry|duplicate|switch|impersonate)\b/i.test(raw(e));
+`
+
+// observeNavigation offers navigation links, explicit tabs and, when allowed,
+// pressable controls, stopping at 60. Links navigate directly, so their click
+// handlers cannot submit forms or open other windows.
+const observeNavigation = `(identity, masks, markers, account, buttons) => {` + navigationChecks + `
  const selector = e => { const parts=[]; while(e && e.tagName!=='HTML' && parts.length<12) {
    const siblings=Array.from(e.parentElement.children);
    parts.unshift(':nth-child('+(siblings.indexOf(e)+1)+')'); e=e.parentElement;
  } const path=parts.join('>'); return document.querySelectorAll(path).length===1?path:''; };
- const controls = Array.from(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'))
-   .filter(e => visible(e) && !excluded(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true')
-   .slice(0,60).map(e => ({kind:e.getAttribute('role')==='tab'?'tab':'link',label:text(e),href:e.href || '',selector:selector(e)}));
+ const usable = e => visible(e) && !excluded(e) && !mentionsAccount(e) && !e.hasAttribute('download') && e.getAttribute('aria-disabled')!=='true' && !e.disabled && e.getAttribute('aria-selected')!=='true';
+ const links = new Set(document.querySelectorAll('nav a[href],[role=navigation] a[href],[role=tab]'));
+ const chosen = [];
+ for (const e of links) { if (chosen.length >= 60) break; if (usable(e)) chosen.push(e); }
+ if (buttons) for (const e of document.querySelectorAll(pressableSelector)) { if (chosen.length >= 60) break; if (!links.has(e) && pressable(e) && usable(e)) chosen.push(e); }
+ const controls = chosen.map(e => ({kind:e.getAttribute('role')==='tab'?'tab':links.has(e)?'link':'button',label:text(e),href:e.href || '',selector:selector(e)}));
  return {headings:Array.from(document.querySelectorAll('h1,h2,[role=heading]')).filter(e=>visible(e)&&!excluded(e)).slice(0,12).map(text),controls,
+   current:Array.from(document.querySelectorAll('[role=tab][aria-selected=true],[aria-expanded=true],details[open]>summary')).filter(e=>e.matches('[role=tab],'+pressableSelector)&&!e.closest('table,[role=grid],[role=treegrid],[role=row]')&&visible(e)&&!excluded(e)&&!mentionsAccount(e)).slice(0,12).map(text).filter(Boolean),
    loading:Array.from(document.querySelectorAll('[aria-busy=true],[role=progressbar]')).some(visible),
    ready:markers.every(s=>Array.from(document.querySelectorAll(s)).some(visible))};
 }`
@@ -86,7 +115,7 @@ func navigationPath(raw, origin string) (string, bool) {
 }
 
 func (s *scope) observeNavigation(ctx context.Context, input RunInput) (NavigationObservation, error) {
-	view := NavigationObservation{Headings: []string{}, Controls: []NavigationControl{}}
+	view := NavigationObservation{Headings: []string{}, Current: []string{}, Controls: []NavigationControl{}}
 	here, err := s.location()
 	if err != nil || here.Scheme+"://"+here.Host != input.Target.Origin || s.privateResponse.Load() {
 		return view, &Failure{Code: OriginRefused}
@@ -95,12 +124,15 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	if err := s.checkIdentity(ctx, input.Target, view.Path); err != nil {
 		return view, err
 	}
-	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers)
+	// A recipe that allows POST paths may expose a write behind any control, so it navigates by links and tabs only.
+	result, err := s.page.Context(ctx).Eval(observeNavigation, input.Target.IdentitySelector, input.Recipe.Masks, input.Recipe.Markers, input.Target.ExpectedAccount,
+		len(input.Recipe.AllowedPostPaths) == 0)
 	if err != nil {
 		return view, &Failure{Code: PageFailed}
 	}
 	var snapshot struct {
 		Headings []string `json:"headings"`
+		Current  []string `json:"current"`
 		Ready    bool     `json:"ready"`
 		Loading  bool     `json:"loading"`
 		Controls []struct {
@@ -110,11 +142,11 @@ func (s *scope) observeNavigation(ctx context.Context, input RunInput) (Navigati
 	if err := json.Unmarshal([]byte(result.Value.JSON("", "")), &snapshot); err != nil {
 		return view, &Failure{Code: PageFailed}
 	}
-	view.Headings, view.Ready = snapshot.Headings, snapshot.Ready
+	view.Headings, view.Current, view.Ready = snapshot.Headings, snapshot.Current, snapshot.Ready
 	view.loading = snapshot.Loading
 	view.Ready = view.Ready && !view.loading
 	for _, control := range snapshot.Controls {
-		if control.Label == "" || (control.Kind == "tab" && !ValidSelector(control.Selector)) {
+		if control.Label == "" || (control.Kind != "link" && !ValidSelector(control.Selector)) {
 			continue
 		}
 		path := ""
@@ -156,6 +188,24 @@ func (s *scope) waitNavigation(ctx context.Context, input RunInput, before Navig
 		case <-time.After(150 * time.Millisecond):
 		}
 	}
+}
+
+// pressButton presses the observed control only if it still passes every check
+// the observation applied and has the same label; the page may change while the
+// model chooses.
+func (s *scope) pressButton(ctx context.Context, input RunInput, selector, label string) error {
+	pressed, err := s.evalBool(ctx, `(selector, expected, identity, masks, account) => {`+navigationChecks+`
+		const e = document.querySelector(selector);
+		if (!e || !pressable(e) || excluded(e) || mentionsAccount(e) || !visible(e) || e.disabled || e.getAttribute('aria-disabled')==='true' || text(e) !== expected) return false;
+		e.click(); return true;
+	}`, selector, label, input.Target.IdentitySelector, input.Recipe.Masks, input.Target.ExpectedAccount)
+	if err != nil {
+		return &Failure{Code: PageFailed}
+	}
+	if !pressed {
+		return &Failure{Code: NavigationInvalid}
+	}
+	return nil
 }
 
 func (s *scope) navigateFeature(ctx context.Context, input RunInput) ([]NavigationAction, error) {
@@ -225,6 +275,8 @@ func (s *scope) navigateFeature(ctx context.Context, input RunInput) ([]Navigati
 			err = s.navigate(ctx, input.Target, control.Path, defaultStepTimeout)
 		case "tab":
 			err = s.selectTab(ctx, Step{Selector: control.selector}, view.Path, control.Label)
+		case "button":
+			err = s.pressButton(ctx, input, control.selector, control.Label)
 		default:
 			return actions, &Failure{Code: NavigationInvalid}
 		}

@@ -51,6 +51,8 @@ type CaptureJob struct {
 	ExpectedRevision *string `json:"expected_revision,omitempty"`
 	// RecipeHash holds the value of the "recipe_hash" field.
 	RecipeHash *string `json:"recipe_hash,omitempty"`
+	// ObjectiveEvidence holds the value of the "objective_evidence" field.
+	ObjectiveEvidence *string `json:"objective_evidence,omitempty"`
 	// FencingToken holds the value of the "fencing_token" field.
 	FencingToken int64 `json:"fencing_token,omitempty"`
 	// FailureCode holds the value of the "failure_code" field.
@@ -79,7 +81,7 @@ func (*CaptureJob) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case capturejob.FieldRecipeVersion, capturejob.FieldAttempts, capturejob.FieldNavigationAttempts, capturejob.FieldConnectionGeneration, capturejob.FieldFencingToken, capturejob.FieldResumeCount:
 			values[i] = new(sql.NullInt64)
-		case capturejob.FieldID, capturejob.FieldOrganizationID, capturejob.FieldReleaseID, capturejob.FieldRecipeID, capturejob.FieldStatus, capturejob.FieldPhase, capturejob.FieldKind, capturejob.FieldTriggerRunID, capturejob.FieldIdempotencyKey, capturejob.FieldSurfaceID, capturejob.FieldAppConnectionID, capturejob.FieldDeploymentEventID, capturejob.FieldExpectedRevision, capturejob.FieldRecipeHash, capturejob.FieldFailureCode, capturejob.FieldRequestedByUserID, capturejob.FieldSurfaceCaptureID, capturejob.FieldAssetID:
+		case capturejob.FieldID, capturejob.FieldOrganizationID, capturejob.FieldReleaseID, capturejob.FieldRecipeID, capturejob.FieldStatus, capturejob.FieldPhase, capturejob.FieldKind, capturejob.FieldTriggerRunID, capturejob.FieldIdempotencyKey, capturejob.FieldSurfaceID, capturejob.FieldAppConnectionID, capturejob.FieldDeploymentEventID, capturejob.FieldExpectedRevision, capturejob.FieldRecipeHash, capturejob.FieldObjectiveEvidence, capturejob.FieldFailureCode, capturejob.FieldRequestedByUserID, capturejob.FieldSurfaceCaptureID, capturejob.FieldAssetID:
 			values[i] = new(sql.NullString)
 		case capturejob.FieldDeadlineAt, capturejob.FieldCreatedAt, capturejob.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -212,6 +214,13 @@ func (_m *CaptureJob) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.RecipeHash = new(string)
 				*_m.RecipeHash = value.String
+			}
+		case capturejob.FieldObjectiveEvidence:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field objective_evidence", values[i])
+			} else if value.Valid {
+				_m.ObjectiveEvidence = new(string)
+				*_m.ObjectiveEvidence = value.String
 			}
 		case capturejob.FieldFencingToken:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -370,6 +379,11 @@ func (_m *CaptureJob) String() string {
 	builder.WriteString(", ")
 	if v := _m.RecipeHash; v != nil {
 		builder.WriteString("recipe_hash=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.ObjectiveEvidence; v != nil {
+		builder.WriteString("objective_evidence=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

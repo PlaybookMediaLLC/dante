@@ -261,14 +261,15 @@ function ConnectionForm({
           'A page only a signed-in user reaches: /settings.'
         )}
         {text(
-          'identitySelector',
-          'Account element',
-          'The CSS selector of what shows the signed-in account: [data-testid=account-email].'
-        )}
-        {text(
           'expectedAccount',
           'Expected account text',
-          'What that element must contain, such as demo@example.com.'
+          'What the signed-in account shows, such as demo@example.com.'
+        )}
+        {text(
+          'identitySelector',
+          'Account element (optional)',
+          'Leave empty and Shots looks for the account’s email in the app’s header or navigation; the expected account must then be that email. Or give the CSS selector of what shows it: [data-testid=account-email].',
+          false
         )}
       </div>
       <p className="text-xs text-muted-foreground">

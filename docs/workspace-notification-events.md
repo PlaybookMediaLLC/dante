@@ -14,8 +14,8 @@ requester/creator. “Creators” means creators attached to this resource or it
 campaign, not every creator in the workspace. Human actors are excluded.
 
 In-app defaults on for every entry. Email defaults on only for the two existing
-campaign review categories (marked *); other email and Slack require workspace
-configuration. [Delivery precedence](#delivery-precedence) sets which choice wins.
+campaign review categories and `capture.needs_auth` (marked *); other email and
+Slack require workspace configuration. [Delivery precedence](#delivery-precedence) sets which choice wins.
 
 Social sets (RFC 024) add three gates. Activity on a private set's drafts and
 posts reaches only the set's owner and never a shared Slack channel. A person
@@ -63,7 +63,8 @@ such as a scheduled publish, and a required failure alert still reach them.
 | `source_app.connected`            | `CreateSourceApp`                                                           | admins          | coarse; in-app, email, Slack     | Source connected                | integration or source settings        |
 | `deployment.succeeded`            | `IngestDeployment`                                                          | creators        | coarse; in-app, email, Slack     | Deployment received             | product page                          |
 | `capture.completed`               | `recordCapture`                                                             | owner           | coarse; in-app, email, Slack     | Capture ready                   | product page                          |
-| `capture.failed`                  | `handleDeploymentEvent`                                                     | operators       | restricted; in-app, email        | Capture needs attention         | product page                          |
+| `capture.failed`                  | `captureDeployment / failCapture`                                           | operators       | restricted; in-app, email        | Capture needs attention         | product page                          |
+| `capture.needs_auth` *            | `parkCaptureJob`                                                            | operators       | restricted; in-app, email        | Sign in again to keep capturing | product page                          |
 | `asset.uploaded`                  | `CompleteAssetUpload`                                                       | owner           | coarse; in-app, email, Slack     | Asset ready                     | asset or campaign                     |
 | `asset.generated`                 | `StoreGeneratedAsset`                                                       | owner           | coarse; in-app, email, Slack     | Generated asset ready           | asset or campaign                     |
 | `generation.completed`            | `FinishLaunchRun`                                                           | owner           | coarse; in-app, email, Slack     | Generation finished             | campaign run                          |

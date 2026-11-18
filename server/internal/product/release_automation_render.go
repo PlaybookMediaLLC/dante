@@ -15,10 +15,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/campaignpost"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/surfacecapture"
 	automation "github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
@@ -37,6 +37,9 @@ type AutomationRenderRequest struct {
 	Headline       string   `json:"headline"`
 	Subheadline    string   `json:"subheadline,omitempty"`
 	TemplateIDs    []string `json:"templateIds"`
+	// Part numbers each capture a node renders; 0 is the node's first and only
+	// capture before release matching, so its designs keep their names.
+	Part int `json:"part,omitempty"`
 }
 
 // AutomationRender is one rendered creative.
@@ -142,42 +145,94 @@ func (c *Configuration) automationRenderCreatives(ctx context.Context, org, runI
 	if err := c.requireWorkspaceFeature(ctx, org, "campaign:workflow"); err != nil {
 		return automation.Outputs{}, err
 	}
-	// A capture taken earlier in this run wins, with no fallback to the latest
+	// Captures taken earlier in this run win, with no fallback to the latest
 	// image; a graph without one keeps the meaning it was activated with.
-	captureAssetID := input.CaptureAssetID
-	if captureAssetID == "" {
-		var err error
-		if captureAssetID, err = c.currentCapture(ctx, org, action.SurfaceID); err != nil {
+	captures := input.CaptureAssetIDs
+	if len(captures) == 0 && input.CaptureAssetID != "" {
+		captures = []string{input.CaptureAssetID}
+	}
+	if len(captures) == 0 {
+		captureAssetID, err := c.currentCapture(ctx, org, action.SurfaceID)
+		if err != nil {
 			return automation.Outputs{}, err
 		}
+		captures = []string{captureAssetID}
 	}
-	headline := strings.TrimSpace(event.Snapshot.Title)
-	if utf8.RuneCountInString(headline) > 60 {
-		headline = strings.TrimSpace(string([]rune(headline)[:59])) + "…"
-	}
-	subheadline, _, _ := strings.Cut(releasenotes.Clean(event.Snapshot.Notes, 400), "\n")
-	if utf8.RuneCountInString(subheadline) > 100 {
-		subheadline = strings.TrimSpace(string([]rune(subheadline)[:99])) + "…"
-	}
-	renders, err := c.automationRenderer.Render(ctx, AutomationRenderRequest{OrganizationID: org, CampaignID: input.CampaignID, RunID: runID, NodeID: nodeID,
-		BrandKitID: input.BrandKitID, CaptureAssetID: captureAssetID, Headline: headline, Subheadline: subheadline, TemplateIDs: action.TemplateIDs})
-	if errors.Is(err, ErrRendererRefused) {
-		return automation.Outputs{}, ErrInvalidInput
-	}
+	headline, err := c.automationHeadline(ctx, org, event, input)
 	if err != nil {
 		return automation.Outputs{}, err
 	}
-	if len(renders) != len(action.TemplateIDs) {
-		return automation.Outputs{}, errors.New("the renderer returned an incomplete result")
-	}
+	subheadline, _, _ := strings.Cut(releasenotes.Clean(event.Snapshot.Notes, 400), "\n")
 	outputs := input
 	outputs.CreditsCharged = 0
 	outputs.DesignIDs, outputs.RenderedAssetIDs = []string{}, []string{}
-	for _, render := range renders {
-		outputs.DesignIDs = append(outputs.DesignIDs, render.DesignID)
-		outputs.RenderedAssetIDs = append(outputs.RenderedAssetIDs, render.AssetID)
+	// One capture fills every template; several each fill one, in turn, so
+	// every captured change gets its own creative and its own headline.
+	for part, captureAssetID := range captures {
+		templates := action.TemplateIDs
+		if len(captures) > 1 {
+			templates = []string{action.TemplateIDs[part%len(action.TemplateIDs)]}
+		}
+		title := headline
+		if part < len(input.CaptureFeatures) && input.CaptureFeatures[part] != "" {
+			// The change came from release notes: a prohibited term keeps the usual headline.
+			err := requireAllowedCopy(ctx, c.client, org, nil, input.CaptureFeatures[part])
+			var prohibited *ProhibitedTermsError
+			switch {
+			case err == nil:
+				title = input.CaptureFeatures[part]
+			case !errors.As(err, &prohibited):
+				return automation.Outputs{}, err
+			}
+		}
+		renders, err := c.automationRenderer.Render(ctx, AutomationRenderRequest{OrganizationID: org, CampaignID: input.CampaignID, RunID: runID, NodeID: nodeID,
+			BrandKitID: input.BrandKitID, CaptureAssetID: captureAssetID, Headline: releasenotes.Clean(title, 60), Subheadline: releasenotes.Clean(subheadline, 100), TemplateIDs: templates, Part: part})
+		if errors.Is(err, ErrRendererRefused) {
+			return automation.Outputs{}, ErrInvalidInput
+		}
+		if err != nil {
+			return automation.Outputs{}, err
+		}
+		if len(renders) != len(templates) {
+			return automation.Outputs{}, errors.New("the renderer returned an incomplete result")
+		}
+		for _, render := range renders {
+			outputs.DesignIDs = append(outputs.DesignIDs, render.DesignID)
+			outputs.RenderedAssetIDs = append(outputs.RenderedAssetIDs, render.AssetID)
+		}
 	}
 	return outputs, nil
+}
+
+// automationHeadline is the first sentence of the campaign's first post: the
+// release title, until generated copy or a person rewrites it.
+func (c *Configuration) automationHeadline(ctx context.Context, org string, event *ent.ReleaseSourceEvent, input automation.Outputs) (string, error) {
+	headline := strings.TrimSpace(event.Snapshot.Title)
+	if len(input.PostIDs) == 0 {
+		return headline, nil
+	}
+	post, err := c.client.CampaignPost.Query().Where(campaignpost.ID(input.PostIDs[0]), campaignpost.OrganizationID(org)).Only(ctx)
+	if ent.IsNotFound(err) {
+		return headline, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if first := firstSentence(post.Copy); first != "" {
+		headline = first
+	}
+	return headline, nil
+}
+
+// firstSentence is a copy's first line, cut after its first sentence.
+func firstSentence(copy string) string {
+	line, _, _ := strings.Cut(strings.TrimSpace(copy), "\n")
+	for i, r := range line {
+		if (r == '.' || r == '!' || r == '?') && i+1 < len(line) && line[i+1] == ' ' {
+			return strings.TrimSpace(line[:i+1])
+		}
+	}
+	return strings.TrimSpace(line)
 }
 
 // currentCapture is the newest current capture with an uploaded image, of one

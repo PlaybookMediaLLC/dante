@@ -22261,37 +22261,39 @@ func (m *CampaignRevisionMutation) ResetEdge(name string) error {
 // CaptureAttemptMutation represents an operation that mutates the CaptureAttempt nodes in the graph.
 type CaptureAttemptMutation struct {
 	config
-	op                  Op
-	typ                 string
-	id                  *string
-	organization_id     *string
-	release_id          *string
-	capture_job_id      *string
-	recipe_id           *string
-	recipe_version      *int
-	addrecipe_version   *int
-	source_url          *string
-	provider            *string
-	status              *captureattempt.Status
-	started_at          *time.Time
-	completed_at        *time.Time
-	failure_code        *string
-	attempt_number      *int
-	addattempt_number   *int
-	browser_session_id  *string
-	browser_closed_at   *time.Time
-	observed_revision   *string
-	fencing_token       *int64
-	addfencing_token    *int64
-	refused_requests    *int
-	addrefused_requests *int
-	asset_id            *string
-	created_at          *time.Time
-	updated_at          *time.Time
-	clearedFields       map[string]struct{}
-	done                bool
-	oldValue            func(context.Context) (*CaptureAttempt, error)
-	predicates          []predicate.CaptureAttempt
+	op                       Op
+	typ                      string
+	id                       *string
+	organization_id          *string
+	release_id               *string
+	capture_job_id           *string
+	recipe_id                *string
+	recipe_version           *int
+	addrecipe_version        *int
+	source_url               *string
+	provider                 *string
+	status                   *captureattempt.Status
+	started_at               *time.Time
+	completed_at             *time.Time
+	failure_code             *string
+	attempt_number           *int
+	addattempt_number        *int
+	browser_session_id       *string
+	browser_closed_at        *time.Time
+	observed_revision        *string
+	fencing_token            *int64
+	addfencing_token         *int64
+	refused_requests         *int
+	addrefused_requests      *int
+	asset_id                 *string
+	navigation_actions       *[]map[string]string
+	appendnavigation_actions []map[string]string
+	created_at               *time.Time
+	updated_at               *time.Time
+	clearedFields            map[string]struct{}
+	done                     bool
+	oldValue                 func(context.Context) (*CaptureAttempt, error)
+	predicates               []predicate.CaptureAttempt
 }
 
 var _ ent.Mutation = (*CaptureAttemptMutation)(nil)
@@ -23230,6 +23232,71 @@ func (m *CaptureAttemptMutation) ResetAssetID() {
 	delete(m.clearedFields, captureattempt.FieldAssetID)
 }
 
+// SetNavigationActions sets the "navigation_actions" field.
+func (m *CaptureAttemptMutation) SetNavigationActions(value []map[string]string) {
+	m.navigation_actions = &value
+	m.appendnavigation_actions = nil
+}
+
+// NavigationActions returns the value of the "navigation_actions" field in the mutation.
+func (m *CaptureAttemptMutation) NavigationActions() (r []map[string]string, exists bool) {
+	v := m.navigation_actions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNavigationActions returns the old "navigation_actions" field's value of the CaptureAttempt entity.
+// If the CaptureAttempt object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CaptureAttemptMutation) OldNavigationActions(ctx context.Context) (v []map[string]string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNavigationActions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNavigationActions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNavigationActions: %w", err)
+	}
+	return oldValue.NavigationActions, nil
+}
+
+// AppendNavigationActions adds value to the "navigation_actions" field.
+func (m *CaptureAttemptMutation) AppendNavigationActions(value []map[string]string) {
+	m.appendnavigation_actions = append(m.appendnavigation_actions, value...)
+}
+
+// AppendedNavigationActions returns the list of values that were appended to the "navigation_actions" field in this mutation.
+func (m *CaptureAttemptMutation) AppendedNavigationActions() ([]map[string]string, bool) {
+	if len(m.appendnavigation_actions) == 0 {
+		return nil, false
+	}
+	return m.appendnavigation_actions, true
+}
+
+// ClearNavigationActions clears the value of the "navigation_actions" field.
+func (m *CaptureAttemptMutation) ClearNavigationActions() {
+	m.navigation_actions = nil
+	m.appendnavigation_actions = nil
+	m.clearedFields[captureattempt.FieldNavigationActions] = struct{}{}
+}
+
+// NavigationActionsCleared returns if the "navigation_actions" field was cleared in this mutation.
+func (m *CaptureAttemptMutation) NavigationActionsCleared() bool {
+	_, ok := m.clearedFields[captureattempt.FieldNavigationActions]
+	return ok
+}
+
+// ResetNavigationActions resets all changes to the "navigation_actions" field.
+func (m *CaptureAttemptMutation) ResetNavigationActions() {
+	m.navigation_actions = nil
+	m.appendnavigation_actions = nil
+	delete(m.clearedFields, captureattempt.FieldNavigationActions)
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CaptureAttemptMutation) SetCreatedAt(t time.Time) {
 	m.created_at = &t
@@ -23336,7 +23403,7 @@ func (m *CaptureAttemptMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CaptureAttemptMutation) Fields() []string {
-	fields := make([]string, 0, 20)
+	fields := make([]string, 0, 21)
 	if m.organization_id != nil {
 		fields = append(fields, captureattempt.FieldOrganizationID)
 	}
@@ -23391,6 +23458,9 @@ func (m *CaptureAttemptMutation) Fields() []string {
 	if m.asset_id != nil {
 		fields = append(fields, captureattempt.FieldAssetID)
 	}
+	if m.navigation_actions != nil {
+		fields = append(fields, captureattempt.FieldNavigationActions)
+	}
 	if m.created_at != nil {
 		fields = append(fields, captureattempt.FieldCreatedAt)
 	}
@@ -23441,6 +23511,8 @@ func (m *CaptureAttemptMutation) Field(name string) (ent.Value, bool) {
 		return m.RefusedRequests()
 	case captureattempt.FieldAssetID:
 		return m.AssetID()
+	case captureattempt.FieldNavigationActions:
+		return m.NavigationActions()
 	case captureattempt.FieldCreatedAt:
 		return m.CreatedAt()
 	case captureattempt.FieldUpdatedAt:
@@ -23490,6 +23562,8 @@ func (m *CaptureAttemptMutation) OldField(ctx context.Context, name string) (ent
 		return m.OldRefusedRequests(ctx)
 	case captureattempt.FieldAssetID:
 		return m.OldAssetID(ctx)
+	case captureattempt.FieldNavigationActions:
+		return m.OldNavigationActions(ctx)
 	case captureattempt.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case captureattempt.FieldUpdatedAt:
@@ -23629,6 +23703,13 @@ func (m *CaptureAttemptMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetAssetID(v)
 		return nil
+	case captureattempt.FieldNavigationActions:
+		v, ok := value.([]map[string]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNavigationActions(v)
+		return nil
 	case captureattempt.FieldCreatedAt:
 		v, ok := value.(time.Time)
 		if !ok {
@@ -23748,6 +23829,9 @@ func (m *CaptureAttemptMutation) ClearedFields() []string {
 	if m.FieldCleared(captureattempt.FieldAssetID) {
 		fields = append(fields, captureattempt.FieldAssetID)
 	}
+	if m.FieldCleared(captureattempt.FieldNavigationActions) {
+		fields = append(fields, captureattempt.FieldNavigationActions)
+	}
 	return fields
 }
 
@@ -23785,6 +23869,9 @@ func (m *CaptureAttemptMutation) ClearField(name string) error {
 		return nil
 	case captureattempt.FieldAssetID:
 		m.ClearAssetID()
+		return nil
+	case captureattempt.FieldNavigationActions:
+		m.ClearNavigationActions()
 		return nil
 	}
 	return fmt.Errorf("unknown CaptureAttempt nullable field %s", name)
@@ -23847,6 +23934,9 @@ func (m *CaptureAttemptMutation) ResetField(name string) error {
 		return nil
 	case captureattempt.FieldAssetID:
 		m.ResetAssetID()
+		return nil
+	case captureattempt.FieldNavigationActions:
+		m.ResetNavigationActions()
 		return nil
 	case captureattempt.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -23933,6 +24023,7 @@ type CaptureJobMutation struct {
 	deployment_event_id      *string
 	expected_revision        *string
 	recipe_hash              *string
+	objective_evidence       *string
 	fencing_token            *int64
 	addfencing_token         *int64
 	failure_code             *string
@@ -24837,6 +24928,55 @@ func (m *CaptureJobMutation) ResetRecipeHash() {
 	delete(m.clearedFields, capturejob.FieldRecipeHash)
 }
 
+// SetObjectiveEvidence sets the "objective_evidence" field.
+func (m *CaptureJobMutation) SetObjectiveEvidence(s string) {
+	m.objective_evidence = &s
+}
+
+// ObjectiveEvidence returns the value of the "objective_evidence" field in the mutation.
+func (m *CaptureJobMutation) ObjectiveEvidence() (r string, exists bool) {
+	v := m.objective_evidence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObjectiveEvidence returns the old "objective_evidence" field's value of the CaptureJob entity.
+// If the CaptureJob object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CaptureJobMutation) OldObjectiveEvidence(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObjectiveEvidence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObjectiveEvidence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObjectiveEvidence: %w", err)
+	}
+	return oldValue.ObjectiveEvidence, nil
+}
+
+// ClearObjectiveEvidence clears the value of the "objective_evidence" field.
+func (m *CaptureJobMutation) ClearObjectiveEvidence() {
+	m.objective_evidence = nil
+	m.clearedFields[capturejob.FieldObjectiveEvidence] = struct{}{}
+}
+
+// ObjectiveEvidenceCleared returns if the "objective_evidence" field was cleared in this mutation.
+func (m *CaptureJobMutation) ObjectiveEvidenceCleared() bool {
+	_, ok := m.clearedFields[capturejob.FieldObjectiveEvidence]
+	return ok
+}
+
+// ResetObjectiveEvidence resets all changes to the "objective_evidence" field.
+func (m *CaptureJobMutation) ResetObjectiveEvidence() {
+	m.objective_evidence = nil
+	delete(m.clearedFields, capturejob.FieldObjectiveEvidence)
+}
+
 // SetFencingToken sets the "fencing_token" field.
 func (m *CaptureJobMutation) SetFencingToken(i int64) {
 	m.fencing_token = &i
@@ -25300,7 +25440,7 @@ func (m *CaptureJobMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CaptureJobMutation) Fields() []string {
-	fields := make([]string, 0, 26)
+	fields := make([]string, 0, 27)
 	if m.organization_id != nil {
 		fields = append(fields, capturejob.FieldOrganizationID)
 	}
@@ -25351,6 +25491,9 @@ func (m *CaptureJobMutation) Fields() []string {
 	}
 	if m.recipe_hash != nil {
 		fields = append(fields, capturejob.FieldRecipeHash)
+	}
+	if m.objective_evidence != nil {
+		fields = append(fields, capturejob.FieldObjectiveEvidence)
 	}
 	if m.fencing_token != nil {
 		fields = append(fields, capturejob.FieldFencingToken)
@@ -25421,6 +25564,8 @@ func (m *CaptureJobMutation) Field(name string) (ent.Value, bool) {
 		return m.ExpectedRevision()
 	case capturejob.FieldRecipeHash:
 		return m.RecipeHash()
+	case capturejob.FieldObjectiveEvidence:
+		return m.ObjectiveEvidence()
 	case capturejob.FieldFencingToken:
 		return m.FencingToken()
 	case capturejob.FieldFailureCode:
@@ -25482,6 +25627,8 @@ func (m *CaptureJobMutation) OldField(ctx context.Context, name string) (ent.Val
 		return m.OldExpectedRevision(ctx)
 	case capturejob.FieldRecipeHash:
 		return m.OldRecipeHash(ctx)
+	case capturejob.FieldObjectiveEvidence:
+		return m.OldObjectiveEvidence(ctx)
 	case capturejob.FieldFencingToken:
 		return m.OldFencingToken(ctx)
 	case capturejob.FieldFailureCode:
@@ -25627,6 +25774,13 @@ func (m *CaptureJobMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetRecipeHash(v)
+		return nil
+	case capturejob.FieldObjectiveEvidence:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObjectiveEvidence(v)
 		return nil
 	case capturejob.FieldFencingToken:
 		v, ok := value.(int64)
@@ -25817,6 +25971,9 @@ func (m *CaptureJobMutation) ClearedFields() []string {
 	if m.FieldCleared(capturejob.FieldRecipeHash) {
 		fields = append(fields, capturejob.FieldRecipeHash)
 	}
+	if m.FieldCleared(capturejob.FieldObjectiveEvidence) {
+		fields = append(fields, capturejob.FieldObjectiveEvidence)
+	}
 	if m.FieldCleared(capturejob.FieldFailureCode) {
 		fields = append(fields, capturejob.FieldFailureCode)
 	}
@@ -25866,6 +26023,9 @@ func (m *CaptureJobMutation) ClearField(name string) error {
 		return nil
 	case capturejob.FieldRecipeHash:
 		m.ClearRecipeHash()
+		return nil
+	case capturejob.FieldObjectiveEvidence:
+		m.ClearObjectiveEvidence()
 		return nil
 	case capturejob.FieldFailureCode:
 		m.ClearFailureCode()
@@ -25940,6 +26100,9 @@ func (m *CaptureJobMutation) ResetField(name string) error {
 		return nil
 	case capturejob.FieldRecipeHash:
 		m.ResetRecipeHash()
+		return nil
+	case capturejob.FieldObjectiveEvidence:
+		m.ResetObjectiveEvidence()
 		return nil
 	case capturejob.FieldFencingToken:
 		m.ResetFencingToken()

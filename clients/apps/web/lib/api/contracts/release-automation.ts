@@ -234,6 +234,9 @@ export const automationOutputsSchema = z.object({
   captureId: z.string().optional(),
   captureAssetId: z.string().optional(),
   captureProof: z.enum(['version', 'current_state']).optional(),
+  /** Every image a release-matched capture took, and the change each one shows. */
+  captureAssetIds: z.array(z.string()).optional(),
+  captureFeatures: z.array(z.string()).optional(),
 })
 
 /** Persisted event/run history remains readable during a Temporal outage. */

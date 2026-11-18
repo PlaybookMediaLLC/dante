@@ -763,6 +763,7 @@ var (
 		{Name: "fencingToken", Type: field.TypeInt64, Default: 0},
 		{Name: "refusedRequests", Type: field.TypeInt, Default: 0},
 		{Name: "assetId", Type: field.TypeString, Nullable: true},
+		{Name: "navigationActions", Type: field.TypeJSON, Nullable: true},
 		{Name: "createdAt", Type: field.TypeTime},
 		{Name: "updatedAt", Type: field.TypeTime},
 	}
@@ -799,6 +800,7 @@ var (
 		{Name: "deploymentEventId", Type: field.TypeString, Nullable: true},
 		{Name: "expectedRevision", Type: field.TypeString, Nullable: true},
 		{Name: "recipeHash", Type: field.TypeString, Nullable: true},
+		{Name: "objectiveEvidence", Type: field.TypeString, Nullable: true},
 		{Name: "fencingToken", Type: field.TypeInt64, Default: 0},
 		{Name: "failureCode", Type: field.TypeString, Nullable: true},
 		{Name: "deadlineAt", Type: field.TypeTime, Nullable: true},
@@ -823,7 +825,7 @@ var (
 			{
 				Name:    "capturejob_organizationId_createdAt",
 				Unique:  false,
-				Columns: []*schema.Column{CaptureJobColumns[1], CaptureJobColumns[25]},
+				Columns: []*schema.Column{CaptureJobColumns[1], CaptureJobColumns[26]},
 			},
 		},
 	}

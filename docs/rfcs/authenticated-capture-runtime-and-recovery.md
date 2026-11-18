@@ -408,8 +408,8 @@ tests, local result, PR/SHA, deployment and production retest. Initial entries:
 
 | ID | Severity | Defect | Initial state |
 | --- | --- | --- | --- |
-| RC-013 | P2 | Incomplete live login and fresh-session restore failure are conflated | Reproduced; correction pending |
-| RC-014 | P2 | Stale live view has no same-session recovery action in Shots | Reproduced; correction pending |
+| RC-013 | P2 | Incomplete live login and fresh-session restore failure are conflated | Fixed in [#599](https://github.com/PlaybookMediaLLC/shots/pull/599); production UI retest pending |
+| RC-014 | P2 | Stale live view has no same-session recovery action in Shots | Fixed in [#599](https://github.com/PlaybookMediaLLC/shots/pull/599); production UI retest pending |
 | Acceptance gap | P1 outcome gate | This saved Verifier connection has not yet produced a verified editable campaign draft | Production test pending |
 
 ## 15. Deferred self-hosting design and licensing

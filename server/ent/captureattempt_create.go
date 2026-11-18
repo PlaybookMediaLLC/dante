@@ -216,6 +216,12 @@ func (_c *CaptureAttemptCreate) SetNillableAssetID(v *string) *CaptureAttemptCre
 	return _c
 }
 
+// SetNavigationActions sets the "navigation_actions" field.
+func (_c *CaptureAttemptCreate) SetNavigationActions(v []map[string]string) *CaptureAttemptCreate {
+	_c.mutation.SetNavigationActions(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CaptureAttemptCreate) SetCreatedAt(v time.Time) *CaptureAttemptCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -456,6 +462,10 @@ func (_c *CaptureAttemptCreate) createSpec() (*CaptureAttempt, *sqlgraph.CreateS
 	if value, ok := _c.mutation.AssetID(); ok {
 		_spec.SetField(captureattempt.FieldAssetID, field.TypeString, value)
 		_node.AssetID = &value
+	}
+	if value, ok := _c.mutation.NavigationActions(); ok {
+		_spec.SetField(captureattempt.FieldNavigationActions, field.TypeJSON, value)
+		_node.NavigationActions = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(captureattempt.FieldCreatedAt, field.TypeTime, value)

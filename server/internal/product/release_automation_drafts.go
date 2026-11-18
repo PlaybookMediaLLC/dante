@@ -38,6 +38,23 @@ func (c *Configuration) automationDraftDestinations(ctx context.Context, client 
 	return connections, nil
 }
 
+// automationDraftMedia is what a draft shows: the branded render of each
+// captured change when the run rendered them, otherwise the captures. One
+// capture rendered with several templates shows its first render.
+func automationDraftMedia(input automation.Outputs) []string {
+	captures := input.CaptureAssetIDs
+	if len(captures) == 0 {
+		captures = []string{input.CaptureAssetID}
+	}
+	switch {
+	case len(input.RenderedAssetIDs) == 0:
+		return captures
+	case len(captures) > 1:
+		return input.RenderedAssetIDs
+	}
+	return input.RenderedAssetIDs[:1]
+}
+
 // A captured campaign reaches Publish through the same draft owner as an
 // editor export. The session-only editor handoff keeps its authorization.
 func (c *Configuration) automationCampaignDrafts(ctx context.Context, actor Actor, input automation.Outputs) (automation.Outputs, error) {
@@ -66,16 +83,20 @@ func (c *Configuration) automationCampaignDrafts(ctx context.Context, actor Acto
 	if err != nil {
 		return automation.Outputs{}, err
 	}
-	linked, err := tx.CampaignAsset.Query().Where(campaignasset.OrganizationID(actor.OrganizationID), campaignasset.CampaignID(owner.ID), campaignasset.AssetID(input.CaptureAssetID)).Exist(ctx)
+	media := automationDraftMedia(input)
+	linked, err := tx.CampaignAsset.Query().Where(campaignasset.OrganizationID(actor.OrganizationID), campaignasset.CampaignID(owner.ID), campaignasset.AssetIDIn(media...)).
+		Select(campaignasset.FieldAssetID).Strings(ctx)
 	if err != nil {
 		return automation.Outputs{}, err
 	}
-	kinds, err := draftMediaKinds(ctx, tx.Asset, actor.OrganizationID, []string{input.CaptureAssetID})
+	kinds, err := draftMediaKinds(ctx, tx.Asset, actor.OrganizationID, media)
 	if err != nil {
 		return automation.Outputs{}, err
 	}
-	if !linked || kinds[input.CaptureAssetID] != "img" {
-		return automation.Outputs{}, ErrCaptureRefused
+	for _, id := range media {
+		if !slices.Contains(linked, id) || kinds[id] != "img" {
+			return automation.Outputs{}, ErrCaptureRefused
+		}
 	}
 	connections, err := c.automationDraftDestinations(ctx, tx.Client(), actor.OrganizationID, input.DestinationIDs)
 	if err != nil {
@@ -124,10 +145,11 @@ func (c *Configuration) automationCampaignDrafts(ctx context.Context, actor Acto
 			return automation.Outputs{}, conflict("Only campaign posts awaiting review can become new drafts.")
 		}
 		copy := strings.TrimSpace(post.Copy + "\n\n" + optionalText(post.CallToAction))
+		attached := media[:min(len(media), max(1, draftMediaLimit(channel)))]
 		draft, err := c.createContentDraft(ctx, tx, actor, ContentDraftInput{
 			RequestKey: key, Title: owner.Name, PlainText: copy, PrimaryPlatform: channel,
-			Body:     postBody([]PostPart{{Text: copy, AssetIDs: []string{input.CaptureAssetID}}}, kinds),
-			AssetIDs: []string{input.CaptureAssetID}, SocialSetID: optionalText(connection.SocialSetID), ChannelConnectionIDs: []string{connection.ID},
+			Body:     postBody([]PostPart{{Text: copy, AssetIDs: attached}}, kinds),
+			AssetIDs: attached, SocialSetID: optionalText(connection.SocialSetID), ChannelConnectionIDs: []string{connection.ID},
 			ReleaseID: optionalText(owner.ReleaseID), campaignID: owner.ID, campaignPostID: post.ID,
 		})
 		if err != nil {

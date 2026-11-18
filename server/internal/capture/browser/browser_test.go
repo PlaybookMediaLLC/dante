@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -86,6 +87,11 @@ func TestRecipeAcceptsOnlyTheTypedLanguage(t *testing.T) {
 	if err := unicode.Validate(); err != nil {
 		t.Fatalf("valid web objective rejected: %v", err)
 	}
+	sharp := validRecipe()
+	sharp.Viewport.Scale, sharp.Crop = 2, CropMarker
+	if err := sharp.Validate(); err != nil {
+		t.Fatalf("double-scale crop rejected: %v", err)
+	}
 	for name, change := range map[string]func(*Recipe){
 		"version":                func(r *Recipe) { r.SchemaVersion = 2 },
 		"too wide":               func(r *Recipe) { r.Viewport.Width = 4000 },
@@ -106,6 +112,8 @@ func TestRecipeAcceptsOnlyTheTypedLanguage(t *testing.T) {
 		"empty objective":        func(r *Recipe) { r.Navigation = &Navigation{MaxSteps: 2, CreditLimit: 2} },
 		"unbounded navigation":   func(r *Recipe) { r.Navigation = &Navigation{Objective: "Reports", MaxSteps: 100, CreditLimit: 2} },
 		"unbounded model budget": func(r *Recipe) { r.Navigation = &Navigation{Objective: "Reports", MaxSteps: 2, CreditLimit: 100} },
+		"triple scale":           func(r *Recipe) { r.Viewport.Scale = 3 },
+		"unknown crop":           func(r *Recipe) { r.Crop = "element" },
 	} {
 		recipe := validRecipe()
 		recipe.Steps = append([]Step{}, recipe.Steps...)
@@ -127,15 +135,23 @@ func TestTargetAndRequestPolicy(t *testing.T) {
 	if err := good.Validate(); err != nil {
 		t.Fatal(err)
 	}
+	textOnly := good
+	textOnly.IdentitySelector, textOnly.ExpectedAccount = "", "demo@example.com"
+	if err := textOnly.Validate(); err != nil {
+		t.Fatalf("an account named by its text alone was refused: %v", err)
+	}
 	for name, change := range map[string]func(*Target){
-		"http":       func(t *Target) { t.Origin = "http://app.example.com" },
-		"path":       func(t *Target) { t.Origin = "https://app.example.com/x" },
-		"private":    func(t *Target) { t.Origin = "https://10.0.0.1"; t.Hosts = []string{"10.0.0.1"} },
-		"unapproved": func(t *Target) { t.Hosts = []string{"other.example.com"} },
-		"host port":  func(t *Target) { t.Hosts = []string{"app.example.com:443"} },
-		"host url":   func(t *Target) { t.Hosts = []string{"https://app.example.com"} },
-		"star":       func(t *Target) { t.Hosts = []string{"*"} },
-		"identity":   func(t *Target) { t.ExpectedAccount = "" },
+		"http":            func(t *Target) { t.Origin = "http://app.example.com" },
+		"path":            func(t *Target) { t.Origin = "https://app.example.com/x" },
+		"private":         func(t *Target) { t.Origin = "https://10.0.0.1"; t.Hosts = []string{"10.0.0.1"} },
+		"unapproved":      func(t *Target) { t.Hosts = []string{"other.example.com"} },
+		"host port":       func(t *Target) { t.Hosts = []string{"app.example.com:443"} },
+		"host url":        func(t *Target) { t.Hosts = []string{"https://app.example.com"} },
+		"star":            func(t *Target) { t.Hosts = []string{"*"} },
+		"identity":        func(t *Target) { t.ExpectedAccount = "" },
+		"script selector": func(t *Target) { t.IdentitySelector = "a;alert(1)" },
+		"name alone":      func(t *Target) { t.IdentitySelector, t.ExpectedAccount = "", "demo" },
+		"bare at sign":    func(t *Target) { t.IdentitySelector, t.ExpectedAccount = "", "@acme" },
 	} {
 		target := good
 		change(&target)
@@ -153,6 +169,9 @@ func TestTargetAndRequestPolicy(t *testing.T) {
 		{"GET", "https://169.254.169.254/latest", false}, {"GET", "https://user:p@app.example.com/", false}, {"GET", "file:///etc/passwd", false},
 		{"POST", "https://app.example.com/graphql", true}, {"POST", "https://app.example.com/mutate", false},
 		{"DELETE", "https://app.example.com/graphql", false}, {"PUT", "https://app.example.com/x", false},
+		{"GET", "https://app.example.com/logout", false}, {"GET", "https://app.example.com/auth/Sign-Out?next=/", false},
+		{"GET", "https://app.example.com/api/session/log_off", false},
+		{"GET", "https://app.example.com/catalog", true},
 	} {
 		if got := requestAllowed(c.method, c.url, hosts, posts); got != c.want {
 			t.Errorf("%s %s = %v", c.method, c.url, got)
@@ -222,9 +241,23 @@ func newProtectedApp(t *testing.T) *protectedApp {
 				fmt.Fprint(w, "ready")
 			case <-r.Context().Done():
 			}
+		case "/idb-app":
+			// A single-page app whose session lives only in IndexedDB: no cookie, no local storage.
+			fmt.Fprint(w, `<body><script>
+const open = indexedDB.open('auth', 1);
+open.onupgradeneeded = () => open.result.createObjectStore('kv');
+open.onsuccess = () => {
+  const store = open.result.transaction('kv', 'readwrite').objectStore('kv');
+  if (location.hash === '#sign-in') store.put('idb-token', 'token');
+  store.get('token').onsuccess = (event) => {
+    if (event.target.result) document.body.insertAdjacentHTML('beforeend', '<header><div data-testid="account">acme-demo</div></header><div data-testid="ready">Ready</div>');
+    else location = '/login';
+  };
+};
+</script></body>`)
 		case "/challenge":
 			fmt.Fprint(w, `<html><div id="captcha">Prove you are human</div></html>`)
-		case "/dashboard", "/hydrating-account", "/signed-in-tabs", "/assets", "/probe", "/away-link", "/features", "/feature-reports", "/feature-shell", "/feature-shell-detail":
+		case "/dashboard", "/hydrating-account", "/signed-in-tabs", "/assets", "/probe", "/away-link", "/features", "/feature-reports", "/feature-shell", "/feature-shell-detail", "/feature-panel", "/member-list", "/below-fold":
 			if !signed {
 				http.Redirect(w, r, "/login", http.StatusFound)
 				return
@@ -245,13 +278,32 @@ func newProtectedApp(t *testing.T) *protectedApp {
 				extra = `<h1>Product overview</h1><nav><a href="/feature-reports">Reports</a><a href="/logout">Sign out</a><a href="/feature-reports?token=private">Private link</a><a href="https://other.example.test/">External</a></nav><h2 data-testid="secret">Hidden private heading</h2><h2>Nested <span data-testid="secret">private heading</span></h2><form><h2>Private form</h2><input value="secret-value"></form>`
 			case "/feature-reports":
 				extra = `<h1>Reports</h1><nav><a href="/features">Overview</a></nav><button id="detail-tab" role="tab" aria-selected="false" onclick="this.setAttribute('aria-selected','true');document.body.setAttribute('aria-busy','true');fetch('/report-data').then(r=>r.text()).then(()=>{document.querySelector('#report-detail').hidden=false;document.body.removeAttribute('aria-busy')})">Detailed report</button><div class="report-detail" hidden>Inactive duplicate marker</div><div class="report-detail" id="report-detail" style="margin-top:900px;background:#00ee00;height:80px" hidden><h2>Detailed report</h2><p>Verified feature state</p></div><button role="tab" id="repeat-tab" onclick="document.querySelector('h1').textContent+=' again'">Looping tab</button>`
+			case "/below-fold":
+				extra = `<div id="far" style="margin:1500px auto 700px;width:100px;height:50px;background:#0000ff"></div><span id="empty"></span>`
+			case "/member-list":
+				// The expected email shown everywhere but the signed-in account's own controls.
+				extra = `<header><div hidden>demo@acme.test</div></header><main><table><tr><td>demo@acme.test</td></tr></table></main>` +
+					`<section aria-label="Account members"><table data-testid="users-table"><tr><td>demo@acme.test</td></tr></table></section>` +
+					`<div data-testid="account-card">demo@acme.test</div><aside><ul><li>demo@acme.test</li></ul></aside>` +
+					`<nav><div role="listbox"><div role="option">demo@acme.test</div></div></nav>`
+			case "/feature-panel":
+				// One control per exclusion, each opening something so only its own rule refuses it.
+				extra = `<h1>Reports</h1><button id="export" aria-haspopup="dialog" onclick="document.querySelector('#export-panel').hidden=false">Export</button>` +
+					`<button aria-haspopup="dialog" onclick="fetch('/delete')">Delete report</button><button>Plain button</button>` +
+					`<button type="submit" aria-haspopup="dialog">Continue</button><form><button aria-expanded="false">Next</button></form><button form="elsewhere" aria-haspopup="menu">Go</button>` +
+					`<button role="switch" aria-expanded="false">Dark mode</button><button aria-pressed="false" aria-haspopup="menu">Pinned</button>` +
+					`<table><tr><td><button aria-expanded="false">Expand row</button></td></tr></table><button aria-haspopup="menu">ACME-DEMO menu</button><button aria-expanded="true">Filters</button><details open><summary>Advanced</summary>More options</details>` +
+					// Open controls the model may not read: one naming the account, one in a form, one in a table.
+					`<button aria-expanded="true">ACME-DEMO account</button><form><button aria-expanded="true">Form filters</button></form><table><tr><td><button aria-expanded="true">Row details</button></td></tr></table>` +
+					`<button id="relabel" aria-haspopup="dialog" onclick="fetch('/delete')">Details</button>` +
+					`<div id="export-panel" class="export-panel" role="dialog" hidden style="background:#00ee00;width:300px;height:120px"><h2>Export as CSV</h2></div>`
 			case "/signed-in-tabs":
 				extra = `<button id="plain">not a tab</button><button id="tab" role="tab" onclick="document.body.insertAdjacentHTML('beforeend','<div id=tabbed></div>')">Reports</button>`
 			case "/assets":
 				extra = fmt.Sprintf(`<img src="https://other.example.test:%s/pixel.png"><iframe src="https://other.example.test:%s/frame"></iframe>
 <script>alert('blocking dialog');window.open('https://other.example.test:'+location.port+'/popup');fetch('https://other.example.test:%s/fetch').catch(()=>{});try{new WebSocket('wss://app.example.test:%s/socket')}catch(e){};try{new Worker('data:text/javascript,new WebSocket("wss://app.example.test:'+location.port+'/worker-socket")')}catch(e){};fetch('/mutate',{method:'POST'}).catch(()=>{});fetch('/graphql',{method:'POST'}).catch(()=>{})</script>`, a.port, a.port, a.port, a.port)
 			}
-			fmt.Fprintf(w, `<body style="background:#fff"><script>if(!localStorage.getItem('token'))location='/login'</script><div data-testid="account">%s</div><div data-testid="ready">Ready</div>
+			fmt.Fprintf(w, `<body style="background:#fff"><script>if(!localStorage.getItem('token'))location='/login'</script><header><div data-testid="account">%s</div></header><div data-testid="ready">Ready</div>
 <div data-testid="secret" style="position:absolute;left:100px;top:100px;width:200px;height:100px;background:#0f0">private@acme.test</div><meta name="build" content="%s">%s</body>`, a.account.Load(), a.commit.Load(), extra)
 		case "/api/version":
 			fmt.Fprintf(w, `{"commit":%q}`, a.commit.Load())
@@ -298,10 +350,15 @@ func localBrowser(t *testing.T) *rod.Browser {
 // signIn plays the person in Live View, then exports what they left behind.
 func signIn(t *testing.T, a *protectedApp) *State {
 	t.Helper()
+	return signInAs(t, a.target())
+}
+
+// signInAs signs in the way signIn does, then exports through target's identity check.
+func signInAs(t *testing.T, target Target) *State {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	browser := localBrowser(t)
-	target := a.target()
 	if err := OpenLogin(ctx, browser, target); err != nil {
 		t.Fatal(err)
 	}
@@ -471,6 +528,9 @@ func TestRealBrowserNavigatesObservedFeature(t *testing.T) {
 			}
 		}
 		if view.Ready {
+			if !slices.Equal(view.Current, []string{"Detailed report"}) {
+				t.Fatalf("current=%q", view.Current)
+			}
 			id := -1
 			return NavigationChoice{Action: "capture", ControlID: &id}, nil
 		}
@@ -581,6 +641,192 @@ func TestRealBrowserNavigatesObservedFeature(t *testing.T) {
 		}})
 		failed(t, err, NavigationLimit)
 	})
+}
+
+// AI navigation may press a button that opens a panel, never one that names a
+// risky action, submits, or sits in a form.
+func TestRealBrowserPressesOnlySafeButtons(t *testing.T) {
+	a := newProtectedApp(t)
+	state := signIn(t, a)
+	b := localBrowser(t)
+	recipe := validRecipe()
+	recipe.Steps = []Step{{Kind: StepNavigate, Path: "/feature-panel"}}
+	recipe.Markers = []string{".export-panel"}
+	recipe.Navigation = &Navigation{Objective: "Show the CSV export dialog", MaxSteps: 2, CreditLimit: 5}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	offered := []string{}
+	result, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: recipe, State: state, NextNavigation: func(_ context.Context, view NavigationObservation) (NavigationChoice, error) {
+		if view.Ready {
+			return NavigationChoice{Action: "capture", ControlID: new(int(-1))}, nil
+		}
+		if !slices.Equal(view.Current, []string{"Filters", "Advanced"}) {
+			t.Fatalf("current=%q", view.Current)
+		}
+		for _, control := range view.Controls {
+			if control.Kind == "button" {
+				offered = append(offered, control.Label)
+			}
+		}
+		for _, control := range view.Controls {
+			if control.Label == "Export" && control.Kind == "button" {
+				return NavigationChoice{Action: "select", ControlID: &control.ID}, nil
+			}
+		}
+		t.Fatalf("the export button was not offered: %+v", view.Controls)
+		return NavigationChoice{}, nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(offered, []string{"Export", "Details"}) {
+		t.Fatalf("offered buttons=%q", offered)
+	}
+	if len(result.NavigationActions) != 2 || result.NavigationActions[0].Kind != "button" || result.SourcePath != "/feature-panel" || len(result.Image) == 0 || result.Focus == nil {
+		t.Fatalf("result=%+v", result.NavigationActions)
+	}
+
+	t.Run("relabelled before the press", func(t *testing.T) {
+		_, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: recipe, State: state, NextNavigation: func(ctx context.Context, view NavigationObservation) (NavigationChoice, error) {
+			for _, control := range view.Controls {
+				if control.Label == "Details" {
+					// The page renames the control while the model is choosing.
+					if _, err := b.MustPages().First().Context(ctx).Eval(`() => { document.querySelector('#relabel').textContent = 'Delete everything' }`); err != nil {
+						t.Fatal(err)
+					}
+					return NavigationChoice{Action: "select", ControlID: &control.ID}, nil
+				}
+			}
+			t.Fatal("details was not offered")
+			return NavigationChoice{}, nil
+		}})
+		failed(t, err, NavigationInvalid)
+	})
+	t.Run("a recipe that allows a write navigates by links only", func(t *testing.T) {
+		writable := recipe
+		writable.AllowedPostPaths = []string{"/graphql"}
+		_, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: writable, State: state, NextNavigation: func(_ context.Context, view NavigationObservation) (NavigationChoice, error) {
+			for _, control := range view.Controls {
+				if control.Kind == "button" {
+					t.Fatalf("a button was offered beside a write path: %+v", control)
+				}
+			}
+			return NavigationChoice{Action: "stop", ControlID: new(int(-1))}, nil
+		}})
+		failed(t, err, NavigationFailed)
+	})
+	if a.count("GET /delete") != 0 {
+		t.Fatal("a risky button was pressed")
+	}
+}
+
+// A double-scale crop is the first marker and its margin, twice as sharp, and
+// the focus box says where the marker sat in the viewport.
+func TestRealBrowserCropsTheMarkerAtDoubleScale(t *testing.T) {
+	a := newProtectedApp(t)
+	state := signIn(t, a)
+	b := localBrowser(t)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	recipe := validRecipe()
+	recipe.Markers = []string{"[data-testid=secret]"}
+	recipe.Viewport.Scale = 2
+	whole, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: recipe, State: state})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if whole.Width != 1600 || whole.Height != 1200 {
+		t.Fatalf("double scale=%dx%d", whole.Width, whole.Height)
+	}
+	if f := whole.Focus; f == nil || math.Abs(f.X-100.0/800) > 0.01 || math.Abs(f.Y-100.0/600) > 0.01 || math.Abs(f.W-200.0/800) > 0.01 || math.Abs(f.H-100.0/600) > 0.01 {
+		t.Fatalf("focus=%+v", whole.Focus)
+	}
+	recipe.Crop = CropMarker
+	cropped, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: recipe, State: state})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(float64(cropped.Width)-2*(200+2*cropMargin)) > 2 || math.Abs(float64(cropped.Height)-2*(100+2*cropMargin)) > 2 {
+		t.Fatalf("crop=%dx%d", cropped.Width, cropped.Height)
+	}
+	if r, g, bl := centre(t, cropped.Image); r != 0 || g < 0xee00 || bl != 0 {
+		t.Fatalf("the crop does not show its marker: %x %x %x", r, g, bl)
+	}
+	// Below the fold at scale 1: the crop scrolls to the marker and clips it there.
+	far := validRecipe()
+	far.Steps, far.Markers, far.Crop = []Step{{Kind: StepNavigate, Path: "/below-fold"}}, []string{"#far"}, CropMarker
+	below, err := Run(ctx, b, RunInput{Target: a.target(), Recipe: far, State: state})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if math.Abs(float64(below.Width)-(100+2*cropMargin)) > 2 || math.Abs(float64(below.Height)-(50+2*cropMargin)) > 2 {
+		t.Fatalf("below the fold=%dx%d", below.Width, below.Height)
+	}
+	if r, g, bl := centre(t, below.Image); r != 0 || g != 0 || bl < 0xee00 {
+		t.Fatalf("the crop missed the scrolled marker: %x %x %x", r, g, bl)
+	}
+	// A marker with no area cannot be cropped to.
+	far.Markers = []string{"#empty"}
+	_, err = Run(ctx, b, RunInput{Target: a.target(), Recipe: far, State: state})
+	failed(t, err, MarkerMissing)
+}
+
+// centre reads the middle pixel of a PNG.
+func centre(t *testing.T, data []byte) (r, g, b uint32) {
+	t.Helper()
+	picture, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bounds := picture.Bounds()
+	r, g, b, _ = picture.At(bounds.Dx()/2, bounds.Dy()/2).RGBA()
+	return r, g, b
+}
+
+// Without a selector the account is proven by its email in the page's header
+// or navigation. Under another sign-in, the email in a members table, an
+// account-members section, a sidebar or a hidden switcher proves nothing.
+func TestRealBrowserProvesTheAccountWithoutASelector(t *testing.T) {
+	a := newProtectedApp(t)
+	// Shown in another letter case: an email matches regardless.
+	a.account.Store("Demo@Acme.test")
+	target := a.target()
+	target.IdentitySelector, target.ExpectedAccount = "", "demo@acme.test"
+	state := signInAs(t, target)
+	b := localBrowser(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	if err := Verify(ctx, b, target, state); err != nil {
+		t.Fatalf("header account not proven: %v", err)
+	}
+	listed := validRecipe()
+	listed.Steps = []Step{{Kind: StepNavigate, Path: "/member-list"}}
+	if result, err := Run(ctx, b, RunInput{Target: target, Recipe: listed, State: state}); err != nil || len(result.Image) == 0 {
+		t.Fatalf("the right account on the members page: %v", err)
+	}
+	a.account.Store("someone@else.test")
+	_, err := Run(ctx, b, RunInput{Target: target, Recipe: listed, State: state})
+	failed(t, err, NeedsAuth)
+}
+
+// Only cookies and local storage are portable. An app whose session lives in
+// IndexedDB fails honestly at sign-in instead of saving a session that cannot work.
+func TestRealBrowserRefusesAnIndexedDBOnlySession(t *testing.T) {
+	a := newProtectedApp(t)
+	b := localBrowser(t)
+	target := a.target()
+	target.ProtectedPath = "/idb-app"
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	page, err := b.Page(proto.TargetCreateTarget{URL: target.Origin + "/idb-app#sign-in"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := page.Context(ctx).WaitElementsMoreThan("[data-testid=account]", 0); err != nil {
+		t.Fatalf("the app did not sign in: %v", err)
+	}
+	_, err = ExportConnected(ctx, b, target)
+	failed(t, err, SessionRestoreFailed)
 }
 
 func TestRealBrowserFreshSessionCapture(t *testing.T) {

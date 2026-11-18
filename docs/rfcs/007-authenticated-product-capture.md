@@ -108,8 +108,12 @@ runtime and never returns it to Temporal history or application logs.
 
 The interactive connection session expires after 10 minutes; discard unfinished
 state. Persist successful state for at most 24 hours in the first pilot, or
-less if the provider cookie expiry requires it. The human reauthenticates
-after expiry. No password retention, automated MFA or credential copying from
+less if the provider cookie expiry requires it. Decided on 2026-11-18, replacing
+that limit: each verified capture renews saved state for
+`PLATFORM_CAPTURE_STATE_MAX_AGE` (24 hours by default), never past 30 days after
+the person last signed in
+([release capture investigation](../release-capture-investigation-2026-11-17.md#implemented-on-this-branch)).
+The human reauthenticates after expiry. No password retention, automated MFA or credential copying from
 the user's everyday browser profile. Revocation marks the credential unusable
 before deleting the encrypted state; queued runs fail on generation mismatch,
 active runs receive cancellation and fail again at promotion if cancellation

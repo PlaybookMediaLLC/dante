@@ -134,7 +134,7 @@ func ExportConnected(ctx context.Context, browser *rod.Browser, target Target) (
 		if here, err := url.Parse(info.URL); err == nil && here.Scheme == "https" && HostApproved(here.Hostname(), target.Hosts) {
 			live := &scope{page: page}
 			// Another tab may still show sign-in; inspect the account before exporting.
-			found, err := live.evalBool(ctx, `(selector) => !!document.querySelector(selector)`, target.IdentitySelector)
+			found, err := live.accountShown(ctx, target)
 			if err != nil {
 				return nil, &Failure{Code: ProviderUnavailable}
 			}

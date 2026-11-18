@@ -48,6 +48,8 @@ const (
 	FieldExpectedRevision = "expectedRevision"
 	// FieldRecipeHash holds the string denoting the recipe_hash field in the database.
 	FieldRecipeHash = "recipeHash"
+	// FieldObjectiveEvidence holds the string denoting the objective_evidence field in the database.
+	FieldObjectiveEvidence = "objectiveEvidence"
 	// FieldFencingToken holds the string denoting the fencing_token field in the database.
 	FieldFencingToken = "fencingToken"
 	// FieldFailureCode holds the string denoting the failure_code field in the database.
@@ -90,6 +92,7 @@ var Columns = []string{
 	FieldDeploymentEventID,
 	FieldExpectedRevision,
 	FieldRecipeHash,
+	FieldObjectiveEvidence,
 	FieldFencingToken,
 	FieldFailureCode,
 	FieldDeadlineAt,
@@ -309,6 +312,11 @@ func ByExpectedRevision(opts ...sql.OrderTermOption) OrderOption {
 // ByRecipeHash orders the results by the recipe_hash field.
 func ByRecipeHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldRecipeHash, opts...).ToFunc()
+}
+
+// ByObjectiveEvidence orders the results by the objective_evidence field.
+func ByObjectiveEvidence(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldObjectiveEvidence, opts...).ToFunc()
 }
 
 // ByFencingToken orders the results by the fencing_token field.

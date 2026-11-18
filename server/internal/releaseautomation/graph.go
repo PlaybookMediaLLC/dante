@@ -291,8 +291,11 @@ func validateAction(action *Action, version int) string {
 	if len(action.Audience) > 1000 || len(action.CallToAction) > 300 || len(action.BrandKitID) > 64 || len(action.DestinationIDs) > 10 {
 		return "Action configuration exceeds its limit."
 	}
-	if action.CreditLimit != 0 && action.Type != "generate_copy" {
-		return "Only copy generation spends AI credits."
+	if action.CreditLimit != 0 && action.Type != "generate_copy" && !action.MatchRelease {
+		return "Only copy generation and release-matched capture spend AI credits."
+	}
+	if action.MatchRelease && action.Type != "capture_product" {
+		return "Matching pages to the release belongs to capture product."
 	}
 	if action.Include != "" && (action.Type != "create_release" || action.Include != "unreleased" || version < 2) {
 		return "Release contents apply to create release in language version 2."
@@ -351,7 +354,17 @@ func validateAction(action *Action, version int) string {
 		if action.Input == nil || action.Input.Output != "campaignId" {
 			return "Capture product requires a campaign output."
 		}
-		if action.RecipeID != "" {
+		if action.MatchRelease {
+			if version < 4 {
+				return "Choosing pages from the release requires workflow language version 4."
+			}
+			if action.RecipeID != "" || action.SurfaceID != "" || action.VersionPath != "" {
+				return "A release-matched capture chooses among the source's recipes; it takes no page or version path."
+			}
+			if action.CreditLimit < 1 || action.CreditLimit > MaxClassifyCredits {
+				return fmt.Sprintf("Set an AI credit limit from 1 to %d for choosing pages.", MaxClassifyCredits)
+			}
+		} else if action.RecipeID != "" {
 			if len(action.RecipeID) > 64 || action.SurfaceID != "" || action.VersionPath != "" {
 				return "An authenticated capture takes its page and version proof from its recipe."
 			}
@@ -556,6 +569,9 @@ func DryRunAssuming(graph Graph, event Event, relevant bool) Preview {
 			}
 			if n.Action.Type == "capture_product" {
 				step.Outcome = "Predicted capture of the deployed product page; preview captures nothing."
+				if n.Action.MatchRelease {
+					step.Outcome = fmt.Sprintf("Predicted AI choice of up to %d signed-in pages that show this release, then their captures; preview calls no model and captures nothing.", MaxReleaseCaptures)
+				}
 			}
 			if n.Action.Type == "render_creatives" {
 				source := "the latest product capture"
