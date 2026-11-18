@@ -25,7 +25,10 @@ COPY clients/packages/access-control/package.json ./packages/access-control/
 COPY clients/packages/audit-logs/package.json ./packages/audit-logs/
 COPY clients/packages/sso/package.json ./packages/sso/
 COPY clients/packages/whitelabeling/package.json ./packages/whitelabeling/
-RUN --mount=type=cache,target=/root/.npm npm ci --prefer-offline --no-audit
+# A build does not inherit the workflow's ONNXRUNTIME_NODE_INSTALL_CUDA=skip (#616):
+# without it onnxruntime-node downloads a CUDA provider no server can use, and
+# fails the build when that release download does.
+RUN --mount=type=cache,target=/root/.npm ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci --prefer-offline --no-audit
 
 FROM dependencies AS builder
 
