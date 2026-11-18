@@ -33,7 +33,20 @@ export function AnimationPresetGallery() {
     clearAnimationClips,
     setShowTimeline,
     setTimelineDuration,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      uploadedImageUrl: state.uploadedImageUrl,
+      backgroundConfig: state.backgroundConfig,
+      borderRadius: state.borderRadius,
+      imageShadow: state.imageShadow,
+      timeline: state.timeline,
+      animationClips: state.animationClips,
+      addAnimationClip: state.addAnimationClip,
+      clearAnimationClips: state.clearAnimationClips,
+      setShowTimeline: state.setShowTimeline,
+      setTimelineDuration: state.setTimelineDuration,
+    }))
+  );
 
   const screenshot = useImageStore(useShallow(selectScreenshot));
 

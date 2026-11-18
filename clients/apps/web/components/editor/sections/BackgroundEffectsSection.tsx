@@ -4,13 +4,24 @@ import * as React from "react";
 import { SectionWrapper } from "./SectionWrapper";
 import { Slider } from '@/components/ui/slider'
 import { useImageStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 
 import { meshGradients } from "@/lib/constants/mesh-gradients";
 import { Button } from '@/components/ui/button'
 
 export function BackgroundEffectsSection() {
-  const { setBackgroundConfig, backgroundNoise, setBackgroundNoise, backgroundBlur, setBackgroundBlur, pattern, setPattern } = useImageStore();
+  const { setBackgroundConfig, backgroundNoise, setBackgroundNoise, backgroundBlur, setBackgroundBlur, pattern, setPattern } = useImageStore(
+    useShallow((state) => ({
+      setBackgroundConfig: state.setBackgroundConfig,
+      backgroundNoise: state.backgroundNoise,
+      setBackgroundNoise: state.setBackgroundNoise,
+      backgroundBlur: state.backgroundBlur,
+      setBackgroundBlur: state.setBackgroundBlur,
+      pattern: state.pattern,
+      setPattern: state.setPattern,
+    }))
+  );
 
   return (
     <SectionWrapper title="Background Effects" defaultOpen={false}>

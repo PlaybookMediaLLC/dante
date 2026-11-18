@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore, type ImageStylePreset } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { Slider } from '@/components/ui/slider'
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
@@ -81,7 +82,14 @@ function StylePreview({ preset }: { preset: ImageStylePreset }) {
 }
 
 export function StyleSection() {
-  const { imageStylePreset, setImageStylePreset, imageBorder, setImageBorder } = useImageStore();
+  const { imageStylePreset, setImageStylePreset, imageBorder, setImageBorder } = useImageStore(
+    useShallow((state) => ({
+      imageStylePreset: state.imageStylePreset,
+      setImageStylePreset: state.setImageStylePreset,
+      imageBorder: state.imageBorder,
+      setImageBorder: state.setImageBorder,
+    }))
+  );
 
   const isNonDefault = imageStylePreset !== 'default';
   const currentOpacity = imageBorder.opacity ?? 0.3;

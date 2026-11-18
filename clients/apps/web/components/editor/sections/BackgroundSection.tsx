@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore, withHistoryStep } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { useDropzone } from 'react-dropzone';
 import { useResponsiveCanvasDimensions } from '@/hooks/useAspectRatioDimensions';
 import { MAX_IMAGE_SIZE } from '@/lib/constants';
@@ -125,7 +126,15 @@ export function BackgroundSection() {
     setBackgroundConfig,
     addImageOverlay,
     removeImageOverlay,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      backgroundConfig: state.backgroundConfig,
+      imageOverlays: state.imageOverlays,
+      setBackgroundConfig: state.setBackgroundConfig,
+      addImageOverlay: state.addImageOverlay,
+      removeImageOverlay: state.removeImageOverlay,
+    }))
+  );
 
   const responsiveDimensions = useResponsiveCanvasDimensions();
   const [bgUploadError, setBgUploadError] = React.useState<string | null>(null);

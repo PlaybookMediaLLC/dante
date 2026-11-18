@@ -1,6 +1,7 @@
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { AspectRatioPicker } from './aspect-ratio-picker';
 import { Button } from '@/components/ui/button'
 import * as React from 'react';
@@ -9,7 +10,12 @@ import { ArrowDownIcon as ArrowDown01Icon } from '@phosphor-icons/react/dist/ssr
 const popularRatios = ['1_1', '9_16', '16_9', '4_5', 'og_image'];
 
 export const AspectRatioDropdown = () => {
-  const { selectedAspectRatio, setAspectRatio } = useImageStore();
+  const { selectedAspectRatio, setAspectRatio } = useImageStore(
+    useShallow((state) => ({
+      selectedAspectRatio: state.selectedAspectRatio,
+      setAspectRatio: state.setAspectRatio,
+    }))
+  );
   const current = aspectRatios.find((ar) => ar.id === selectedAspectRatio);
   const [open, setOpen] = React.useState(false);
 

@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { KeyframeMarker } from './KeyframeMarker';
 import { Button } from '@/components/ui/button';
@@ -33,7 +34,16 @@ export function TimelineTrack({
     updateKeyframe,
     removeKeyframe,
     addKeyframe,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      timeline: state.timeline,
+      updateTrack: state.updateTrack,
+      removeTrack: state.removeTrack,
+      updateKeyframe: state.updateKeyframe,
+      removeKeyframe: state.removeKeyframe,
+      addKeyframe: state.addKeyframe,
+    }))
+  );
   const setPlayhead = usePlaybackStore((state) => state.seek);
 
   const { duration } = timeline;

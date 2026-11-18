@@ -10,6 +10,7 @@ import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { ClockIcon as Time02Icon } from '@phosphor-icons/react/dist/ssr/Clock'
 import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { usePlaybackStore } from '@/lib/store/playback';
 import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils';
@@ -34,7 +35,15 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
     setTimelineDuration,
     clearAnimationClips,
     animationClips,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      timeline: state.timeline,
+      setTimeline: state.setTimeline,
+      setTimelineDuration: state.setTimelineDuration,
+      clearAnimationClips: state.clearAnimationClips,
+      animationClips: state.animationClips,
+    }))
+  );
 
   const { isLooping, duration } = timeline;
   const isPlaying = usePlaybackStore((state) => state.isPlaying);

@@ -225,6 +225,14 @@ export type AuthStoreRequest = {
   select?: string[]
   sortBy?: { direction: 'asc' | 'desc'; field: string }
   where?: AuthStoreWhere[]
+  /** Related rows nested under each model name, as Better Auth's native joins. */
+  join?: Record<string, AuthStoreJoin>
+}
+
+export type AuthStoreJoin = {
+  limit: number
+  on: { from: string; to: string }
+  relation: 'one-to-many' | 'one-to-one'
 }
 
 export type AuthStoreResult = {

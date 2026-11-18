@@ -375,7 +375,23 @@ export function PresetGallery({
     imageShadow,
     perspective3D,
     applyVisualPreset,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      uploadedImageUrl: state.uploadedImageUrl,
+      selectedAspectRatio: state.selectedAspectRatio,
+      backgroundConfig: state.backgroundConfig,
+      backgroundBorderRadius: state.backgroundBorderRadius,
+      backgroundBlur: state.backgroundBlur,
+      backgroundNoise: state.backgroundNoise,
+      borderRadius: state.borderRadius,
+      imageOpacity: state.imageOpacity,
+      imageScale: state.imageScale,
+      imageBorder: state.imageBorder,
+      imageShadow: state.imageShadow,
+      perspective3D: state.perspective3D,
+      applyVisualPreset: state.applyVisualPreset,
+    }))
+  );
 
   const screenshot = useImageStore(useShallow(selectScreenshot));
   const { customPresets, savePreset, deletePreset } = useCustomPresets();

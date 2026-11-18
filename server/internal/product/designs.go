@@ -410,16 +410,26 @@ func (c *Configuration) ListCampaignDesigns(ctx context.Context, actor Actor, ca
 			approved[*variant.DesignID] = &ApprovedDesignVariant{ID: variant.ID, SourceAssetID: variant.SourceAssetID}
 		}
 	}
+	renderedIDs := []string{}
+	for _, row := range rows {
+		if row.RenderedAssetID != nil {
+			renderedIDs = append(renderedIDs, *row.RenderedAssetID)
+		}
+	}
+	rendered, err := c.client.Asset.Query().Where(asset.IDIn(renderedIDs...), asset.OrganizationID(actor.OrganizationID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	renderedByID := make(map[string]*ent.Asset, len(rendered))
+	for _, media := range rendered {
+		renderedByID[media.ID] = media
+	}
 	items := make([]DesignRecord, 0, len(rows))
 	for _, row := range rows {
 		item := designRecord(row)
 		item.ApprovedVariant = approved[row.ID]
 		if row.RenderedAssetID != nil {
-			media, err := c.client.Asset.Query().Where(asset.ID(*row.RenderedAssetID), asset.OrganizationID(actor.OrganizationID)).Only(ctx)
-			if err != nil && !ent.IsNotFound(err) {
-				return nil, err
-			}
-			if media != nil {
+			if media := renderedByID[*row.RenderedAssetID]; media != nil {
 				item.RenderedAsset = &DesignAsset{Height: media.Height, ID: media.ID, ObjectKey: media.ObjectKey, Width: media.Width}
 			}
 		}

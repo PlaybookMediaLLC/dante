@@ -57,6 +57,18 @@ func TestNotificationSourceSurvivesMoveAndRedactsLostSourceAccess(t *testing.T) 
 		t.Fatal("moving a resource bypassed queued source authority")
 	}
 	assertDeliveryOutcome(t, f, eventID, "email", "SKIPPED", "ACCESS_REMOVED", 1)
+	// The resource's own set decides too: with the source shared again, the
+	// draft is visible until its new set becomes another member's private set.
+	execFixture(t, f, `UPDATE social_set SET visibility='WORKSPACE',"ownerUserId"=NULL WHERE id=$1`, setID)
+	page, err = f.s.ListFeed(ctx, f.creator, "activity", "")
+	if err != nil || len(page.Items) != 1 || page.Items[0].Href == "" {
+		t.Fatalf("control: shared source and destination should be visible: %+v %v", page, err)
+	}
+	execFixture(t, f, `UPDATE social_set SET visibility='PRIVATE',"ownerUserId"=$2 WHERE id=$1`, otherSet, f.owner.UserID)
+	page, err = f.s.ListFeed(ctx, f.creator, "activity", "")
+	if err != nil || len(page.Items) != 1 || page.Items[0].Href != "" || page.Items[0].Description != "This activity is no longer available." {
+		t.Fatalf("private destination set leaked: %+v %v", page, err)
+	}
 }
 
 func TestNotificationEventCapturesSourceBeforeProjection(t *testing.T) {

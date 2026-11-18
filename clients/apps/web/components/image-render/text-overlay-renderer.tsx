@@ -5,7 +5,7 @@ import { useImageStore } from '@/lib/store';
 import { getFontCSS } from '@/lib/constants/fonts';
 
 export const TextOverlayRenderer = () => {
-  const { textOverlays } = useImageStore();
+  const textOverlays = useImageStore((state) => state.textOverlays);
 
   return (
     <>

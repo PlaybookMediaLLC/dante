@@ -115,7 +115,17 @@ export function useExport(selectedAspectRatio: string) {
     textOverlays,
     imageOverlays,
     perspective3D,
-  } = useImageStore()
+  } = useImageStore(
+    useShallow((state) => ({
+      backgroundConfig: state.backgroundConfig,
+      backgroundBorderRadius: state.backgroundBorderRadius,
+      backgroundBlur: state.backgroundBlur,
+      backgroundNoise: state.backgroundNoise,
+      textOverlays: state.textOverlays,
+      imageOverlays: state.imageOverlays,
+      perspective3D: state.perspective3D,
+    }))
+  )
   const backgroundOpacity = backgroundConfig?.opacity !== undefined ? backgroundConfig.opacity : 1
   const screenshot = useImageStore(useShallow(selectScreenshot))
 

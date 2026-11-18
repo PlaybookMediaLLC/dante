@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { getAspectRatioPreset } from '@/lib/aspect-ratio-utils';
 import { exportTargetSchema, TARGET_SIDE_LIMITS } from '@/lib/export/sizes';
 import { cn } from '@/lib/utils';
@@ -108,7 +109,14 @@ function parseRatio(ratioStr: string) {
 }
 
 export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as AspectRatioPickerProps) => {
-  const { selectedAspectRatio, setAspectRatio, customDimensions, setCustomDimensions } = useImageStore();
+  const { selectedAspectRatio, setAspectRatio, customDimensions, setCustomDimensions } = useImageStore(
+    useShallow((state) => ({
+      selectedAspectRatio: state.selectedAspectRatio,
+      setAspectRatio: state.setAspectRatio,
+      customDimensions: state.customDimensions,
+      setCustomDimensions: state.setCustomDimensions,
+    }))
+  );
 
   const currentAR = aspectRatios.find((ar) => ar.id === selectedAspectRatio);
   const currentDimensions = selectedAspectRatio === 'custom' && customDimensions

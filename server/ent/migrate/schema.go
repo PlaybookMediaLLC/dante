@@ -268,6 +268,11 @@ var (
 				Unique:  false,
 				Columns: []*schema.Column{AssetColumns[1], AssetColumns[15]},
 			},
+			{
+				Name:    "asset_parentAssetId",
+				Unique:  false,
+				Columns: []*schema.Column{AssetColumns[3]},
+			},
 		},
 	}
 	// AudienceSubscriberColumns holds the columns for the "audience_subscriber" table.

@@ -2,6 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 import { context, propagation } from '@opentelemetry/api'
+import { cache } from 'react'
 import type { StoreProvider } from '@/lib/api/contracts/store-publishing'
 import type { Principal } from '@/lib/auth/principal'
 import {
@@ -47,11 +48,52 @@ function principalScope(principal: Principal): PrincipalScope {
  */
 const tracedFetch: typeof fetch = (input, init) => {
   const headers = new Headers(init?.headers)
+  const key = `${String(input)} ${JSON.stringify([...headers])}`
   propagation.inject(context.active(), headers, {
-    set: (carrier, key, value) => carrier.set(key, value),
+    set: (carrier, name, value) => carrier.set(name, value),
   })
-  return fetch(input, { ...init, headers })
+  const reads = renderReads()
+  const shareable =
+    headers.has('traceparent') &&
+    (init?.method ?? 'GET') === 'GET' &&
+    init?.body == null &&
+    // Outside a render, cache() calls through and returns a new map each time.
+    reads === renderReads()
+  if (!shareable) return fetch(input, { ...init, headers })
+  let read = reads.get(key)
+  if (!read) {
+    read = fetch(input, { ...init, headers }).then(async (response): Promise<SharedRead> => {
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        reads.delete(key)
+        return { response, taken: false }
+      }
+      const { status, statusText } = response
+      return { headers: response.headers, status, statusText, text: await response.text() }
+    })
+    reads.set(key, read)
+  }
+  return read.then((shared) => {
+    if ('text' in shared) {
+      const { text, ...responseInit } = shared
+      return new Response(text === '' ? null : text, responseInit)
+    }
+    // Media is never buffered for sharing: a concurrent duplicate reads its own copy.
+    if (shared.taken) return fetch(input, { ...init, headers })
+    shared.taken = true
+    return shared.response
+  })
 }
+
+type SharedRead =
+  | { headers: Headers; status: number; statusText: string; text: string }
+  | { response: Response; taken: boolean }
+
+/**
+ * Next shares identical GETs within a render, but each segment's span gives
+ * them a different traceparent, so a layout and its page would read twice.
+ * This shares JSON reads keyed without it.
+ */
+const renderReads = cache(() => new Map<string, Promise<SharedRead>>())
 
 function client(scope: BackendScope): ScreenshotStudioBackendSDK {
   return new ScreenshotStudioBackendSDK(
@@ -115,7 +157,11 @@ export function withDates<T>(value: T): WithDates<T> {
 
 type StoreBackendRequest = <T>(
   path: string,
-  init?: { body?: unknown; headers?: Record<string, string>; method?: 'GET' | 'POST' | 'PUT' | 'DELETE' }
+  init?: {
+    body?: unknown
+    headers?: Record<string, string>
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  }
 ) => Promise<T>
 
 /**
@@ -139,14 +185,19 @@ export function storeBackend(context: BackendContext) {
       request<StoreReviewPayload>('v1/store-reviews', { body: input, method: 'POST' }),
     listStoreReviews: (projectId: string) =>
       request<{ reviews: StoreReviewPayload[] }>(`v1/store-reviews?projectId=${id(projectId)}`),
-    getStoreReview: (reviewId: string) => request<StoreReviewPayload>(`v1/store-reviews/${id(reviewId)}`),
+    getStoreReview: (reviewId: string) =>
+      request<StoreReviewPayload>(`v1/store-reviews/${id(reviewId)}`),
     getSharedStoreReview: (reviewId: string, shareTokenId: string) =>
       request<StoreReviewPayload>(`v1/store-reviews/${id(reviewId)}/shared`, {
         headers: { 'x-share-token-id': shareTokenId },
       }),
     revokeStoreReview: (reviewId: string) =>
       request<{ revoked: boolean }>(`v1/store-reviews/${id(reviewId)}/revoke`, { method: 'POST' }),
-    addStoreReviewComment: (reviewId: string, input: StoreReviewCommentInput, shareTokenId?: string) =>
+    addStoreReviewComment: (
+      reviewId: string,
+      input: StoreReviewCommentInput,
+      shareTokenId?: string
+    ) =>
       request<StoreReviewPayload['comments'][number]>(`v1/store-reviews/${id(reviewId)}/comments`, {
         body: input,
         headers: shareTokenId ? { 'x-share-token-id': shareTokenId } : {},
@@ -160,7 +211,10 @@ export function storeBackend(context: BackendContext) {
     listStorePublishingCredentials: () =>
       request<{ credentials: StoreCredentialPayload[] }>('v1/store-publishing/credentials'),
     createStorePublishingCredential: (input: StoreCredentialCreateInput) =>
-      request<StoreCredentialPayload>('v1/store-publishing/credentials', { body: input, method: 'POST' }),
+      request<StoreCredentialPayload>('v1/store-publishing/credentials', {
+        body: input,
+        method: 'POST',
+      }),
     getStorePublishingCredentialSecret: (credentialId: string) =>
       request<StoreCredentialPayload & { encryptedSecret: string }>(
         `v1/store-publishing/credentials/${id(credentialId)}/secret`,
