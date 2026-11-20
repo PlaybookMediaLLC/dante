@@ -41,8 +41,7 @@ export function AnalyzeNav({ active, scope = '' }: { active: string; scope?: str
   )
 }
 
-/** A row of route tabs as pills; `secondary` stays visible beside the expanded sidebar. */
-export function TabRow({
+function TabRow({
   active,
   items,
   label,
