@@ -380,7 +380,8 @@ export function CanvasWorkspace({
             <>
               <ZoomBar actions={actions} />
               <Minimap artboards={state.document.artboards} />
-              <AssistantSlot />
+              {/* Beside the zoom bar, so neither covers the other or the board's labels. */}
+              <AssistantSlot placement="end" />
             </>
           )}
         </section>

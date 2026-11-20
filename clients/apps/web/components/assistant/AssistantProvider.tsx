@@ -141,7 +141,14 @@ export function useAssistantAbility(ability: AssistantAbility | null) {
  * page places its own to move the bar, as the canvas does over its board.
  * Fills its positioned parent.
  */
-export function AssistantSlot({ fallback = false }: { fallback?: boolean }) {
+export function AssistantSlot({
+  fallback = false,
+  placement = 'center',
+}: {
+  fallback?: boolean
+  /** Centred at the foot, or at the foot's end beside the page's own controls. */
+  placement?: 'center' | 'end'
+}) {
   const registry = useContext(AssistantRegistry)
   const key = useId()
   const setSlot = registry?.setSlot
@@ -151,5 +158,12 @@ export function AssistantSlot({ fallback = false }: { fallback?: boolean }) {
     setSlot(key, { element, fallback })
     return () => setSlot(key, null)
   }, [setSlot, key, element, fallback])
-  return <div ref={setElement} data-assistant-slot className="assistant-slot" />
+  return (
+    <div
+      ref={setElement}
+      data-assistant-slot
+      data-placement={placement}
+      className="assistant-slot"
+    />
+  )
 }

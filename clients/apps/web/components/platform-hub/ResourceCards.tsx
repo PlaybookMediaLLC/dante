@@ -49,7 +49,7 @@ export function ResourceCards({
           <SidebarLink
             className="create-tile-link"
             href={item.href}
-            aria-label={`${item.title}. ${item.description}`}
+            aria-label={`${item.title} ${item.scope}`}
             title={item.description}
           />
         </li>

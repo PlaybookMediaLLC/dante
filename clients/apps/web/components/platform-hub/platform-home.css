@@ -943,3 +943,11 @@
   font-weight: 500;
   pointer-events: auto;
 }
+/* At the foot's end, beside controls the page keeps at its start (the canvas's zoom bar). */
+.assistant-slot[data-placement='end'] .assistant {
+  right: 12px;
+  left: auto;
+  width: min(520px, calc(100% - 500px));
+  min-width: min(320px, calc(100% - 24px));
+  transform: none;
+}
