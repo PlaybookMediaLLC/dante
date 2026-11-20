@@ -33,7 +33,7 @@
     background-color 150ms ease,
     color 150ms ease;
 }
-.platform-tab[aria-current='page'] {
+.platform-tab:is([aria-current='page'], [aria-pressed='true']) {
   background: color-mix(in srgb, var(--foreground) 6%, transparent);
   color: var(--foreground);
   font-weight: 500;
@@ -444,31 +444,6 @@
   gap: 12px;
   padding-bottom: 12px;
 }
-.home-pills {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.home-pill {
-  height: 32px;
-  flex-shrink: 0;
-  padding-inline: 14px;
-  border-radius: 999px;
-  color: var(--muted-foreground);
-  font-size: 13px;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease;
-}
-.home-pill:hover {
-  color: var(--foreground);
-}
-.home-pill[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--foreground) 6%, transparent);
-  color: var(--foreground);
-  font-weight: 500;
-}
 .home-view-toggle {
   display: flex;
   gap: 2px;
@@ -572,6 +547,18 @@
   display: grid;
   gap: 2px;
   outline: none;
+  text-align: center;
+}
+.home-row > .home-item-text {
+  min-width: 0;
+  flex: 1;
+}
+.home-row .home-item-text > :first-child {
+  font-weight: 500;
+}
+.home-card > .home-item-text {
+  min-width: 0;
+  padding-inline: 4px;
 }
 .home-card-media {
   display: flex;
@@ -733,14 +720,16 @@
 /* The template and stage previews draw their own frame; give them depth on the tile. */
 .create-tile-media > * {
   width: 100%;
-  filter: drop-shadow(0 14px 22px rgb(0 0 0 / 18%));
+  border-radius: 6px;
+  box-shadow: 0 14px 28px -14px rgb(0 0 0 / 40%);
 }
 .create-tile-media.is-stage {
   padding: 0;
 }
 .create-tile-media.is-stage > * {
   height: 100%;
-  filter: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .create-tile:hover .create-tile-media {

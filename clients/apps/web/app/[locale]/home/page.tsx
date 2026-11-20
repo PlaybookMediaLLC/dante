@@ -121,7 +121,7 @@ export default async function HomePage({
           </>
         }
       >
-        <section aria-label="Start something new" className="platform-home home-start-row">
+        <section aria-label="Start something new" className="platform-home">
           <h2 className="home-eyebrow">Start something new</h2>
           {available.length < starters.length ? (
             <p className="mb-3 text-sm text-muted-foreground">

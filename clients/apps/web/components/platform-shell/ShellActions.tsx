@@ -88,12 +88,11 @@ export function SearchField() {
       variant="custom"
       size={null}
       className="flex h-9 w-full min-w-0 items-center gap-2 rounded-full border border-border bg-background px-3.5 text-[13px] text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground sm:w-64"
-      aria-label={t('searchCommands')}
       onClick={() => window.dispatchEvent(new Event('shots:search'))}
     >
       <SearchIcon className="size-4 shrink-0" aria-hidden="true" />
-      <span className="flex-1 text-start">Search</span>
-      <kbd className="font-sans text-[11px] text-muted-foreground/80">
+      <span className="flex-1 text-start">{t('search')}</span>
+      <kbd aria-hidden="true" className="font-sans text-[11px] text-muted-foreground/80">
         {keys.label({ key: 'k', mod: true })}
       </kbd>
     </Button>

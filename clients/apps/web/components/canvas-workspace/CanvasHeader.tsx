@@ -104,16 +104,19 @@ export function CanvasHeader({
           {status}
         </span>
       </div>
-      <div className={cn(pill, 'hidden md:flex')}>
-        <Tool label="Artboards & tools" pressed={leftOpen} onClick={() => togglePanel('left')}>
-          <SidebarSimpleIcon className="size-4" />
-        </Tool>
-        <Tool label="Properties" pressed={rightOpen} onClick={() => togglePanel('right')}>
-          <SlidersHorizontalIcon className="size-4" />
-        </Tool>
+      <div className={pill}>
+        {/* Phones open the panels as sheets from the board's own bar instead. */}
+        <span className="hidden items-center gap-0.5 md:flex">
+          <Tool label="Artboards & tools" pressed={leftOpen} onClick={() => togglePanel('left')}>
+            <SidebarSimpleIcon className="size-4" />
+          </Tool>
+          <Tool label="Properties" pressed={rightOpen} onClick={() => togglePanel('right')}>
+            <SlidersHorizontalIcon className="size-4" />
+          </Tool>
+          <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+        </span>
         {canEdit ? (
           <>
-            <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
             <Tool
               label="Undo"
               shortcut="⌘Z"

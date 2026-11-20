@@ -12,6 +12,7 @@ import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Button } from '@/components/ui/button'
 import { ProjectPreview } from '@/components/projects/ProjectPreview'
 import { cn } from '@/lib/utils'
+import { relativeTime } from '@/components/workflows/workflow-ui'
 import { recentWorkQuery, type WorkItem } from './work'
 
 const FILTERS = [
@@ -22,18 +23,9 @@ const FILTERS = [
 ] as const
 type View = 'list' | 'grid'
 const VIEW_KEY = 'shots:home-view'
-const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto', style: 'short' })
-
-/** "2h ago", "yesterday", then a date: how long ago the work changed. */
-function ago(date: Date): string {
-  const minutes = Math.round((date.getTime() - Date.now()) / 60_000)
-  if (minutes > -60) return minutes > -1 ? 'just now' : RELATIVE.format(minutes, 'minute')
-  const hours = Math.round(minutes / 60)
-  if (hours > -24) return RELATIVE.format(hours, 'hour')
-  const days = Math.round(hours / 24)
-  if (days > -7) return RELATIVE.format(days, 'day')
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
+/** The work's kind, with a post's state in the words the drafts list uses. */
+const kindLabel = (item: WorkItem) =>
+  item.type === 'Post' ? `Post · ${item.status ?? 'Draft'}` : item.type
 
 /** A small picture of the work: its design, or a page with a post's opening words. */
 function Thumb({ item, size }: { item: WorkItem; size: 'row' | 'card' }) {
@@ -105,7 +97,7 @@ export function RecentWork({
   return (
     <section aria-label="Continue working" className="home-recent">
       <div className="home-recent-bar">
-        <div className="home-pills" role="group" aria-label="Show">
+        <div className="platform-tabs" role="group" aria-label="Show">
           {filters.map((item) => (
             <Button
               key={item.label}
@@ -113,7 +105,7 @@ export function RecentWork({
               variant="custom"
               size={null}
               aria-pressed={filter === item.type}
-              className="home-pill"
+              className="platform-tab"
               onClick={() => setFilter(item.type)}
             >
               {item.label}
@@ -167,49 +159,30 @@ export function RecentWork({
           </Button>
         </div>
       ) : null}
-      {items.length && view === 'list' ? (
-        <ul className="home-rows">
+      {items.length ? (
+        // One list for both layouts, so switching keeps each preview mounted and loaded.
+        <ul className={view === 'list' ? 'home-rows' : 'home-cards'}>
           {items.map((item) => (
             <li key={`${item.type}-${item.id}`}>
-              <SidebarLink className="home-row" href={item.href}>
-                <Thumb item={item} size="row" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-medium text-foreground">
-                    {item.title}
+              <SidebarLink className={view === 'list' ? 'home-row' : 'home-card'} href={item.href}>
+                <span className={view === 'grid' ? 'home-card-media' : 'contents'}>
+                  <Thumb item={item} size={view === 'list' ? 'row' : 'card'} />
+                </span>
+                <span className="home-item-text">
+                  <span className="block truncate text-[13px] text-foreground">{item.title}</span>
+                  <span className="block truncate text-[11.5px] text-muted-foreground">
+                    {view === 'grid' ? `${kindLabel(item)} · ` : ''}
+                    <time dateTime={item.updatedAt.toISOString()}>
+                      {relativeTime(item.updatedAt.toISOString())}
+                    </time>
                   </span>
-                  <time
-                    className="block text-[11.5px] text-muted-foreground"
-                    dateTime={item.updatedAt.toISOString()}
-                  >
-                    {ago(item.updatedAt)}
-                  </time>
                 </span>
-                <span className="home-row-kind">
-                  {item.type}
-                  {item.type === 'Post' ? ` · ${item.status ?? 'Draft'}` : ''}
-                </span>
-                <span className="home-row-scope">{item.scope}</span>
-              </SidebarLink>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {items.length && view === 'grid' ? (
-        <ul className="home-cards">
-          {items.map((item) => (
-            <li key={`${item.type}-${item.id}`}>
-              <SidebarLink className="home-card group" href={item.href}>
-                <span className="home-card-media">
-                  <Thumb item={item} size="card" />
-                </span>
-                <span className="block truncate px-1 text-center text-[13px] text-foreground">
-                  {item.title}
-                </span>
-                <span className="block truncate px-1 text-center text-[11.5px] text-muted-foreground">
-                  {item.type}
-                  {item.type === 'Post' ? ` · ${item.status ?? 'Draft'}` : ''} ·{' '}
-                  {ago(item.updatedAt)}
-                </span>
+                {view === 'list' ? (
+                  <>
+                    <span className="home-row-kind">{kindLabel(item)}</span>
+                    <span className="home-row-scope">{item.scope}</span>
+                  </>
+                ) : null}
               </SidebarLink>
             </li>
           ))}
