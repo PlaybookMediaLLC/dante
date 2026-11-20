@@ -13,7 +13,7 @@ Record actual account and published-post readings with workspace, social set, co
 ### Changes and evidence
 - `server/internal/product/social_analytics.go` and `server/internal/social/tenantpublishing/analytics.go`: bounded collection, authorized provider attribution and real results.
 - `server/ent/schema/platform_social_observation.go`, migration `20261102090000_platform_social_observation.sql`: unique workspace/kind/subject/day observations. Newer observations and current post metrics commit atomically.
-- Provider adapters under `server/internal/social/integrations/social`: X reads followers and a bounded latest-original-post window; LinkedIn missing fields remain unavailable. Never invent historical percentage changes.
+- Provider adapters under `server/internal/social/integrations/social`: X reads followers and a bounded latest-original-post window; TikTok reads followers (`user.info.stats`) and the account's public videos from the last 30 days (`video.list`); LinkedIn missing fields remain unavailable. Never invent historical percentage changes.
 - Existing maintenance registration runs the collector; no second scheduler.
 
 ### Channel matrix
