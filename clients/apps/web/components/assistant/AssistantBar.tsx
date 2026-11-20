@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { create } from 'zustand'
 import { ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
 import { MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useKeys } from '@/components/write/shortcuts'
+import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
 import { useAiAvailable } from './useAiAvailable'
 import {
   ASSISTANT_ASK_MAX,
@@ -150,6 +151,20 @@ export function AssistantBar({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [shown])
+
+  // `?ask=` opens the bar holding a request, as "Edit with AI" links do; dropped once read,
+  // so a reload asks nothing. The screenshot editor (no bar) reads it in its own panel.
+  const ask = useSearchParams().get(EDITOR_ASK_PARAM)?.trim().slice(0, EDITOR_ASK_MAX) ?? ''
+  const asked = useRef('')
+  useEffect(() => {
+    if (!shown || !ask || asked.current === ask) return
+    asked.current = ask
+    setText(ask)
+    openWithFocus()
+    const url = new URL(window.location.href)
+    url.searchParams.delete(EDITOR_ASK_PARAM)
+    window.history.replaceState(null, '', url)
+  }, [ask, shown])
 
   if (!registry || !available || !registry.slot) return null
 

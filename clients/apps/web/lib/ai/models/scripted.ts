@@ -880,6 +880,17 @@ function scriptAssistant(system: string, text: string, results: ToolResult[]): L
   const page = system.match(/^Page: (.+?) \(/m)?.[1] ?? 'this page'
   // A request to make something starts it: a canvas when it names one, else a visual.
   const ask = text.split('\n\n').at(-1)?.trim() ?? ''
+  // A change to existing work: find it, then offer it open with the change ready.
+  if (/^(change|edit|update)\b/i.test(ask)) {
+    const found = results.find((result) => result.toolName === 'listRecentWork')
+    if (!found) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])
+    const first = (found.output as { items?: Array<{ href: string; kind: string }> } | null)?.items?.find(
+      (item) => item.kind !== 'post'
+    )
+    if (first && !results.some((result) => result.toolName === 'startWork'))
+      return toolCalls([{ input: { ask, href: first.href, kind: 'edit' }, toolName: 'startWork' }])
+    return [{ text: first ? 'It opens with your change ready to send.' : 'I found nothing to edit.', type: 'text' }]
+  }
   // A request to write a post drafts one.
   if (/^(draft|write)\b/i.test(ask)) {
     const drafted = results.find((result) => result.toolName === 'draftPost')

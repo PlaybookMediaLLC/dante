@@ -24,13 +24,22 @@ export type WaitStep =
 /**
  * The next step for a request waiting on artboard `id`. `seen` is whether that
  * artboard was the open one at some point, so closing it ends the wait.
+ * `from` is the artboard open when the wait began (a run moving across the
+ * canvas): it may stay open until the editor switches, so it is not a
+ * failure until `id` has been seen.
  */
-export function waitForArtboard(state: EditorOpenState, id: string, seen: boolean): WaitStep {
+export function waitForArtboard(
+  state: EditorOpenState,
+  id: string,
+  seen: boolean,
+  from: string | null = null
+): WaitStep {
   if (!state.mounted) return { kind: 'fail', message: 'Stopped: the canvas was closed.' }
   if (state.activeId === id) {
     if (state.error) return { kind: 'fail', message: `The artboard could not open: ${state.error}` }
     return state.ready ? { kind: 'start' } : { kind: 'wait', seen: true }
   }
+  if (!seen && state.activeId && state.activeId === from) return { kind: 'wait', seen }
   if (state.activeId || seen)
     return {
       kind: 'fail',
@@ -38,3 +47,7 @@ export function waitForArtboard(state: EditorOpenState, id: string, seen: boolea
     }
   return { kind: 'wait', seen }
 }
+
+/** A request about the whole canvas: "every artboard", "all slides", "each page". */
+export const ACROSS_ARTBOARDS =
+  /\b(all|every|each)\b[^.?!]*?\b(artboards?|slides?|pages?|frames?)\b/i

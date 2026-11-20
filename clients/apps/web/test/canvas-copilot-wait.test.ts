@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { type EditorOpenState, waitForArtboard } from '@/lib/canvas/copilot-wait'
+import { ACROSS_ARTBOARDS, type EditorOpenState, waitForArtboard } from '@/lib/canvas/copilot-wait'
 
 const editor = (state: Partial<EditorOpenState>): EditorOpenState => ({
   activeId: null,
@@ -37,4 +37,33 @@ test('a request never edits another artboard, and ends when its own fails or clo
     kind: 'fail',
     message: 'Stopped: the canvas was closed.',
   })
+})
+
+test('a request about every artboard, slide or page runs across the canvas', () => {
+  for (const ask of [
+    'Make the headline punchier on every artboard',
+    'Give all slides a darker background',
+    'Tighten the spacing on each page',
+    'Make all the artboards match',
+  ])
+    assert.ok(ACROSS_ARTBOARDS.test(ask), ask)
+  for (const ask of [
+    'Make the headline punchier',
+    'Make every headline punchier',
+    'Add every feature to the list',
+    'All good. Now darken this slide',
+  ])
+    assert.equal(ACROSS_ARTBOARDS.test(ask), false, ask)
+})
+
+test('moving across the canvas, the previous artboard may stay open until the switch', () => {
+  const moving = (state: Partial<EditorOpenState>, seen = false) =>
+    waitForArtboard(editor(state), 'b', seen, 'a')
+  // Still on the previous artboard: wait for the editor to switch.
+  assert.deepEqual(moving({ activeId: 'a', ready: true }), { kind: 'wait', seen: false })
+  assert.deepEqual(moving({ activeId: 'b', ready: false }), { kind: 'wait', seen: true })
+  assert.deepEqual(moving({ activeId: 'b', ready: true }), { kind: 'start' })
+  // A third artboard, or the previous one back after the target was seen, still fails.
+  assert.equal(moving({ activeId: 'c', ready: true }).kind, 'fail')
+  assert.equal(moving({ activeId: 'a', ready: true }, true).kind, 'fail')
 })

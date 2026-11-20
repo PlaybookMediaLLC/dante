@@ -43,7 +43,7 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   ],
   library: [
     { ask: 'Find my latest canvas' },
-    { ask: 'Which screenshots changed most recently?' },
+    { ask: 'Change the headline on my latest canvas', needs: 'make' },
     { ask: 'Make a launch visual for our newest feature', needs: 'make' },
   ],
   automate: [

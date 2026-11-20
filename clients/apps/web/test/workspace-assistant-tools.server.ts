@@ -250,3 +250,33 @@ test('listScheduledPosts says so, and reads nothing, when the workspace has no p
     false
   )
 })
+
+test('startWork opens only work a lookup found, with the change ready for its AI', async (t) => {
+  mockFeatures(t, [])
+  // Not found this turn, or not editable by an AI there (a post): refused.
+  const refusing = setup('creator')
+  refusing.state.known.add('/publish/d1')
+  for (const href of ['/canvas/c1', '/publish/d1']) {
+    const refused = await refusing.tools.startWork.execute(
+      { ask: 'Bolder', href, kind: 'edit' },
+      options
+    )
+    assert.equal(refused.ok, false, href)
+  }
+  assert.deepEqual(refusing.state.links, [])
+
+  const { state, tools } = setup('creator')
+  state.known.add('/canvas/c1')
+  state.known.add('/editor?project=p1')
+  for (const href of ['/canvas/c1', '/editor?project=p1'])
+    assert.ok(
+      (await tools.startWork.execute({ ask: 'Make it bolder', href, kind: 'edit' }, options)).ok
+    )
+  assert.deepEqual(
+    state.links.map((link) => [link.label, link.href]),
+    [
+      ['Edit with AI', '/canvas/c1?ask=Make+it+bolder'],
+      ['Edit with AI', '/editor?project=p1&ask=Make+it+bolder'],
+    ]
+  )
+})

@@ -8,7 +8,12 @@ import type { Artboard } from '@/lib/canvas/document'
 import { artboardRect } from '@/lib/canvas/document'
 import { readingOrder } from '@/lib/canvas/layout'
 import { useCanvasUi } from '@/lib/canvas/ui-store'
-import { type EditorOpenState, type WaitStep, waitForArtboard } from '@/lib/canvas/copilot-wait'
+import {
+  ACROSS_ARTBOARDS,
+  type EditorOpenState,
+  type WaitStep,
+  waitForArtboard,
+} from '@/lib/canvas/copilot-wait'
 
 /**
  * The canvas's assistant ability and page context. The screenshot editor's
@@ -67,6 +72,8 @@ export function useCanvasCopilot({
 
   // A run stops when its artboard stops being the open one, or the canvas closes.
   const running = useRef<{ id: string; controller: AbortController } | null>(null)
+  // The artboard the conversation's memory is about; another starts the model afresh.
+  const remembered = useRef<string | null>(null)
   useEffect(() => {
     if (running.current && running.current.id !== activeId)
       running.current.controller.abort(new Error('Stopped: the artboard was closed.'))
@@ -77,10 +84,12 @@ export function useCanvasCopilot({
   const opened = (id: string, signal: AbortSignal) =>
     new Promise<void>((resolve, reject) => {
       let seen = editor.current.activeId === id
+      // The artboard open now may stay open until the editor switches to `id`.
+      const from = seen ? null : editor.current.activeId
       function check() {
         const step: WaitStep = signal.aborted
           ? { kind: 'fail', message: 'Stopped.' }
-          : waitForArtboard(editor.current, id, seen)
+          : waitForArtboard(editor.current, id, seen, from)
         if (step.kind === 'wait') {
           seen = step.seen
           return
@@ -98,40 +107,56 @@ export function useCanvasCopilot({
   useAssistantAbility(
     enabled && target
       ? {
-          id: `canvas-artboard:${target.id}`,
+          // One conversation per canvas, so a run across artboards keeps its thread.
+          id: `canvas:${canvas.id}`,
           label: `Artboard ${number} · ${target.name}`,
-          placeholder: `Ask AI to change artboard ${number}`,
+          placeholder:
+            order.length > 1
+              ? `Ask AI to change artboard ${number}, or every artboard`
+              : `Ask AI to change artboard ${number}`,
           priority: 10,
           prominent: true,
           suggestions: [
             'Make the headline punchier',
             'Try a bolder background',
-            'Give the screenshot a soft shadow',
+            ...(order.length > 1
+              ? ['Make the headline punchier on every artboard']
+              : ['Give the screenshot a soft shadow']),
           ],
           run: async ({ ask, memory, push, signal }) => {
-            const id = target.id
-            if (editor.current.activeId !== id || !editor.current.ready) {
-              if (editor.current.activeId !== id) onEdit(id)
-              push({ kind: 'note', text: `Opening artboard ${number}…` })
-              await opened(id, signal)
-            }
-            const controller = new AbortController()
-            const stop = () => controller.abort(signal.reason)
-            signal.addEventListener('abort', stop)
-            running.current = { id, controller }
-            try {
-              await runEditorCopilot({
-                canUndo: false,
-                memory: memory as { current: ModelMessage[] },
-                push: (entry) =>
-                  push(entry.kind === 'change' ? { kind: 'change', text: entry.summary } : entry),
-                selection: null,
-                signal: controller.signal,
-                text: ask,
-              })
-            } finally {
-              signal.removeEventListener('abort', stop)
-              if (running.current?.controller === controller) running.current = null
+            // "every artboard", "all slides", "each page": the request runs on each in turn.
+            const ids = ACROSS_ARTBOARDS.test(ask) ? order.map((item) => item.id) : [target.id]
+            for (const [index, id] of ids.entries()) {
+              const at = order.findIndex((item) => item.id === id) + 1
+              if (ids.length > 1) push({ kind: 'note', text: `Artboard ${at} of ${ids.length}…` })
+              if (editor.current.activeId !== id || !editor.current.ready) {
+                if (editor.current.activeId !== id) onEdit(id)
+                if (ids.length === 1) push({ kind: 'note', text: `Opening artboard ${at}…` })
+                await opened(id, signal)
+              }
+              const controller = new AbortController()
+              const stop = () => controller.abort(signal.reason)
+              signal.addEventListener('abort', stop)
+              running.current = { id, controller }
+              // Memory follows one artboard, so one's edits never steer another's.
+              if (remembered.current !== id) memory.current = []
+              remembered.current = id
+              try {
+                await runEditorCopilot({
+                  canUndo: false,
+                  memory: memory as { current: ModelMessage[] },
+                  push: (entry) =>
+                    push(entry.kind === 'change' ? { kind: 'change', text: entry.summary } : entry),
+                  selection: null,
+                  signal: controller.signal,
+                  text: ask,
+                })
+              } finally {
+                signal.removeEventListener('abort', stop)
+                if (running.current?.controller === controller) running.current = null
+              }
+              if (index === ids.length - 1 && ids.length > 1)
+                push({ kind: 'note', text: `Done: ${ids.length} artboards.` })
             }
           },
         }

@@ -7,7 +7,7 @@ import {
   pageContextSchema,
 } from '@/lib/assistant/page-context'
 import { recent, workspaceSuggestions } from '@/components/assistant/workspace-ability'
-import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
+import { EDITOR_ASK_MAX, editorAskHref, withAsk } from '@/lib/ai/editor-ask'
 import { CAMPAIGN_SHIP_MAX, campaignShipHref } from '@/lib/campaigns/ship-ask'
 
 test('the page goes to the model as one-line data in a page_context block', () => {
@@ -99,4 +99,16 @@ test('the bar offers only asks the member can carry out', () => {
   assert.ok(
     workspaceSuggestions(undefined, { canEdit: false, paidPlan: false, posts: false }).length > 0
   )
+})
+
+test('an Edit with AI address keeps where it opens and adds the request', () => {
+  assert.equal(withAsk('/canvas/c1', 'Make it bold'), '/canvas/c1?ask=Make+it+bold')
+  assert.equal(
+    withAsk('/editor?project=p1', 'Darker & #2'),
+    '/editor?project=p1&ask=Darker+%26+%232'
+  )
+  // A request already there is replaced, and a long one is capped.
+  const capped = new URL(withAsk('/canvas/c1?ask=old', 'x'.repeat(900)), 'http://shots.test')
+  assert.equal(capped.searchParams.get('ask'), 'x'.repeat(EDITOR_ASK_MAX))
+  assert.equal(editorAskHref('Hi'), '/editor?start=new&ask=Hi')
 })

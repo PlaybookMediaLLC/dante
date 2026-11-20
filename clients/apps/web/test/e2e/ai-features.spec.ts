@@ -168,6 +168,18 @@ test(
     await expect(assistant.getByRole('textbox', { name: 'Ask the assistant' })).toBeFocused()
     await expect(assistant.getByText(/^You are on Home\./)).toBeVisible()
 
+    // Asked to change existing work, it finds it and offers it open with the change ready.
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await assistant
+      .getByRole('textbox', { name: 'Ask the assistant' })
+      .fill('Change the headline to Launch day')
+    await page.keyboard.press('Enter')
+    await expect(assistant.getByRole('link', { name: /Edit with AI/ })).toHaveAttribute(
+      'href',
+      `/editor?project=${projectId}&ask=Change+the+headline+to+Launch+day`,
+      { timeout: 60_000 }
+    )
+
     // Asked for a post, it writes one, and one click opens it as a draft in the post editor.
     await assistant.getByRole('button', { name: 'New chat' }).click()
     await assistant.getByRole('button', { name: 'Draft a post about our latest release' }).click()
@@ -187,15 +199,30 @@ test(
       document: canvasDocumentSchema.parse({
         version: 1,
         kind: 'canvas',
-        artboards: [blankArtboard('wide-16x9', { x: 0, y: 0 })],
+        artboards: [
+          blankArtboard('wide-16x9', { x: 0, y: 0 }),
+          blankArtboard('wide-16x9', { x: 2400, y: 0 }),
+        ],
       }),
     })
     expect(canvas.status).toBe(200)
-    await app.open(`/canvas/${(canvas.body as { id: string }).id}`)
-    await expect(
-      page
-        .getByRole('region', { name: 'Assistant' })
-        .getByTitle(/^The assistant sees: Artboard 1 · /)
-    ).toBeVisible({ timeout: 60_000 })
+    // Opened with a request (an Edit with AI button), the canvas's bar holds it ready to send.
+    await app.open(`/canvas/${(canvas.body as { id: string }).id}?ask=Make+the+headline+bold`)
+    const board = page.getByRole('region', { name: 'Assistant' })
+    await expect(board.getByTitle(/^The assistant sees: Artboard 1 · /)).toBeVisible({
+      timeout: 60_000,
+    })
+    await expect(board.getByRole('textbox', { name: 'Ask the assistant' })).toHaveValue(
+      'Make the headline bold'
+    )
+    await expect.poll(() => new URL(page.url()).searchParams.has('ask')).toBe(false)
+
+    // A request about every artboard runs on each in turn.
+    await board
+      .getByRole('textbox', { name: 'Ask the assistant' })
+      .fill('Make the headline bold on every artboard')
+    await page.keyboard.press('Enter')
+    await expect(board.getByText('Artboard 2 of 2…')).toBeVisible({ timeout: 90_000 })
+    await expect(board.getByText('Done: 2 artboards.')).toBeVisible({ timeout: 90_000 })
   }
 )
