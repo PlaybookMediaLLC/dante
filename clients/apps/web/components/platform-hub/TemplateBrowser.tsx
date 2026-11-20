@@ -23,3 +23,13 @@ const TemplateStripLazy = dynamic(
 export function TemplateHighlights() {
   return <TemplateStripLazy />
 }
+
+const HomeTemplatesLazy = dynamic(
+  () => import('./TemplateCatalog').then((catalog) => catalog.HomeTemplates),
+  { loading: () => <div className="min-h-64" aria-hidden="true" /> }
+)
+
+/** Home's dismissible row of templates, loaded with the catalog's previews. */
+export function HomeTemplateRow() {
+  return <HomeTemplatesLazy />
+}

@@ -5,6 +5,7 @@ import { ArrowUpIcon as ArrowUp02Icon } from '@phosphor-icons/react/dist/ssr/Arr
 import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { applyDesignChanges } from '@/lib/design/apply'
@@ -99,6 +100,20 @@ export function EditorAiPanel() {
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight })
   }, [entries])
+
+  // `?ask=` from Create's prompt bar opens the copilot with the request ready to send.
+  const ask = useSearchParams().get('ask')?.trim().slice(0, 2000) ?? ''
+  const asked = useRef('')
+  useEffect(() => {
+    if (!ask || !status?.copilot || asked.current === ask) return
+    asked.current = ask
+    setInput(ask)
+    openCopilot(false)
+    // Dropped once read, as ProjectLoader drops `start`, so a reload does not ask again.
+    const url = new URL(window.location.href)
+    url.searchParams.delete('ask')
+    window.history.replaceState(null, '', url)
+  }, [ask, openCopilot, status?.copilot])
 
   const reviewCache = useRef<{ key: string; suggestions: Suggestion[] } | null>(null)
   const review = useCallback(

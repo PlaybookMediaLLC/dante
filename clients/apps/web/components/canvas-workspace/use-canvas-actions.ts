@@ -183,6 +183,18 @@ export function useCanvasActions(session: CanvasSession, flush: () => void) {
         const ids = ui().selection.length > 1 ? ui().selection : undefined
         actions.move(tidyRects(rects(ids)))
       },
+      /** Every artboard as a deck's slide grid: four a row, in reading order, room for labels. */
+      arrangeAsDeck() {
+        const all = rects()
+        const tallest = Math.max(0, ...all.map((item) => item.rect.height))
+        actions.move(
+          tidyRects(all, {
+            columns: Math.min(4, all.length),
+            gap: Math.max(ARTBOARD_GAP, Math.round(tallest * 0.4)),
+          })
+        )
+        actions.fitAll()
+      },
       rename(id: string, name: string) {
         if (name.trim()) run({ type: 'rename-artboard', id, name: name.trim() })
       },

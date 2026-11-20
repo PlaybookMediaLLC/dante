@@ -814,3 +814,51 @@
 .create-tile.is-text .create-tile-media > * {
   box-shadow: none;
 }
+/* Create's prompt bar floats over the gallery's foot, like an image studio's. */
+.create-prompt {
+  position: sticky;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 640px);
+  margin: 8px auto 0;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 5%),
+    0 12px 32px -12px rgb(0 0 0 / 22%);
+}
+.create-prompt:focus-within {
+  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+/* A template's own preview, centred on its tile like a slide on a desk. */
+.home-template-tile {
+  align-items: center;
+}
+.home-template-preview {
+  display: block;
+  width: 76%;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent),
+    0 10px 24px -12px rgb(0 0 0 / 35%);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .home-starter:hover .home-template-preview {
+    transform: translateY(-3px);
+  }
+}
+/* The bar is the field: its input drops the shell's control fill and ring. */
+.create-prompt [data-slot='input'],
+.create-prompt [data-slot='input']:focus-visible {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: 14px;
+}

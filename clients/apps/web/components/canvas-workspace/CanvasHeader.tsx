@@ -17,6 +17,7 @@ import { MegaphoneIcon } from '@phosphor-icons/react/dist/ssr/Megaphone'
 import { PaletteIcon } from '@phosphor-icons/react/dist/ssr/Palette'
 import { SidebarSimpleIcon } from '@phosphor-icons/react/dist/ssr/SidebarSimple'
 import { SlidersHorizontalIcon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal'
+import { SquaresFourIcon } from '@phosphor-icons/react/dist/ssr/SquaresFour'
 import { StackIcon } from '@phosphor-icons/react/dist/ssr/Stack'
 import { XIcon } from '@phosphor-icons/react/dist/ssr/X'
 import { RenameDialog } from './CanvasLibrary'
@@ -130,6 +131,11 @@ export function CanvasHeader({
               <ArrowUUpRightIcon className="size-4" />
             </Tool>
           </>
+        ) : null}
+        {canEdit ? (
+          <Tool label="Arrange as a grid" onClick={() => actions.arrangeAsDeck()}>
+            <SquaresFourIcon className="size-4" />
+          </Tool>
         ) : null}
         <Tool label="History" onClick={() => onDialog('history')}>
           <ClockCounterClockwiseIcon className="size-4" />

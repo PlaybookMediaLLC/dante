@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ContextMenu } from 'radix-ui'
 import { artboardRect, boundsOf, type Artboard, type WorkspaceRect } from '@/lib/canvas/document'
-import { hitTest, marqueeSelect, snapMove, snapToGrid, type SnapGuide } from '@/lib/canvas/layout'
+import {
+  hitTest,
+  marqueeSelect,
+  readingOrder,
+  snapMove,
+  snapToGrid,
+  type SnapGuide,
+} from '@/lib/canvas/layout'
 import {
   intersects,
   panBy,
@@ -700,6 +707,11 @@ function BoardOverlay({
   canEdit: boolean
   actions: CanvasActions
 }) {
+  // Numbered in reading order, the order exports use, like a deck's slides.
+  const numbers = useMemo(
+    () => new Map(readingOrder(items).map((item, index) => [item.id, index + 1])),
+    [items]
+  )
   return (
     <>
       {items.map(({ id, rect: base, artboard }) => {
@@ -757,6 +769,9 @@ function BoardOverlay({
                   style={{ left: box.x, top: box.y - 22, maxWidth: box.width }}
                   title={`${artboard.name} · ${Math.round(rect.width)} × ${Math.round(rect.height)}`}
                 >
+                  <span className="shrink-0 font-medium tabular-nums text-foreground/70">
+                    {numbers.get(id)}
+                  </span>
                   <span className="truncate">{artboard.name}</span>
                   {active ? (
                     <span className="shrink-0 rounded bg-sky-500 px-1 text-[10px] text-white">

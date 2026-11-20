@@ -6,6 +6,7 @@ import { Page } from '@/components/platform-ui'
 import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
 import { ResourceCards } from '@/components/platform-hub/ResourceCards'
+import { EditorPromptBar } from '@/components/platform-hub/EditorPromptBar'
 import { TemplateBrowser, TemplateHighlights } from '@/components/platform-hub/TemplateBrowser'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
@@ -138,6 +139,7 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
             <TemplateHighlights />
           </section>
         )}
+        {view ? null : <EditorPromptBar />}
       </Page>
     </PlatformShell>
   )

@@ -12,6 +12,7 @@ import { AutomateIcon as Workflow } from '@/components/platform-shell/icons'
 import { CategoryIcon as Shapes } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { SearchField } from '@/components/platform-shell/ShellActions'
+import { HomeTemplateRow } from '@/components/platform-hub/TemplateBrowser'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
@@ -167,26 +168,9 @@ export default async function HomePage({
                 </li>
               )
             })}
-            {paid ? (
-              <li>
-                <SidebarLink href="/create?view=templates" className="home-starter group">
-                  <span className="home-starter-tile home-starter-collage" aria-hidden="true">
-                    {[0, 1, 2, 3].map((variant) => (
-                      <Stage key={variant} className="size-full rounded-lg" variant={variant + 2}>
-                        {null}
-                      </Stage>
-                    ))}
-                    <span className="home-starter-collage-icon">
-                      <Shapes size={16} />
-                    </span>
-                  </span>
-                  <span className="home-starter-title">Browse all templates</span>
-                  <span className="home-starter-detail">Finished looks for your next visual.</span>
-                </SidebarLink>
-              </li>
-            ) : null}
           </ul>
         </section>
+        {paid ? <HomeTemplateRow /> : null}
 
         {paid && contentDraftsEnabled() && can('artifact:edit') && access.organization ? (
           <Suspense fallback={null}>
