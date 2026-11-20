@@ -68,7 +68,8 @@ const initial = {
   // The board reads as plain paper, like a slides tool; Grid in the zoom bar shows the dots.
   grid: { visible: false, snap: true, size: 16 as GridSize },
   leftTab: 'insert' as LeftTab,
-  leftOpen: true,
+  // The board opens unobstructed, like a slides tool; the toolbar or editing an artboard opens it.
+  leftOpen: false,
   rightOpen: true,
   renamingId: null as string | null,
   layers: [] as LayerRef[],
@@ -93,6 +94,8 @@ export const useCanvasUi = create<CanvasUiState>((set) => ({
       activeId: id,
       selection: id ? [id] : state.selection,
       leftTab: id ? state.leftTab : state.leftTab === 'design' ? 'insert' : state.leftTab,
+      // Editing an artboard brings its tools.
+      leftOpen: id ? true : state.leftOpen,
       layers: [],
       enteredGroup: null,
       editingText: null,

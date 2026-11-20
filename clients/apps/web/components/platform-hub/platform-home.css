@@ -808,8 +808,8 @@
   border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
 }
 /* The bar is the field: its input drops the shell's control fill and ring. */
-.create-prompt [data-slot='input'],
-.create-prompt [data-slot='input']:focus-visible {
+:is(.create-prompt, .canvas-copilot-bar) [data-slot='input'],
+:is(.create-prompt, .canvas-copilot-bar) [data-slot='input']:focus-visible {
   border-color: transparent;
   background-color: transparent;
   box-shadow: none;
@@ -890,4 +890,42 @@
 }
 .dark :is(.home-starter-tile, .home-card-media) {
   background: color-mix(in srgb, var(--foreground) 8%, var(--background));
+}
+/* The canvas's copilot dock: a chat bar at the board's foot, its thread above. */
+.canvas-copilot {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  z-index: 30;
+  display: grid;
+  gap: 8px;
+  width: min(560px, calc(100% - 24px));
+  transform: translateX(-50%);
+}
+.canvas-copilot-thread,
+.canvas-copilot-bar {
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  background: var(--background);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 5%),
+    0 12px 32px -12px rgb(0 0 0 / 22%);
+}
+.canvas-copilot-thread {
+  overflow: hidden;
+  border-radius: 18px;
+}
+.canvas-copilot-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 5px 5px 16px;
+  border-radius: 999px;
+}
+.canvas-copilot-bar:focus-within {
+  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
+}
+.canvas-copilot-bar [data-slot='input'] {
+  height: 32px;
+  flex: 1;
+  padding-inline: 0;
 }

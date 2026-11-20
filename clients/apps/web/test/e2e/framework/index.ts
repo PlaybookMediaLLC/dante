@@ -318,7 +318,13 @@ export {
   socialMockPort,
   xVerification,
 } from './content-drafts'
-export { borderContrastOf, chooseOption, contrastOf, openDisclosureFor } from './controls'
+export {
+  borderContrastOf,
+  chooseOption,
+  contrastOf,
+  openCanvasTools,
+  openDisclosureFor,
+} from './controls'
 export { mockBrowserJson } from './downstream'
 export { startHttpMockServer, type HttpMockRequest, type HttpMockServer } from './http-server'
 export { getMaintenanceHeaders } from './maintenance'

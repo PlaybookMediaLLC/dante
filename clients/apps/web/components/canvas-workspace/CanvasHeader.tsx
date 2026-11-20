@@ -76,7 +76,7 @@ export function CanvasHeader({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 min-w-0 max-w-[40vw] shrink gap-1.5 rounded-full px-3 text-[13px] font-medium"
+          className="h-8 min-w-0 max-w-[min(30vw,280px)] shrink gap-1.5 rounded-full px-3 text-[13px] font-medium"
           disabled={!canEdit}
           onClick={() => setRenaming(true)}
           title="Rename canvas"

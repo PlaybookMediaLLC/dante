@@ -35,6 +35,7 @@ import { LayerSelection } from './LayerSelection'
 import { PeerMarkers, PresenceSummary, useCanvasPresence } from './CanvasPresence'
 import { CanvasStoreEditor, StoreGroupsLayer } from './StoreGroups'
 import { useCanvasShortcuts } from './use-canvas-shortcuts'
+import { CanvasCopilotDock } from './CanvasCopilotDock'
 
 const TimelineEditor = dynamic(
   () => import('@/components/timeline/TimelineEditor').then((module) => module.TimelineEditor),
@@ -369,6 +370,15 @@ export function CanvasWorkspace({
             <>
               <ZoomBar actions={actions} />
               <Minimap artboards={state.document.artboards} />
+              {editing ? (
+                <CanvasCopilotDock
+                  artboards={state.document.artboards}
+                  activeId={activeId}
+                  ready={native.ready}
+                  error={native.error}
+                  onEdit={(id) => actions.edit(id)}
+                />
+              ) : null}
             </>
           )}
         </section>

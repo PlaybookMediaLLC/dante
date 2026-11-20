@@ -533,7 +533,7 @@ export function CanvasBoard({
           {!artboards.length ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <p className="rounded-lg bg-background/80 px-4 py-2 text-sm text-muted-foreground">
-                Add an artboard from the Insert panel, or drop a screenshot here.
+                Add an artboard from Artboards & tools in the toolbar, or drop a screenshot here.
               </p>
             </div>
           ) : null}

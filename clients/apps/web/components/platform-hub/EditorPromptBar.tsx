@@ -2,12 +2,11 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import { SparkleIcon } from '@phosphor-icons/react/dist/ssr/Sparkle'
 import { ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useTRPCClient } from '@/lib/trpc/react'
+import { useCopilotAvailable } from '@/components/editor-ai/useCopilotAvailable'
 import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
 
 /**
@@ -16,15 +15,10 @@ import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
  * the workspace has the copilot, so it never promises what cannot run.
  */
 export function EditorPromptBar() {
-  const client = useTRPCClient()
   const router = useRouter()
   const [text, setText] = useState('')
-  const status = useQuery({
-    queryKey: ['editor-ai', 'status'],
-    queryFn: () => client.editorAi.status.query(),
-    staleTime: 300_000,
-  })
-  if (!status.data?.copilot) return null
+  const available = useCopilotAvailable()
+  if (!available) return null
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const ask = text.trim()

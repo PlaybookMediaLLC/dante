@@ -85,6 +85,9 @@ test('zooming keeps the workspace point under the pointer fixed and respects lim
   assert.equal(steppedZoom(1, 1), 1.5)
   assert.equal(steppedZoom(1, -1), 0.75)
   assert.equal(steppedZoom(0.6, -1), 0.5)
+  // A fitted 24.9% reads as 25%: the next step in is 50%, the next out 10%.
+  assert.equal(steppedZoom(0.249, 1), 0.5)
+  assert.equal(steppedZoom(0.2504, -1), 0.1)
 })
 
 test('fit shows a rectangle centred with padding, never closer than the cap', () => {

@@ -96,7 +96,9 @@ const variantsRequestSchema = z.object({
 export async function runEditorTool(
   call: PendingToolCall,
   onChange: (summary: string) => void,
-  onShowVariants?: (request: VariantsRequest) => void
+  onShowVariants?: (request: VariantsRequest) => void,
+  /** False where the editor's history is not this design's, as on a canvas artboard. */
+  canUndo = true
 ): Promise<ToolResultPart['output']> {
   switch (call.toolName) {
     case 'showVariants': {
@@ -137,6 +139,11 @@ export async function runEditorTool(
       return snapshotParts(JSON.stringify({ applied: true, summary: parsed.data.summary }))
     }
     case 'undoLastChange':
+      if (!canUndo)
+        return {
+          type: 'error-text',
+          value: 'Undo is not available to the copilot here. Tell the person to press ⌘Z.',
+        }
       useImageStore.temporal.getState().undo()
       onChange('Undid the last change')
       return snapshotParts(JSON.stringify({ undone: true }))
@@ -145,7 +152,10 @@ export async function runEditorTool(
   }
 }
 
-export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => void) {
+export function useEditorCopilot(
+  onShowVariants?: (request: VariantsRequest) => void,
+  { canUndo = true }: { canUndo?: boolean } = {}
+) {
   const [entries, setEntries] = useState<CopilotEntry[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const messages = useRef<ModelMessage[]>([])
@@ -156,17 +166,20 @@ export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => 
   )
 
   const send = useCallback(
-    async (text: string, selection: string | null) => {
+    /** `signal` stops the run between steps, as when the design it edits closes. */
+    async (text: string, selection: string | null, signal?: AbortSignal) => {
       if (!text.trim() || isRunning) return
       setIsRunning(true)
       push({ kind: 'user', text })
       messages.current = [...messages.current, { content: text, role: 'user' }]
       try {
         for (let trip = 0; trip < MAX_ROUND_TRIPS; trip += 1) {
+          signal?.throwIfAborted()
           const response = await fetch('/api/ai/editor', {
             body: JSON.stringify({ messages: messages.current, selection }),
             headers: { 'content-type': 'application/json' },
             method: 'POST',
+            signal,
           })
           const step = (await response.json()) as StepResponse
           if (!response.ok) throw new Error(step.error ?? 'The copilot is unavailable.')
@@ -175,11 +188,13 @@ export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => 
           if (step.done) break
           const results: ToolResultPart[] = []
           for (const call of step.pendingToolCalls) {
+            signal?.throwIfAborted()
             results.push({
               output: await runEditorTool(
                 call,
                 (summary) => push({ kind: 'change', summary }),
-                onShowVariants
+                onShowVariants,
+                canUndo
               ),
               toolCallId: call.toolCallId,
               toolName: call.toolName,
@@ -189,15 +204,23 @@ export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => 
           messages.current = [...messages.current, { content: results, role: 'tool' }]
         }
       } catch (error) {
+        // A stopped run can leave a tool call without its result; the next request starts clean.
+        if (signal?.aborted) messages.current = []
         push({
           kind: 'error',
-          text: error instanceof Error ? error.message : 'Something went wrong.',
+          text: signal?.aborted
+            ? signal.reason instanceof Error
+              ? signal.reason.message
+              : 'Stopped.'
+            : error instanceof Error
+              ? error.message
+              : 'Something went wrong.',
         })
       } finally {
         setIsRunning(false)
       }
     },
-    [isRunning, onShowVariants, push]
+    [canUndo, isRunning, onShowVariants, push]
   )
 
   const reset = useCallback(() => {
