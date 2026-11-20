@@ -646,8 +646,10 @@ func buildSourceInfoBody(post integrations.PostDetails, s *TikTokDTO, videoSize 
 		}
 		return map[string]any{"post_mode": mode, "media_type": "PHOTO", "source_info": source}
 	}
-	// Videos are streamed from the signed URL: TikTok can pull only from a
-	// verified domain, and a presigned R2 URL lives on the R2 API host.
+	// TikTok requires server-hosted media to be pulled from a verified origin.
+	if location, _ := url.Parse(mediaPath(post)); location != nil && location.Scheme == "https" {
+		return map[string]any{"source_info": map[string]any{"source": "PULL_FROM_URL", "video_url": mediaPath(post)}}
+	}
 	size, count := ChunkPlan(videoSize)
 	return map[string]any{"source_info": map[string]any{
 		"source":            "FILE_UPLOAD",
@@ -674,11 +676,14 @@ func (p *Provider) PostPending(ctx context.Context, id, accessToken string, post
 	isPhoto := !helpers.HasExtension(mediaPath(firstPost), "mp4")
 	videoPath := mediaPath(firstPost)
 
-	// For videos we only need the total size up front (HEAD / stat) so we can
-	// init the upload; the bytes themselves are streamed later, never fully
-	// loaded into memory.
+	location, err := url.Parse(videoPath)
+	if err != nil || location.User != nil || location.Fragment != "" || location.Host != "" && location.Scheme != "https" || location.Scheme != "" && (location.Scheme != "https" || location.Host == "") {
+		return nil, errors.New("TikTok media must be a local file or an HTTPS URL")
+	}
+	hosted := location.Scheme == "https"
+	// Only local video needs a size and a subsequent byte upload.
 	var videoSize int64
-	if !isPhoto {
+	if !isPhoto && !hosted {
 		size, err := p.MediaSize(ctx, videoPath, "tiktok-error-upload")
 		if err != nil {
 			return nil, err
@@ -738,7 +743,7 @@ func (p *Provider) PostPending(ctx context.Context, id, accessToken string, post
 	}
 
 	// Videos: stream the bytes to the upload_url returned by the init call.
-	if !isPhoto && init.Data.UploadURL != "" && videoSize > 0 {
+	if !isPhoto && !hosted && init.Data.UploadURL != "" && videoSize > 0 {
 		err := p.uploadVideoBytes(ctx, init.Data.UploadURL, videoPath, videoSize, "video/mp4")
 		// An explicit rejection from TikTok: the post won't publish, fail it.
 		// A network error here is ambiguous - TikTok may have received all the

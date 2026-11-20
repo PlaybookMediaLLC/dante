@@ -109,6 +109,36 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "topology changed"):
             cutover.consolidate(self.base, self.digest)
 
+    def test_provider_media_uses_existing_domain_without_affecting_mcp(self):
+        spec = self.base["spec"]
+        backend = spec["services"][-1]
+        web = spec["services"][0]
+        secrets = {"PLATFORM_PROVIDER_MEDIA_ORIGIN": "https://shots.example.com/",
+                   "PLATFORM_MCP_URL": "https://mcp.shots.example.com/mcp"}
+        for _ in range(2):
+            cutover.configure_mcp(spec, backend, web, secrets)
+            cutover.configure_provider_media(spec, backend, secrets)
+        self.assertEqual({item["domain"] for item in spec["domains"]}, {"shots.example.com", "mcp.shots.example.com"})
+        rule = spec["ingress"]["rules"][0]
+        self.assertEqual(rule, {"match": {"authority": {"exact": "shots.example.com"}, "path": {"prefix": "/provider-media/"}},
+                                "component": {"name": cutover.BACKEND, "preserve_path_prefix": True}})
+        self.assertFalse(cutover.is_mcp_rule(rule))
+        self.assertEqual(sum(cutover.is_mcp_rule(rule) for rule in spec["ingress"]["rules"]), len(cutover.MCP_PATH_PREFIXES))
+        values = {item["key"]: item["value"] for item in backend["envs"]}
+        self.assertEqual(values["TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN"], "https://shots.example.com")
+        cutover.configure_provider_media(spec, backend, {})
+        self.assertNotIn(rule, spec["ingress"]["rules"])
+        self.assertNotIn("TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN", {item["key"] for item in backend["envs"]})
+        self.assertIn({"domain": "shots.example.com"}, spec["domains"])
+
+    def test_provider_media_rejects_unowned_or_malformed_origins(self):
+        for origin in ("http://shots.example.com", "https://foreign.example.com", "https://shots.example.com/path",
+                       "https://shots.example.com?token=secret", "https://shots.example.com#fragment",
+                       "https://user@shots.example.com", "https://shots.example.com:443"):
+            with self.subTest(origin=origin), self.assertRaisesRegex(ValueError, "existing app domain"):
+                cutover.configure_provider_media(self.base["spec"], self.base["spec"]["services"][-1],
+                                                 {"PLATFORM_PROVIDER_MEDIA_ORIGIN": origin})
+
     def test_social_credential_key_is_required_and_backend_only(self):
         envs = []
         with self.assertRaisesRegex(ValueError, "PLATFORM_SOCIAL_ENCRYPTION_KEY"):

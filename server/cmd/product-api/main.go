@@ -199,7 +199,7 @@ func main() {
 	}
 	servers := []*http.Server{server}
 	if port := os.Getenv("PUBLIC_PORT"); port != "" {
-		handler, err := publicHandler(configuration, limiter, agentClients)
+		handler, err := publicHandler(configuration, limiter, agentClients, objects)
 		if err != nil {
 			slog.Error("MCP server unavailable", "error", err)
 			os.Exit(1)
@@ -248,9 +248,9 @@ func main() {
 }
 
 // publicHandler is all the public port serves: the MCP server (RFC 026), its
-// OAuth token and registration endpoints, and their well-known documents.
+// OAuth endpoints, well-known documents, and signed provider media delivery.
 // The product API stays on the internal port.
-func publicHandler(configuration *product.Configuration, limiter product.QuotaCounter, clients httpapi.AgentClientRegistry) (http.Handler, error) {
+func publicHandler(configuration *product.Configuration, limiter product.QuotaCounter, clients httpapi.AgentClientRegistry, objects *media.S3Store) (http.Handler, error) {
 	// The metadata names PLATFORM_MCP_URL, and client secrets are sealed with
 	// JWT_SECRET, the key the social backend registered them with.
 	if os.Getenv("PLATFORM_MCP_URL") == "" || os.Getenv("JWT_SECRET") == "" {
@@ -260,5 +260,8 @@ func publicHandler(configuration *product.Configuration, limiter product.QuotaCo
 	if err != nil {
 		return nil, err
 	}
-	return server.Handler(httpapi.NewAgentOAuth(clients, configuration)), nil
+	mux := http.NewServeMux()
+	mux.Handle(media.ProviderDeliveryPath, objects.ProviderDeliveryHandler())
+	mux.Handle("/", server.Handler(httpapi.NewAgentOAuth(clients, configuration)))
+	return mux, nil
 }

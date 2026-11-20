@@ -297,7 +297,8 @@ MCP_PATH_PREFIXES = ("/mcp", "/mcp-oauth-claude", "/mcp-oauth-chatgpt", "/mcp-oa
 
 def is_mcp_rule(rule):
     return rule.get("component", {}).get("name") == BACKEND and bool(
-        rule.get("match", {}).get("authority", {}).get("exact"))
+        rule.get("match", {}).get("authority", {}).get("exact")) and (
+        rule.get("match", {}).get("path", {}).get("prefix") in MCP_PATH_PREFIXES)
 
 
 def configure_mcp(spec, backend, web, secrets):
@@ -328,6 +329,26 @@ def configure_mcp(spec, backend, web, secrets):
         rules.insert(0, {"match": {"authority": {"exact": parts.hostname}, "path": {"prefix": prefix}},
                          "component": {"name": BACKEND, "preserve_path_prefix": True}})
     spec["domains"].append({"domain": parts.hostname, "type": "ALIAS"})
+
+
+def configure_provider_media(spec, backend, secrets):
+    """Stream signed media on an existing owned domain; never expose the bucket."""
+    if secrets is None:
+        return
+    origin = secrets.get("PLATFORM_PROVIDER_MEDIA_ORIGIN") or ""
+    parts = urlsplit(origin)
+    if origin and (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
+                   or parts.netloc != parts.hostname or parts.path not in ("", "/") or parts.query
+                   or parts.fragment or parts.hostname not in {item["domain"] for item in spec.get("domains", [])}):
+        raise ValueError("PLATFORM_PROVIDER_MEDIA_ORIGIN must be an HTTPS origin on an existing app domain")
+    rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    rules[:] = [rule for rule in rules if not (rule.get("component", {}).get("name") == BACKEND
+                and rule.get("match", {}).get("path", {}).get("prefix") == "/provider-media/")]
+    backend["envs"][:] = [item for item in backend["envs"] if item["key"] != "TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN"]
+    if origin:
+        set_env(backend["envs"], "TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN", origin.rstrip("/"))
+        rules.insert(0, {"match": {"authority": {"exact": parts.hostname}, "path": {"prefix": "/provider-media/"}},
+                         "component": {"name": BACKEND, "preserve_path_prefix": True}})
 
 
 def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
@@ -367,6 +388,7 @@ def consolidate(base, digest, secrets=None, tag=None, collab_tag=None):
     configure_publishing_api(backend, services["web"], publishing_token(services, secrets),
                              secrets is not None and secrets.get("ENABLE_DIRECT_PROVIDER") == "true")
     configure_product_api(backend, secrets)
+    configure_provider_media(spec, backend, secrets)
     configure_telemetry(services["web"], secrets)
     backend["image"] = image
     platform_migration(spec, image, secrets)
