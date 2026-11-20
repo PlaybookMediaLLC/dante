@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/ent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/social/integrations"
@@ -442,5 +443,94 @@ func TestPostWaitsForNativeReceiptWithoutRepeatingInit(t *testing.T) {
 				t.Fatalf("failure=%s checks=%d", temporalx.FailureType(err), checks)
 			}
 		})
+	}
+}
+
+func TestAccountAnalyticsReadsFollowersAndPublicVideos(t *testing.T) {
+	var cursors []any
+	p := setup(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer tok" {
+			t.Errorf("authorization %q", r.Header.Get("Authorization"))
+		}
+		switch r.URL.Path {
+		case "/v2/user/info/":
+			if r.URL.Query().Get("fields") != "follower_count" {
+				t.Errorf("fields %q", r.URL.Query().Get("fields"))
+			}
+			io.WriteString(w, `{"data":{"user":{"follower_count":42}},"error":{"code":"ok"}}`)
+		case "/v2/video/list/":
+			var body map[string]any
+			json.NewDecoder(r.Body).Decode(&body)
+			cursors = append(cursors, body["cursor"])
+			if body["cursor"] == nil {
+				io.WriteString(w, `{"data":{"videos":[{"id":"v2","create_time":1763600000,"video_description":"second","share_url":"https://www.tiktok.com/@me/video/v2?client_key=secret","view_count":10,"like_count":3,"comment_count":1,"share_count":2}],"cursor":1763600000000,"has_more":true},"error":{"code":"ok"}}`)
+				return
+			}
+			// the second page reaches before the window: the old video is left out and paging stops
+			io.WriteString(w, `{"data":{"videos":[{"id":"v1","create_time":1763500000,"title":"first","like_count":5},{"id":"v0","create_time":1700000000}],"cursor":1700000000000,"has_more":true},"error":{"code":"ok"}}`)
+		}
+	})
+	ctx := context.Background()
+	followers, err := p.CurrentMetrics(ctx, "id", "tok")
+	if err != nil || !reflect.DeepEqual(followers, map[string]float64{"followers": 42}) {
+		t.Fatalf("followers=%v err=%v", followers, err)
+	}
+	posts, err := p.PublishedMetrics(ctx, "id", "tok", time.Unix(1763000000, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []integrations.PublishedMetricPost{
+		{ID: "v2", Text: "second", URL: "https://www.tiktok.com/@me/video/v2", At: time.Unix(1763600000, 0).UTC(), Counters: map[string]float64{"views": 10, "likes": 3, "replies": 1, "reposts": 2}},
+		{ID: "v1", Text: "first", At: time.Unix(1763500000, 0).UTC(), Counters: map[string]float64{"likes": 5}},
+	}
+	if !reflect.DeepEqual(posts, want) || !reflect.DeepEqual(cursors, []any{nil, float64(1763600000000)}) {
+		t.Fatalf("posts=%+v cursors=%v", posts, cursors)
+	}
+}
+
+func TestAccountAnalyticsReportsRevokedAccess(t *testing.T) {
+	p := setup(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		io.WriteString(w, `{"error":{"code":"access_token_invalid"}}`)
+	})
+	// analytics ingestion reads the HTTP status: 401 asks for a reconnect
+	var status interface{ HTTPStatus() int }
+	if _, err := p.CurrentMetrics(context.Background(), "id", "tok"); !errors.As(err, &status) || status.HTTPStatus() != http.StatusUnauthorized {
+		t.Fatalf("followers error %v", err)
+	}
+	if _, err := p.PublishedMetrics(context.Background(), "id", "tok", time.Now()); !errors.As(err, &status) || status.HTTPStatus() != http.StatusUnauthorized {
+		t.Fatalf("videos error %v", err)
+	}
+}
+
+func TestPostAnalyticsReportsAGoneVideoAsNotFound(t *testing.T) {
+	p := setup(t, func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, `{"data":{"videos":[]},"error":{"code":"ok"}}`)
+	})
+	// a deleted or privated video is gone for that post, not a failure of the account
+	var status interface{ HTTPStatus() int }
+	if _, err := p.PostAnalytics(context.Background(), "id", "tok", "v1", 0); !errors.As(err, &status) || status.HTTPStatus() != http.StatusNotFound {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestAccountAnalyticsLeavesMissingNumbersOutAndStopsAtLastPage(t *testing.T) {
+	lists := 0
+	p := setup(t, func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/v2/user/info/":
+			io.WriteString(w, `{"data":{"user":{}},"error":{"code":"ok"}}`)
+		case "/v2/video/list/":
+			lists++
+			io.WriteString(w, `{"data":{"videos":[{"id":"v1","create_time":1763600000}],"cursor":1763600000000,"has_more":false},"error":{"code":"ok"}}`)
+		}
+	})
+	followers, err := p.CurrentMetrics(context.Background(), "id", "tok")
+	if err != nil || len(followers) != 0 {
+		t.Fatalf("an unreported follower count must stay unavailable, not 0: %v %v", followers, err)
+	}
+	posts, err := p.PublishedMetrics(context.Background(), "id", "tok", time.Unix(1763000000, 0))
+	if err != nil || len(posts) != 1 || len(posts[0].Counters) != 0 || lists != 1 {
+		t.Fatalf("posts=%+v lists=%d err=%v", posts, lists, err)
 	}
 }

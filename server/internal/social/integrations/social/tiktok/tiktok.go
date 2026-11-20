@@ -67,13 +67,15 @@ func New() *Provider {
 }
 
 var (
-	_ integrations.Provider          = (*Provider)(nil)
-	_ integrations.PendingPoster     = (*Provider)(nil)
-	_ integrations.Analytics         = (*Provider)(nil)
-	_ integrations.PostAnalytics     = (*Provider)(nil)
-	_ integrations.MissingFinder     = (*Provider)(nil)
-	_ integrations.ReleaseIDResolver = (*Provider)(nil)
-	_ integrations.ReleaseURLer      = (*Provider)(nil)
+	_ integrations.Provider           = (*Provider)(nil)
+	_ integrations.PendingPoster      = (*Provider)(nil)
+	_ integrations.Analytics          = (*Provider)(nil)
+	_ integrations.PostAnalytics      = (*Provider)(nil)
+	_ integrations.CurrentAnalytics   = (*Provider)(nil)
+	_ integrations.PublishedAnalytics = (*Provider)(nil)
+	_ integrations.MissingFinder      = (*Provider)(nil)
+	_ integrations.ReleaseIDResolver  = (*Provider)(nil)
+	_ integrations.ReleaseURLer       = (*Provider)(nil)
 )
 
 func (p *Provider) Info() integrations.Info {
@@ -978,7 +980,8 @@ func (p *Provider) PostAnalytics(ctx context.Context, integrationID, accessToken
 	}
 	videos, _ := field(data, "data", "videos").([]any)
 	if len(videos) == 0 {
-		return []integrations.AnalyticsData{}, nil
+		// A deleted or no longer public video: gone for this post, not a failure of the account.
+		return nil, &integrations.HTTPError{Status: http.StatusNotFound}
 	}
 	video, _ := videos[0].(map[string]any)
 	if video == nil {
