@@ -94,10 +94,12 @@ test('rename refreshes filters, duplicate names differ, and keyboard focus retur
   await expect(page.getByLabel('Project name')).toHaveValue('x'.repeat(201))
   await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(actions).toBeFocused()
+  // The sidebar's Recents lists the copies too, so the library's own links are read from the page.
+  const library = page.getByRole('main')
   for (const name of ['Pricing banner copy', 'Pricing banner copy 2']) {
     await actions.click()
     await page.getByRole('menuitem', { name: 'Duplicate', exact: true }).click()
-    await expect(page.getByRole('link', { name, exact: true })).toBeVisible()
+    await expect(library.getByRole('link', { name, exact: true })).toBeVisible()
   }
   await actions.click()
   await page.getByRole('menuitem', { name: 'Rename…' }).click()
@@ -112,7 +114,7 @@ test('rename refreshes filters, duplicate names differ, and keyboard focus retur
   await page.getByRole('button', { name: 'Delete project', exact: true }).click()
   await expect(copy).toHaveCount(0)
   await expect(search).toBeFocused()
-  await page.getByRole('link', { name: 'Pricing banner copy 2', exact: true }).click()
+  await library.getByRole('link', { name: 'Pricing banner copy 2', exact: true }).click()
   await expect(page).toHaveURL(/[?]project=/)
   await page.goBack()
   await expect(search).toHaveValue('pricing')
@@ -127,7 +129,11 @@ test('gateway errors retry automatically and persistent HTML failures have a use
   let failing = true
   await page.route('**/api/trpc/**project.list**', async (route) => {
     if (failing) {
-      failures++
+      // Count the library's own list (24 a page); the sidebar's Recents reads projects too.
+      const inputs = JSON.parse(
+        new URL(route.request().url()).searchParams.get('input') ?? '{}'
+      ) as Record<string, { json?: { limit?: number } }>
+      if (Object.values(inputs).some((input) => input.json?.limit === 24)) failures++
       await route.fulfill({
         status: 503,
         contentType: 'text/html',
