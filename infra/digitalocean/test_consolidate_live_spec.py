@@ -131,6 +131,17 @@ class ConsolidateLiveSpecTest(unittest.TestCase):
         self.assertNotIn("TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN", {item["key"] for item in backend["envs"]})
         self.assertIn({"domain": "shots.example.com"}, spec["domains"])
 
+    def test_provider_media_replaces_the_rule_digitalocean_stored(self):
+        spec = self.base["spec"]
+        stored = {"match": {"authority": {"exact": "shots.example.com"}, "path": {"prefix": "/provider-media"}},
+                  "component": {"name": cutover.BACKEND, "preserve_path_prefix": True}}
+        spec.setdefault("ingress", {}).setdefault("rules", []).insert(0, stored)
+        cutover.configure_provider_media(spec, spec["services"][-1],
+                                         {"PLATFORM_PROVIDER_MEDIA_ORIGIN": "https://shots.example.com"})
+        prefixes = [rule["match"]["path"]["prefix"] for rule in spec["ingress"]["rules"]
+                    if rule.get("match", {}).get("path", {}).get("prefix", "").startswith("/provider-media")]
+        self.assertEqual(prefixes, ["/provider-media/"])
+
     def test_provider_media_rejects_unowned_or_malformed_origins(self):
         for origin in ("http://shots.example.com", "https://foreign.example.com", "https://shots.example.com/path",
                        "https://shots.example.com?token=secret", "https://shots.example.com#fragment",
