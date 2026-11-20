@@ -115,7 +115,7 @@ const SEARCH_LABELS: Record<(typeof TABS)[number]['tab'], string> = {
 }
 
 /** A menu's group heading: quieter than its items, so it does not read as one. */
-const MENU_GROUP = 'pt-2 pb-1 text-[11px] font-normal uppercase tracking-wide text-muted-foreground'
+const MENU_GROUP = 'pt-2 pb-1 text-[0.6875rem] font-normal uppercase tracking-wide text-muted-foreground'
 
 /** The date presets, by the label the picker shows. */
 const DATE_PRESETS = { Today: 'today', 'This week': 'week', 'This month': 'month' } as const
@@ -280,13 +280,13 @@ export function WriteRail() {
             >
               {item.label}
               {item.tab === 'queue' && data.queue.length > 0 ? (
-                <span className="ml-1 text-[11px] leading-[11px] font-semibold text-muted-foreground">
+                <span className="ml-1 text-[0.6875rem] leading-[11px] font-semibold text-muted-foreground">
                   {data.queue.length}
                 </span>
               ) : null}
               {item.tab === 'failed' && data.failedCount > 0 ? (
                 <span
-                  className="ml-1 text-[11px] leading-[11px] font-semibold text-red-700 dark:text-red-300"
+                  className="ml-1 text-[0.6875rem] leading-[11px] font-semibold text-red-700 dark:text-red-300"
                   data-testid="failed-count"
                 >
                   {data.failedCount}
@@ -387,7 +387,7 @@ export function WriteRail() {
         ) : (
           <ul>
             {tab === 'failed' && canPublish ? (
-              <li className="flex flex-wrap items-center gap-2 px-4 py-2 text-[11px] text-muted-foreground">
+              <li className="flex flex-wrap items-center gap-2 px-4 py-2 text-[0.6875rem] text-muted-foreground">
                 <span>
                   {data.library.length} draft{data.library.length === 1 ? '' : 's'} with a failed
                   post.
@@ -399,13 +399,13 @@ export function WriteRail() {
                 belongs here — but "Drafts" then stops meaning unfinished work.
                 The list says how many are queued and hides them on request. */}
             {tab === 'drafts' && queuedInList > 0 ? (
-              <li className="flex flex-wrap items-center gap-2 px-4 py-2 text-[11px] text-muted-foreground">
+              <li className="flex flex-wrap items-center gap-2 px-4 py-2 text-[0.6875rem] text-muted-foreground">
                 <span>
                   {queuedInList} of these {queuedInList === 1 ? 'is' : 'are'} already scheduled.
                 </span>
                 <Button
                   aria-pressed={hideQueued}
-                  className="h-6 px-2 text-[11px]"
+                  className="h-6 px-2 text-[0.6875rem]"
                   onClick={() => setHideQueued((current) => !current)}
                   size={null}
                   variant="ghost"
@@ -914,7 +914,7 @@ function DraftRow({
               className="mt-0.5 size-3.5 shrink-0 text-sky-700 dark:text-sky-300"
             />
           ) : null}
-          <span className="line-clamp-2 text-[13px] leading-snug text-foreground">
+          <span className="line-clamp-2 text-[0.8125rem] leading-snug text-foreground">
             {shown.excerpt || <span className="text-muted-foreground">{draftName(shown)}</span>}
           </span>
         </p>
@@ -957,7 +957,7 @@ function DraftRow({
       {data.query.tab === 'posted' && draft.publishedPosts > 0 ? (
         <Button
           aria-expanded={showingLinks}
-          className="mx-4 mb-2 h-6 px-0 text-[11px] text-sky-700 underline dark:text-sky-300"
+          className="mx-4 mb-2 h-6 px-0 text-[0.6875rem] text-sky-700 underline dark:text-sky-300"
           onClick={() => setShowingLinks((current) => !current)}
           size={null}
           variant="ghost"
@@ -1059,7 +1059,7 @@ function RowStatus({ draft }: { draft: LibraryDraft }) {
   if (draft.shared) parts.push(<span key="shared">Public link on</span>)
   if (parts.length === 0) return null
   return (
-    <p className="mt-1 flex flex-wrap gap-x-2 text-[11px] text-muted-foreground">
+    <p className="mt-1 flex flex-wrap gap-x-2 text-[0.6875rem] text-muted-foreground">
       {parts.map((part, index) => (
         <React.Fragment key={index}>{part}</React.Fragment>
       ))}
@@ -1718,7 +1718,7 @@ function QueueList() {
     )
   return (
     <div data-testid="queue">
-      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3 pb-1 text-[11px] text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3 pb-1 text-[0.6875rem] text-muted-foreground">
         {/* What is queued leads: recurring slots are a separate, smaller fact. */}
         <span data-testid="queue-goal">
           {`${scheduledCount} ${scheduledCount === 1 ? 'post' : 'posts'} scheduled`}
@@ -1757,7 +1757,7 @@ function QueueList() {
       ) : null}
       {earlier.length > 0 ? (
         <section aria-label="Needs a look">
-          <h3 className="px-4 pt-3 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+          <h3 className="px-4 pt-3 text-[0.6875rem] font-medium text-amber-700 dark:text-amber-300">
             Needs a look
           </h3>
           <QueueRows
@@ -1774,7 +1774,7 @@ function QueueList() {
       {days.map(({ day, free: open, items }) =>
         items.length === 0 && open.length === 0 ? null : (
           <section aria-label={day} key={day}>
-            <h3 className="px-4 pt-3 text-[11px] font-medium text-muted-foreground">
+            <h3 className="px-4 pt-3 text-[0.6875rem] font-medium text-muted-foreground">
               <LocalTime
                 options={{ day: 'numeric', month: 'short', timeZone: 'UTC', weekday: 'short' }}
                 value={`${day}T12:00:00Z`}
@@ -1797,7 +1797,7 @@ function QueueList() {
       )}
       {later.length > 0 ? (
         <section aria-label="Later">
-          <h3 className="px-4 pt-3 text-[11px] font-medium text-muted-foreground">Later</h3>
+          <h3 className="px-4 pt-3 text-[0.6875rem] font-medium text-muted-foreground">Later</h3>
           <QueueRows
             collapsed={collapsed}
             items={later}
@@ -1906,7 +1906,7 @@ function QueueRows({
         if (!group)
           return (
             <li
-              className="m-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-1.5 text-[11px] text-muted-foreground"
+              className="m-2 flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-1.5 text-[0.6875rem] text-muted-foreground"
               data-testid="queue-free-slot"
               key={`free-${slot}`}
             >
@@ -1915,7 +1915,7 @@ function QueueRows({
               </span>
               {onNew ? (
                 <Button
-                  className="h-6 px-2 text-[11px]"
+                  className="h-6 px-2 text-[0.6875rem]"
                   onClick={() => onNew(slot as string)}
                   size={null}
                   variant="ghost"
@@ -1940,12 +1940,12 @@ function QueueRows({
         return (
           <li key={group.name}>
             <div
-              className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-2 py-1 text-[11px]"
+              className="mx-2 mt-2 flex items-center gap-2 rounded-lg bg-foreground/[0.03] px-2 py-1 text-[0.6875rem]"
               data-testid="queue-group"
             >
               <Button
                 aria-expanded={!shut}
-                className="h-6 min-w-0 flex-1 justify-start gap-1 px-1 text-[11px] font-medium"
+                className="h-6 min-w-0 flex-1 justify-start gap-1 px-1 text-[0.6875rem] font-medium"
                 onClick={() => onCollapse(name, !shut)}
                 size={null}
                 variant="ghost"
@@ -1961,7 +1961,7 @@ function QueueRows({
                 </span>
               </Button>
               <Button
-                className="h-6 px-2 text-[11px]"
+                className="h-6 px-2 text-[0.6875rem]"
                 onClick={() =>
                   onPick((current) => [
                     ...new Set([
@@ -2071,7 +2071,7 @@ function QueueItem({
         >
           <p
             className={cn(
-              'flex flex-wrap items-center gap-1.5 text-[11px]',
+              'flex flex-wrap items-center gap-1.5 text-[0.6875rem]',
               item.kind === 'planned'
                 ? 'text-violet-700 dark:text-violet-300'
                 : 'text-sky-700 dark:text-sky-300'
@@ -2101,7 +2101,7 @@ function QueueItem({
           </p>
           <p
             className={cn(
-              'mt-0.5 text-[13px] leading-snug text-foreground',
+              'mt-0.5 text-[0.8125rem] leading-snug text-foreground',
               open ? 'whitespace-pre-wrap' : 'line-clamp-2'
             )}
           >
@@ -2120,7 +2120,7 @@ function QueueItem({
         </Button>
       </div>
       {open ? (
-        <p className="px-2 pb-2 text-[11px] text-muted-foreground">
+        <p className="px-2 pb-2 text-[0.6875rem] text-muted-foreground">
           {counted ? (
             <span className="tabular-nums">
               {length}

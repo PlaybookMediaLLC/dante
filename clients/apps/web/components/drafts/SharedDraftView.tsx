@@ -75,7 +75,7 @@ export function SharedDraftView({
         <h1 className="mt-1 text-xl font-medium text-foreground">{title}</h1>
       </header>
       <article
-        className="whitespace-pre-wrap rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-5 text-[15px] leading-relaxed"
+        className="whitespace-pre-wrap rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-5 text-[0.9375rem] leading-relaxed"
         data-testid="shared-draft"
       >
         {text || 'This draft is empty.'}

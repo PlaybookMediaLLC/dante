@@ -457,7 +457,7 @@ export function WorkflowEditor({
                 </span>
                 {readOnly ? <span>· Read only</span> : null}
                 {unsaved && !readOnly ? (
-                  <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-400">
+                  <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[0.625rem] text-amber-700 dark:text-amber-400">
                     Unsaved
                   </span>
                 ) : null}
@@ -668,7 +668,7 @@ export function WorkflowEditor({
                 />
               </ReactFlow>
             </div>
-            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card/70 px-4 py-2 text-[11px] text-muted-foreground">
+            <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border bg-card/70 px-4 py-2 text-[0.6875rem] text-muted-foreground">
               <span>
                 {graph.nodes.length} nodes · {graph.edges.length} connections
               </span>
@@ -724,7 +724,7 @@ export function WorkflowEditor({
                   ) : null}
                   <TabsContent value="node" className="space-y-5">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Step configuration
                       </p>
                       <h3 className="mt-1 text-lg font-semibold">
@@ -932,7 +932,7 @@ export function WorkflowEditor({
                   </TabsContent>
                   <TabsContent value="workflow" className="space-y-5">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Workflow settings
                       </p>
                       <h3 className="mt-1 text-lg font-semibold">When should this run?</h3>
@@ -1047,7 +1047,7 @@ export function WorkflowEditor({
                   </TabsContent>
                   <TabsContent value="test" className="space-y-5">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                      <p className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                         Dry run
                       </p>
                       <h3 className="mt-1 text-lg font-semibold">Follow the evidence</h3>
@@ -1158,7 +1158,7 @@ export function WorkflowEditor({
                                 onClick={() => selectNode(step.nodeId)}
                                 className="group flex w-full items-start gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
                               >
-                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border font-mono text-[10px] text-muted-foreground">
+                                <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border font-mono text-[0.625rem] text-muted-foreground">
                                   {String(index + 1).padStart(2, '0')}
                                 </span>
                                 <span className="min-w-0 flex-1">
@@ -1166,7 +1166,7 @@ export function WorkflowEditor({
                                     {nodes.find((node) => node.id === step.nodeId)?.data.label ??
                                       step.nodeId}
                                   </span>
-                                  <span className="mt-1 block text-[11px] leading-4 text-muted-foreground">
+                                  <span className="mt-1 block text-[0.6875rem] leading-4 text-muted-foreground">
                                     {step.decision
                                       ? `${step.decision.status !== 'evaluated' && step.decision.status !== 'assumed' ? 'No branch' : step.decision.match ? 'True' : 'False'}${step.decision.status === 'assumed' ? ' (assumed)' : ''} · ${step.decision.reason}`
                                       : (step.outcome ??
@@ -1210,7 +1210,7 @@ export function WorkflowEditor({
                 </fieldset>
                 <TabsContent value="versions" className="space-y-4">
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                    <p className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                       Activated versions
                     </p>
                     <h3 className="mt-1 text-lg font-semibold">Immutable history</h3>
@@ -1237,7 +1237,7 @@ export function WorkflowEditor({
                           <p className="flex items-center justify-between gap-2 font-medium">
                             Revision {version.revision}
                             {version.id === record.activeVersionId ? (
-                              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-700 dark:text-emerald-300">
+                              <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[0.625rem] text-emerald-700 dark:text-emerald-300">
                                 {record.enabled ? 'Active' : 'Last active'}
                               </span>
                             ) : null}

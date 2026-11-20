@@ -127,7 +127,7 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
           // The front page of the editors: start from a finished look as well as a blank.
           <section aria-labelledby="create-templates" className="grid gap-3 pt-2">
             <div className="flex items-end justify-between gap-3">
-              <h2 id="create-templates" className="text-[13px] text-muted-foreground">
+              <h2 id="create-templates" className="text-[0.8125rem] text-muted-foreground">
                 Start from a template
               </h2>
               <SidebarLink

@@ -190,7 +190,7 @@ export function BatchPreviewSheet({
         </SheetHeader>
         {item && mode === 'feed' ? (
           <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4" data-testid="batch-feed">
-            <p className="rounded-md border border-dashed border-input px-2 py-1 text-center text-[11px] text-muted-foreground">
+            <p className="rounded-md border border-dashed border-input px-2 py-1 text-center text-[0.6875rem] text-muted-foreground">
               Preview — not published
             </p>
             {feedChannel ? (
@@ -219,7 +219,7 @@ export function BatchPreviewSheet({
                 by one to see why.
               </p>
             ) : null}
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[0.6875rem] text-muted-foreground">
               Files still uploading show once uploaded. Cutoffs vary by app and device.
             </p>
           </div>

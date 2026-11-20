@@ -150,7 +150,7 @@ export function Caption({
   return (
     <text
       className={cn(
-        'font-mono text-[7px] font-medium',
+        'font-mono text-[0.4375rem] font-medium',
         accent ? 'fill-current' : 'fill-foreground/50',
         className
       )}

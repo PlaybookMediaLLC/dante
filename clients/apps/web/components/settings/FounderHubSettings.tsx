@@ -279,7 +279,7 @@ function SettingsSurface({
             />
             {[...new Set(visible.map((item) => item.group))].map((group) => (
               <div key={group} className="flex flex-col gap-0.5">
-                <span className="text-muted-foreground/60 px-3 pb-1 text-[11px] font-medium tracking-wider uppercase">
+                <span className="text-muted-foreground/60 px-3 pb-1 text-[0.6875rem] font-medium tracking-wider uppercase">
                   {group}
                 </span>
                 {visible

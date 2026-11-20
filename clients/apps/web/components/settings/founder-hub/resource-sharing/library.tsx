@@ -70,7 +70,7 @@ function AuthenticatedSharedResourceLibrarySection({
   if (available.length === 0) return null
   return (
     <section className="border-border/60 mt-3 border-t pt-3">
-      <div className="text-muted-foreground mb-1 flex items-center gap-1.5 px-3 text-[11px] font-medium tracking-wide uppercase">
+      <div className="text-muted-foreground mb-1 flex items-center gap-1.5 px-3 text-[0.6875rem] font-medium tracking-wide uppercase">
         <CirclesThreePlus className="size-3.5" />
         <_Trans
           {
@@ -97,7 +97,7 @@ function AuthenticatedSharedResourceLibrarySection({
               <ResourceIcon resourceType={resource.resourceType} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm">{resource.title}</span>
-                <span className="text-muted-foreground block truncate text-[11px]">
+                <span className="text-muted-foreground block truncate text-[0.6875rem]">
                   {resource.workspaceName ?? resource.ownerEmail}
                 </span>
               </span>

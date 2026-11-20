@@ -340,7 +340,7 @@ function MixedScene() {
         <path className="fill-current" d="M67 121l9 5-9 5Z" fillOpacity={0.8} />
       </File>
       <File x={92} y={110}>
-        <Caption accent className="text-[6px] font-bold" x={95} y={130}>
+        <Caption accent className="text-[0.375rem] font-bold" x={95} y={130}>
           PDF
         </Caption>
       </File>
