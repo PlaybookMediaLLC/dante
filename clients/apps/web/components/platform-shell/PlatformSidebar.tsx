@@ -420,7 +420,7 @@ function Brand({ brand, collapsed }: { brand: SidebarBrand; collapsed: boolean }
         />
       )}
       {collapsed ? null : (
-        <span className="truncate text-[15px] font-medium text-foreground">{brand.name}</span>
+        <span className="truncate text-[0.9375rem] font-medium text-foreground">{brand.name}</span>
       )}
     </SidebarLink>
   )

@@ -144,7 +144,7 @@ export default function TemplateCatalog() {
           </Button>
         ))}
       </div>
-      <p className="text-[13px] text-muted-foreground">
+      <p className="text-[0.8125rem] text-muted-foreground">
         Use template opens a new screenshot or Canvas with that template applied. Animated, store
         and workflow templates are chosen again in their editor. Browsing never changes your saved
         work.

@@ -112,7 +112,7 @@ export default async function HomePage({
             {paid ? (
               <ButtonLink
                 href="/create"
-                className="home-create h-9 gap-1.5 rounded-full px-4 text-[13px]"
+                className="home-create h-9 gap-1.5 rounded-full px-4 text-[0.8125rem]"
               >
                 <Plus size={15} aria-hidden="true" /> Create
               </ButtonLink>
@@ -195,7 +195,7 @@ export default async function HomePage({
               <Shapes size={19} className="text-muted-foreground" aria-hidden="true" />
             </span>
             <span>
-              <span className="flex items-center gap-2 text-[13.5px] font-medium">
+              <span className="flex items-center gap-2 text-[0.84375rem] font-medium">
                 Brand assets
                 {paid ? null : <span className="platform-pro-badge">Pro</span>}
               </span>
