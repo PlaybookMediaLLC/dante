@@ -970,6 +970,12 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
           return respond(toolCalls([{ input: { count, instruction: '' }, toolName: 'showVariants' }]))
         }
       }
+      // The editor copilot asked for a change: one real, valid edit (more room), then done.
+      if (names.includes('applyChanges') && /\b(bold|bolder|punchier|spacing|room)\b/i.test(text.split('\n\n').at(-1) ?? '')) {
+        if (!results.some((result) => result.toolName === 'applyChanges'))
+          return respond(toolCalls([{ input: { changes: { canvas: { padding: 72 } }, summary: 'Gave the design more room' }, toolName: 'applyChanges' }]))
+        return respond([{ text: 'Done.', type: 'text' }])
+      }
       if (names.includes('proposeVariant')) {
         const done = results.filter((result) => result.toolName === 'proposeVariant').length
         const next = done === 0 ? scriptVariants(text, 0) : []

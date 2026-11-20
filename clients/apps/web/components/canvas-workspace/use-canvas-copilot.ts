@@ -10,6 +10,7 @@ import { readingOrder } from '@/lib/canvas/layout'
 import { useCanvasUi } from '@/lib/canvas/ui-store'
 import {
   ACROSS_ARTBOARDS,
+  ACROSS_ARTBOARDS_MAX,
   type EditorOpenState,
   type WaitStep,
   waitForArtboard,
@@ -124,9 +125,18 @@ export function useCanvasCopilot({
               : ['Give the screenshot a soft shadow']),
           ],
           run: async ({ ask, memory, push, signal }) => {
-            // "every artboard", "all slides", "each page": the request runs on each in turn.
-            const ids = ACROSS_ARTBOARDS.test(ask) ? order.map((item) => item.id) : [target.id]
-            for (const [index, id] of ids.entries()) {
+            // "every artboard", "all the slides", "each page": the request runs on each in turn,
+            // up to a cap, so a misread request cannot run on (and charge for) a whole deck.
+            const across = ACROSS_ARTBOARDS.test(ask)
+            const all = across ? order.map((item) => item.id) : [target.id]
+            const ids = all.slice(0, ACROSS_ARTBOARDS_MAX)
+            if (all.length > ids.length)
+              push({
+                kind: 'note',
+                text: `Running on the first ${ids.length} of ${all.length} artboards; ask again for the rest.`,
+              })
+            for (const id of ids) {
+              if (signal.aborted) throw new Error('Stopped.')
               const at = order.findIndex((item) => item.id === id) + 1
               if (ids.length > 1) push({ kind: 'note', text: `Artboard ${at} of ${ids.length}…` })
               if (editor.current.activeId !== id || !editor.current.ready) {
@@ -141,12 +151,16 @@ export function useCanvasCopilot({
               // Memory follows one artboard, so one's edits never steer another's.
               if (remembered.current !== id) memory.current = []
               remembered.current = id
+              // The copilot reports its own failures; a failed or stopped artboard ends the run.
+              let failed = false
               try {
                 await runEditorCopilot({
                   canUndo: false,
                   memory: memory as { current: ModelMessage[] },
-                  push: (entry) =>
-                    push(entry.kind === 'change' ? { kind: 'change', text: entry.summary } : entry),
+                  push: (entry) => {
+                    if (entry.kind === 'error') failed = true
+                    push(entry.kind === 'change' ? { kind: 'change', text: entry.summary } : entry)
+                  },
                   selection: null,
                   signal: controller.signal,
                   text: ask,
@@ -155,9 +169,9 @@ export function useCanvasCopilot({
                 signal.removeEventListener('abort', stop)
                 if (running.current?.controller === controller) running.current = null
               }
-              if (index === ids.length - 1 && ids.length > 1)
-                push({ kind: 'note', text: `Done: ${ids.length} artboards.` })
+              if (failed || controller.signal.aborted) return
             }
+            if (ids.length > 1) push({ kind: 'note', text: `Done: ${ids.length} artboards.` })
           },
         }
       : null

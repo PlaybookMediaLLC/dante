@@ -45,6 +45,9 @@ test('a request about every artboard, slide or page runs across the canvas', () 
     'Give all slides a darker background',
     'Tighten the spacing on each page',
     'Make all the artboards match',
+    'Use our logo on each of my slides',
+    'Make both artboards darker',
+    'Use the same font across the canvas',
   ])
     assert.ok(ACROSS_ARTBOARDS.test(ask), ask)
   for (const ask of [
@@ -52,6 +55,10 @@ test('a request about every artboard, slide or page runs across the canvas', () 
     'Make every headline punchier',
     'Add every feature to the list',
     'All good. Now darken this slide',
+    'Make all the text on this slide bigger',
+    'Make every heading on this artboard blue',
+    'Align each element on the page',
+    'Add our pricing for all plans to the page',
   ])
     assert.equal(ACROSS_ARTBOARDS.test(ask), false, ask)
 })

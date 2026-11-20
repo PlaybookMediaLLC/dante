@@ -157,6 +157,8 @@ export function AssistantBar({
   const ask = useSearchParams().get(EDITOR_ASK_PARAM)?.trim().slice(0, EDITOR_ASK_MAX) ?? ''
   const asked = useRef('')
   useEffect(() => {
+    // Once the address no longer holds it, the same request may arrive again.
+    if (!ask) asked.current = ''
     if (!shown || !ask || asked.current === ask) return
     asked.current = ask
     setText(ask)

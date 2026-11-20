@@ -1,4 +1,4 @@
-import { draftEditor, expect, type Page, test, trpcMutation } from './framework'
+import { draftEditor, expect, type Page, test, trpcMutation, trpcQuery } from './framework'
 import { canvasDocumentSchema } from '@/lib/canvas/document'
 import { blankArtboard } from '@/lib/canvas/recipes'
 import { newCreativeSetId } from '@/lib/creative-sets/document'
@@ -193,17 +193,18 @@ test(
     })
 
     // On a canvas the artboard copilot answers instead, with the bar open on the board.
+    const initial = canvasDocumentSchema.parse({
+      version: 1,
+      kind: 'canvas',
+      artboards: [
+        blankArtboard('wide-16x9', { x: 0, y: 0 }),
+        blankArtboard('wide-16x9', { x: 2400, y: 0 }),
+      ],
+    })
     const canvas = await trpcMutation(page, 'canvas.create', {
       id: newCreativeSetId(),
       name: 'Assistant canvas',
-      document: canvasDocumentSchema.parse({
-        version: 1,
-        kind: 'canvas',
-        artboards: [
-          blankArtboard('wide-16x9', { x: 0, y: 0 }),
-          blankArtboard('wide-16x9', { x: 2400, y: 0 }),
-        ],
-      }),
+      document: initial,
     })
     expect(canvas.status).toBe(200)
     // Opened with a request (an Edit with AI button), the canvas's bar holds it ready to send.
@@ -224,5 +225,22 @@ test(
     await page.keyboard.press('Enter')
     await expect(board.getByText('Artboard 2 of 2…')).toBeVisible({ timeout: 90_000 })
     await expect(board.getByText('Done: 2 artboards.')).toBeVisible({ timeout: 90_000 })
+    // Each artboard's own design changed and was saved, not the first one's twice.
+    const canvasId = (canvas.body as { id: string }).id
+    await expect
+      .poll(
+        async () => {
+          const stored = await trpcQuery(page, 'canvas.get', { canvasId })
+          const artboards = (stored.body as { document?: { artboards?: { document: unknown }[] } })
+            .document?.artboards
+          return (artboards ?? []).map(
+            (artboard, index) =>
+              JSON.stringify(artboard.document) !==
+              JSON.stringify(initial.artboards[index]?.document)
+          )
+        },
+        { timeout: 30_000 }
+      )
+      .toEqual([true, true])
   }
 )

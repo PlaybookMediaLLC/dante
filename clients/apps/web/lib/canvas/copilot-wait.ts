@@ -48,6 +48,13 @@ export function waitForArtboard(
   return { kind: 'wait', seen }
 }
 
-/** A request about the whole canvas: "every artboard", "all slides", "each page". */
+/**
+ * A request about the whole canvas: "every artboard", "all the slides", "each
+ * of my pages", "both artboards", "across the canvas". The word must govern
+ * the noun, so "all the text on this slide" stays on one artboard.
+ */
 export const ACROSS_ARTBOARDS =
-  /\b(all|every|each)\b[^.?!]*?\b(artboards?|slides?|pages?|frames?)\b/i
+  /\b(?:(?:all|every|each)(?:\s+of)?(?:\s+(?:the|my|our|these|those))?(?:\s+\w+)?|both)\s+(?:artboards?|slides?|pages?|frames?)\b|\bacross\s+the\s+(?:canvas|deck)\b/i
+
+/** Most artboards one canvas-wide request runs on, so a misread request cannot drain credits. */
+export const ACROSS_ARTBOARDS_MAX = 12
