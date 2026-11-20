@@ -25,7 +25,12 @@ function setup(role: OrganizationRole) {
 const options = { context: undefined as never, messages: [], toolCallId: 'call_1' }
 
 /** Go's feature decisions as the web sees them: `allowed` features pass, others are refused. */
-function mockFeatures(t: TestContext, allowed: readonly string[], status = 200) {
+function mockFeatures(
+  t: TestContext,
+  allowed: readonly string[],
+  status = 200,
+  posts: readonly Record<string, unknown>[] = []
+) {
   const env = { ...process.env }
   process.env.PUBLISHING_API_URL = 'http://backend.test:8082'
   process.env.PUBLISHING_SERVICE_TOKEN = 'private-test-token'
@@ -37,7 +42,12 @@ function mockFeatures(t: TestContext, allowed: readonly string[], status = 200) 
   })
   const asked: string[] = []
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
-    const path = new URL(String(input instanceof Request ? input.url : input)).pathname
+    const url = new URL(String(input instanceof Request ? input.url : input))
+    const path = url.pathname
+    if (path === '/v1/content-draft-posts') {
+      asked.push(`posts ${url.searchParams.get('from')} ${url.searchParams.get('to')}`)
+      return Response.json({ items: posts })
+    }
     const feature = decodeURIComponent(path.replace('/v1/entitlements/features/', ''))
     asked.push(feature)
     if (status !== 200) return Response.json({ error: 'down' }, { status })
@@ -144,4 +154,60 @@ test('an unreachable plan check fails the call instead of claiming the plan lack
   const result = await tools.draftPost.execute({ text: 'Hi' }, options)
   assert.equal(result.ok, false)
   assert.notEqual((result as { error?: string }).error, 'Posts are not on for this workspace.')
+})
+
+/** A post on the calendar as Go returns it. */
+function calendarPost(id: string, scheduledFor: string, status: string) {
+  return {
+    automations: [],
+    calendarVersion: 1,
+    caption: `Caption ${id}`,
+    channelConnectionId: 'conn_1',
+    createdAt: '2026-11-01T09:00:00Z',
+    draftId: `draft_${id}`,
+    draftTitle: `Draft ${id}`,
+    id,
+    metrics: null,
+    metricsAt: null,
+    naturalOffsetSeconds: null,
+    platform: 'x',
+    replies: 0,
+    scheduleMode: null,
+    scheduledFor,
+    socialSetId: null,
+    status,
+    tagIds: [],
+    threadProgress: { posted: 0, total: 1 },
+    url: null,
+    version: 1,
+  }
+}
+
+test('listScheduledPosts reads the coming week in time order, and offers each draft', async (t) => {
+  const { asked } = mockFeatures(t, ['content:drafts'], 200, [
+    calendarPost('b', '2026-11-22T10:00:00Z', 'SCHEDULED'),
+    calendarPost('a', '2026-11-21T10:00:00Z', 'FAILED'),
+  ])
+  const { state, tools } = setup('viewer')
+  const result = await tools.listScheduledPosts.execute({ days: 7, window: 'next' }, options)
+  assert.ok(result.ok)
+  assert.deepEqual(
+    result.posts.map((post) => [post.draft, post.status]),
+    [
+      ['Draft a', 'FAILED'],
+      ['Draft b', 'SCHEDULED'],
+    ]
+  )
+  // The window starts now and spans seven days.
+  const [from, to] = (asked.find((entry) => entry.startsWith('posts ')) ?? '').split(' ').slice(1)
+  assert.equal(Date.parse(to ?? '') - Date.parse(from ?? ''), 7 * 86_400_000)
+  // A teammate's post text is data: only addresses the lookup returned can be offered.
+  for (const post of result.posts) assert.ok(state.known.has(post.href))
+})
+
+test('listScheduledPosts says so when the workspace has no posts', async (t) => {
+  mockFeatures(t, [])
+  const { tools } = setup('viewer')
+  const result = await tools.listScheduledPosts.execute({ days: 7, window: 'last' }, options)
+  assert.equal(result.ok, false)
 })

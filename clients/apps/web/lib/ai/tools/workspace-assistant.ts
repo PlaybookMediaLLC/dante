@@ -15,7 +15,7 @@ import { WorkspaceEntitlementError, requireWorkspaceFeature } from '@/lib/tenant
 import { PLATFORM_DESTINATIONS } from '@/lib/platform/navigation'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { listCanvases } from '@/lib/tenant/canvases'
-import { listContentDrafts } from '@/lib/tenant/content-drafts'
+import { listContentDraftPostsBetween, listContentDrafts } from '@/lib/tenant/content-drafts'
 import { listProjects } from '@/lib/tenant/projects'
 import { draftHref, draftName } from '@/lib/write/library'
 import { listedStatus } from '@/lib/content-drafts/post-status'
@@ -65,6 +65,25 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   const { getBrand, getProduct, listProductSurfaces } = marketingTools(run, {
     services: marketingServices,
   })
+
+  type Feature = 'campaign:workflow' | 'content:drafts' | 'workspace:paid'
+  // One backend read per feature per turn, however many calls ask.
+  const decisions = new Map<Feature, Promise<boolean>>()
+  function allowed(feature: Feature): Promise<boolean> {
+    const known = decisions.get(feature)
+    if (known) return known
+    const decision = requireWorkspaceFeature(access, feature).then(
+      () => true,
+      (error: unknown) => {
+        // A failed read is not a refusal: forget it, and fail this call.
+        decisions.delete(feature)
+        if (error instanceof WorkspaceEntitlementError) return false
+        throw error
+      }
+    )
+    decisions.set(feature, decision)
+    return decision
+  }
 
   const listRecentWork = defineTool(run, {
     description:
@@ -132,6 +151,51 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     timeoutMs: 15_000,
   })
 
+  const listScheduledPosts = defineTool(run, {
+    description:
+      "List the workspace's social posts in a window: what is scheduled or publishing next, " +
+      "or what went out (or failed) lately, with each post's time, platform, status and " +
+      'the address of its draft. `window`: "next" (the coming `days`) or "last" (the past ' +
+      '`days`).',
+    effect: 'read',
+    execute: async ({ days, window }) => {
+      if (!contentDraftsEnabled() || !(await allowed('content:drafts')))
+        return { error: 'Posts are not on for this workspace.', ok: false as const }
+      const now = Date.now()
+      const span = days * 86_400_000
+      const posts = await listContentDraftPostsBetween(
+        access,
+        new Date(window === 'next' ? now : now - span),
+        new Date(window === 'next' ? now + span : now)
+      )
+      const items = posts
+        .sort((a, b) =>
+          window === 'next'
+            ? a.scheduledFor.getTime() - b.scheduledFor.getTime()
+            : b.scheduledFor.getTime() - a.scheduledFor.getTime()
+        )
+        .slice(0, 20)
+        .map((post) => ({
+          caption: post.caption.slice(0, 160),
+          draft: post.draftTitle ?? null,
+          href: draftHref(post.draftId, post.socialSetId),
+          platform: post.platform,
+          status: post.status,
+          when: post.scheduledFor.toISOString(),
+        }))
+      for (const item of items) state.known.add(item.href)
+      return { ok: true as const, posts: items, total: posts.length }
+    },
+    inputSchema: z.object({
+      days: z.number().int().min(1).max(31).default(7),
+      window: z.enum(['next', 'last']).default('next'),
+    }),
+    maxCallsPerRun: 3,
+    name: 'listScheduledPosts',
+    permission: 'artifact:read',
+    timeoutMs: 15_000,
+  })
+
   const listWorkspaceCampaigns = defineTool(run, {
     description:
       "List the workspace's launch campaigns with their status and the address that opens each.",
@@ -183,24 +247,6 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   })
 
   /** Whether the workspace's plan includes `feature`; a backend failure still fails the call. */
-  type Feature = 'campaign:workflow' | 'content:drafts' | 'workspace:paid'
-  // One backend read per feature per turn, however many calls ask.
-  const decisions = new Map<Feature, Promise<boolean>>()
-  function allowed(feature: Feature): Promise<boolean> {
-    const known = decisions.get(feature)
-    if (known) return known
-    const decision = requireWorkspaceFeature(access, feature).then(
-      () => true,
-      (error: unknown) => {
-        // A failed read is not a refusal: forget it, and fail this call.
-        decisions.delete(feature)
-        if (error instanceof WorkspaceEntitlementError) return false
-        throw error
-      }
-    )
-    decisions.set(feature, decision)
-    return decision
-  }
 
   const draftPost = defineTool(run, {
     description:
@@ -309,6 +355,7 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     listCampaigns: listWorkspaceCampaigns,
     listProductSurfaces,
     listRecentWork,
+    listScheduledPosts,
     offerLink,
     startWork,
   }

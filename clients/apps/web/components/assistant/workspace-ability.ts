@@ -15,12 +15,13 @@ const WORKSPACE_ABILITY_ID = 'workspace'
 /**
  * One-click asks per area, each one the assistant's tools can answer. `make`
  * asks start work (startWork needs `artifact:edit`); `paid` ones (canvases)
- * also need a paid plan, and `post` ones (draftPost) the workspace's posts.
+ * also need a paid plan, and `post` ones (draftPost) the workspace's posts;
+ * `see-posts` asks only read posts, so any member with posts gets them.
  */
-type Suggestion = { ask: string; needs?: 'make' | 'paid' | 'post' }
+type Suggestion = { ask: string; needs?: 'make' | 'paid' | 'post' | 'see-posts' }
 const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   home: [
-    { ask: 'What did we work on most recently?' },
+    { ask: 'What needs my attention?' },
     { ask: 'Make a launch visual for our newest feature', needs: 'make' },
     { ask: 'Start a product launch canvas', needs: 'paid' },
     { ask: 'Draft a post about our latest release', needs: 'post' },
@@ -37,8 +38,8 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   ],
   publish: [
     { ask: 'Draft a post about our latest release', needs: 'post' },
-    { ask: 'Which posts are scheduled?' },
-    { ask: 'Open my latest post draft' },
+    { ask: "What's scheduled this week?", needs: 'see-posts' },
+    { ask: 'Did any post fail to publish lately?', needs: 'see-posts' },
   ],
   library: [
     { ask: 'Find my latest canvas' },
@@ -48,6 +49,10 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   automate: [
     { ask: 'Where do I connect GitHub?' },
     { ask: 'What can I automate when a release ships?' },
+  ],
+  activity: [
+    { ask: 'What needs my attention?' },
+    { ask: 'What went out this week?', needs: 'see-posts' },
   ],
   settings: [{ ask: 'Where do I change brand colours?' }, { ask: 'Where do I invite a teammate?' }],
 }
@@ -69,9 +74,14 @@ export function workspaceSuggestions(
   area: PlatformArea | undefined,
   { canEdit, paidPlan, posts }: WorkspaceAllowance
 ): string[] {
-  const can = { make: true, paid: paidPlan, post: posts }
+  const can = {
+    make: canEdit,
+    paid: canEdit && paidPlan,
+    post: canEdit && posts,
+    'see-posts': posts,
+  }
   return ((area && SUGGESTIONS[area]) || DEFAULT_SUGGESTIONS)
-    .filter((item) => !item.needs || (canEdit && can[item.needs]))
+    .filter((item) => !item.needs || can[item.needs])
     .map((item) => item.ask)
 }
 
