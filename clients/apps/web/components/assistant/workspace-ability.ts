@@ -8,12 +8,24 @@ import { internalHref } from '@/lib/assistant/page-context'
  * The ability every page has: the workspace assistant, answering from the
  * page the person is on with read-only lookups and links to open.
  */
-export const WORKSPACE_ABILITY_ID = 'workspace'
+const WORKSPACE_ABILITY_ID = 'workspace'
+
+/**
+ * The newest `room` messages, starting at one of the person's, so a tool call
+ * is never sent without the result that answered it.
+ */
+export function recent(messages: readonly unknown[], room: number): unknown[] {
+  let start = Math.max(0, messages.length - room)
+  while (start < messages.length && (messages[start] as { role?: string }).role !== 'user')
+    start += 1
+  return messages.slice(start)
+}
 
 async function askWorkspace({ ask, memory, page, push, signal }: AbilityRun) {
-  // A conversation past the request cap starts over; the page context still goes with it.
-  const kept = memory.current.length + 1 > MAX_ASSISTANT_MESSAGES ? [] : memory.current
-  const messages = [...kept, { content: ask, role: 'user' }]
+  const messages = [
+    ...recent(memory.current, MAX_ASSISTANT_MESSAGES - 1),
+    { content: ask, role: 'user' },
+  ]
   const response = await fetch('/api/ai/assistant', {
     body: JSON.stringify({ messages, page }),
     headers: { 'content-type': 'application/json' },

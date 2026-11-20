@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { describePage, internalHref, pageContextSchema } from '@/lib/assistant/page-context'
+import { recent } from '@/components/assistant/workspace-ability'
 
 test('the page goes to the model as one-line data in a page_context block', () => {
   const page = pageContextSchema.parse({
@@ -38,4 +39,18 @@ test('only addresses inside the app can be offered', () => {
     `/${'x'.repeat(301)}`,
   ])
     assert.equal(internalHref(unsafe), null, unsafe)
+})
+
+test("a long conversation keeps its newest turns, starting at one of the person's", () => {
+  const turn = (n: number) => [
+    { content: `ask ${n}`, role: 'user' },
+    { content: [{ type: 'tool-call' }], role: 'assistant' },
+    { content: [{ type: 'tool-result' }], role: 'tool' },
+    { content: `answer ${n}`, role: 'assistant' },
+  ]
+  const messages = [...turn(1), ...turn(2), ...turn(3)]
+  assert.deepEqual(recent(messages, 40), messages)
+  // Six fit, but the sixth-newest is a tool result: the kept part starts at "ask 3".
+  assert.deepEqual(recent(messages, 6), turn(3))
+  assert.deepEqual(recent(messages, 2), [])
 })

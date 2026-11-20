@@ -4,10 +4,10 @@ import { useQuery } from '@tanstack/react-query'
 import { useTRPCClient } from '@/lib/trpc/react'
 
 /**
- * Whether this workspace has the design copilot (an AI key and AI turned on),
- * read once and shared by every surface that offers it.
+ * Whether this workspace has AI (a model configured and AI turned on), read
+ * once and shared: the assistant bar shows only where it does.
  */
-export function useCopilotAvailable(): boolean {
+export function useAiAvailable(): boolean {
   const client = useTRPCClient()
   const status = useQuery({
     queryKey: ['editor-ai', 'status'],

@@ -140,7 +140,7 @@ test(
     const projectId = (created.body as { id: string }).id
 
     await app.open('/home')
-    await page.getByRole('button', { name: 'Ask AI', exact: true }).click()
+    await page.getByRole('button', { name: 'Open the assistant', exact: true }).click()
     const assistant = page.getByRole('region', { name: 'Assistant' })
     await expect(assistant.getByTitle('The assistant sees: Home')).toBeVisible()
     const sent = page.waitForRequest('**/api/ai/assistant')

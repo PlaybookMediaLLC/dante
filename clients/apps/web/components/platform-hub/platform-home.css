@@ -927,10 +927,11 @@
   box-shadow: none;
   font-size: 14px;
 }
-/* Closed, the bar is a small pill in the corner, out of the page's way. */
+/* Closed, the bar is a small pill in the corner, out of the page's way (the
+   onboarding card and toasts take the other one). */
 .assistant-launcher {
   position: absolute;
-  right: 16px;
+  left: 16px;
   bottom: 14px;
   display: inline-flex;
   align-items: center;

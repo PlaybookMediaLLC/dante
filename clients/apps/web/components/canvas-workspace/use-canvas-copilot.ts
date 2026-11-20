@@ -8,6 +8,7 @@ import type { Artboard } from '@/lib/canvas/document'
 import { artboardRect } from '@/lib/canvas/document'
 import { readingOrder } from '@/lib/canvas/layout'
 import { useCanvasUi } from '@/lib/canvas/ui-store'
+import { type EditorOpenState, type WaitStep, waitForArtboard } from '@/lib/canvas/copilot-wait'
 
 /**
  * The canvas's assistant ability and page context. The screenshot editor's
@@ -49,12 +50,20 @@ export function useCanvasCopilot({
   const open = artboards.find((item) => item.id === activeId)
 
   // The editor's state, for requests waiting on their artboard to open.
-  const editor = useRef({ activeId, ready, error })
+  const editor = useRef<EditorOpenState>({ activeId, ready, error, mounted: true })
   const waiters = useRef(new Set<() => void>())
   useEffect(() => {
-    editor.current = { activeId, ready, error }
+    editor.current = { activeId, ready, error, mounted: true }
     for (const check of [...waiters.current]) check()
   }, [activeId, ready, error])
+  // Leaving the canvas ends any request still waiting for its artboard.
+  useEffect(
+    () => () => {
+      editor.current = { ...editor.current, mounted: false }
+      for (const check of [...waiters.current]) check()
+    },
+    []
+  )
 
   // A run stops when its artboard stops being the open one, or the canvas closes.
   const running = useRef<{ id: string; controller: AbortController } | null>(null)
@@ -64,28 +73,22 @@ export function useCanvasCopilot({
   }, [activeId])
   useEffect(() => () => running.current?.controller.abort(new Error('Stopped.')), [])
 
-  /** Resolves once artboard `id` is open and loaded; rejects if another opens or it fails. */
+  /** Resolves once artboard `id` is open and loaded; rejects if another opens, it fails, or the canvas closes. */
   const opened = (id: string, signal: AbortSignal) =>
     new Promise<void>((resolve, reject) => {
       let seen = editor.current.activeId === id
-      const finish = (settle: () => void) => {
+      function check() {
+        const step: WaitStep = signal.aborted
+          ? { kind: 'fail', message: 'Stopped.' }
+          : waitForArtboard(editor.current, id, seen)
+        if (step.kind === 'wait') {
+          seen = step.seen
+          return
+        }
         waiters.current.delete(check)
         signal.removeEventListener('abort', check)
-        settle()
-      }
-      function check() {
-        const state = editor.current
-        if (signal.aborted) return finish(() => reject(signal.reason))
-        if (state.activeId === id) {
-          seen = true
-          if (state.error)
-            finish(() => reject(new Error(`The artboard could not open: ${state.error}`)))
-          else if (state.ready) finish(resolve)
-        } else if (state.activeId || seen) {
-          finish(() =>
-            reject(new Error('The artboard closed before the copilot could start. Ask again.'))
-          )
-        }
+        if (step.kind === 'start') resolve()
+        else reject(new Error(step.message))
       }
       waiters.current.add(check)
       signal.addEventListener('abort', check)

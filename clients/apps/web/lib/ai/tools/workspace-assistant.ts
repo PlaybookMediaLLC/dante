@@ -13,6 +13,7 @@ import { listCanvases } from '@/lib/tenant/canvases'
 import { listContentDrafts } from '@/lib/tenant/content-drafts'
 import { listProjects } from '@/lib/tenant/projects'
 import { draftHref, draftName } from '@/lib/write/library'
+import { listedStatus } from '@/lib/content-drafts/post-status'
 import { palettePages, searchPages } from '@/components/platform-shell/palette-pages'
 
 /**
@@ -24,8 +25,13 @@ import { palettePages, searchPages } from '@/components/platform-shell/palette-p
  * something run where that thing is open (the canvas, the editor).
  */
 
-/** What one turn's tools collect for the reply. */
-export type AssistantTurnState = { links: { href: string; label: string }[] }
+/** What one turn's tools share. */
+export type AssistantTurnState = {
+  /** Addresses this turn's lookups returned: the only ones `offerLink` may offer. */
+  known: Set<string>
+  /** The links to show under the reply. */
+  links: { href: string; label: string }[]
+}
 
 /** Most links one reply offers. */
 const MAX_LINKS = 4
@@ -46,13 +52,19 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     execute: async ({ kind, search }) => {
       const want = (value: (typeof WORK_KINDS)[number]) => !kind || kind === value
       const query = { limit: 8, search: search || undefined }
-      const [projects, canvases, drafts] = await Promise.all([
+      // A collection this workspace cannot read (a plan without it) drops out, not the rest.
+      const settled = await Promise.allSettled([
         want('screenshot') ? listProjects(access, { ...query, sort: 'updated' }) : null,
         want('canvas') ? listCanvases(access, { ...query, sort: 'updated' }) : null,
         want('post') && contentDraftsEnabled()
           ? listContentDrafts(access, { ...query, sort: 'updated_desc' })
           : null,
       ])
+      const read = <T>(result: PromiseSettledResult<T>) =>
+        result.status === 'fulfilled' ? result.value : null
+      const projects = read(settled[0])
+      const canvases = read(settled[1])
+      const drafts = read(settled[2])
       const items = [
         ...(projects?.items ?? []).map((item) => ({
           href: `/editor?project=${encodeURIComponent(item.id)}`,
@@ -69,14 +81,24 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
         ...(drafts?.items ?? []).map((item) => ({
           href: draftHref(item.id, item.socialSetId),
           kind: 'post',
-          name: draftName({ excerpt: item.plainText, title: item.title }),
-          status: item.status,
+          name: draftName({
+            excerpt: item.plainText,
+            media: item.assetIds.length ? 'media' : null,
+            title: item.title,
+          }),
+          status: listedStatus(item),
           updatedAt: new Date(item.updatedAt).toISOString(),
         })),
       ]
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, 12)
-      return { items, ok: true as const }
+      for (const item of items) state.known.add(item.href)
+      const unread = settled.some((result) => result.status === 'rejected')
+      return {
+        items,
+        ok: true as const,
+        ...(unread ? { note: 'Some kinds of work could not be read.' } : {}),
+      }
     },
     inputSchema: z.object({
       kind: z.enum(WORK_KINDS).optional(),
@@ -93,16 +115,14 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
       "List the workspace's launch campaigns with their status and the address that opens each.",
     effect: 'read',
     execute: async () => {
-      const campaigns = await listCampaigns(access)
-      return {
-        campaigns: campaigns.slice(0, 20).map((campaign) => ({
-          feature: campaign.feature,
-          href: `/campaigns/${encodeURIComponent(campaign.id)}`,
-          name: campaign.name,
-          status: campaign.status,
-        })),
-        ok: true as const,
-      }
+      const campaigns = (await listCampaigns(access)).slice(0, 20).map((campaign) => ({
+        feature: campaign.feature,
+        href: `/campaigns/${encodeURIComponent(campaign.id)}`,
+        name: campaign.name,
+        status: campaign.status,
+      }))
+      for (const campaign of campaigns) state.known.add(campaign.href)
+      return { campaigns, ok: true as const }
     },
     inputSchema: z.object({}),
     maxCallsPerRun: 2,
@@ -123,10 +143,11 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
         draftsEnabled: contentDraftsEnabled(),
         sectionLabel: (key) => PLATFORM_DESTINATIONS.find((item) => item.key === key)?.label ?? key,
       })
-      const found = query ? searchPages(pages, query) : pages
+      const found = (query ? searchPages(pages, query) : pages).slice(0, 15)
+      for (const page of found) state.known.add(page.href)
       return {
         ok: true as const,
-        pages: found.slice(0, 15).map((page) => ({
+        pages: found.map((page) => ({
           href: page.href,
           name: page.section ? `${page.label} · ${page.section}` : page.label,
         })),
@@ -141,13 +162,14 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
 
   const offerLink = defineTool(run, {
     description:
-      'Offer the person a button that opens a page of this app, under your reply. Use an ' +
-      'address a tool returned. Up to four per reply.',
+      'Offer the person a button that opens a page of this app, under your reply. Only an ' +
+      'address a tool returned this turn, or the current page. Up to four per reply.',
     effect: 'read',
     execute: ({ href, label }) => {
       const safe = internalHref(href)
-      if (!safe)
-        return { error: 'Only addresses inside this app can be offered.', ok: false as const }
+      // Names of work are data a teammate wrote; only addresses a lookup returned are offered.
+      if (!safe || !state.known.has(safe))
+        return { error: 'Offer only an address a tool returned this turn.', ok: false as const }
       if (state.links.length >= MAX_LINKS)
         return { error: 'Four links is the most.', ok: false as const }
       if (!state.links.some((link) => link.href === safe)) state.links.push({ href: safe, label })

@@ -16,18 +16,29 @@ import type { PageEntity } from '@/lib/assistant/page-context'
 /** What a page adds to the address and title the bar already knows. */
 export type PageContextPart = { facts?: string[]; entities?: PageEntity[] }
 
-type Registry = {
+/** Where the bar renders, and whether it is the shell's fallback. */
+type Slot = { element: HTMLElement; fallback: boolean }
+
+/** What registered: read by the bar. */
+type RegistryState = {
   abilities: ReadonlyMap<string, AssistantAbility>
   parts: ReadonlyMap<string, PageContextPart>
   slot: HTMLElement | null
-  setAbility: (key: string, ability: AssistantAbility | null) => void
-  setPart: (key: string, part: PageContextPart | null) => void
-  setSlot: (key: string, slot: { element: HTMLElement; fallback: boolean } | null) => void
 }
 
-const AssistantRegistry = createContext<Registry | null>(null)
+/** How pages register: stable for the provider's life, so registering re-renders no one. */
+type RegistryActions = {
+  setAbility: (key: string, ability: AssistantAbility | null) => void
+  setPart: (key: string, part: PageContextPart | null) => void
+  setSlot: (key: string, slot: Slot | null) => void
+}
 
+const State = createContext<RegistryState | null>(null)
+const Actions = createContext<RegistryActions | null>(null)
+
+/** The map with `key` set or removed; the same map when nothing changes. */
 function withEntry<T>(map: ReadonlyMap<string, T>, key: string, value: T | null) {
+  if (value === null ? !map.has(key) : map.get(key) === value) return map
   const next = new Map(map)
   if (value === null) next.delete(key)
   else next.set(key, value)
@@ -42,30 +53,34 @@ function withEntry<T>(map: ReadonlyMap<string, T>, key: string, value: T | null)
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const [abilities, setAbilities] = useState<ReadonlyMap<string, AssistantAbility>>(new Map())
   const [parts, setParts] = useState<ReadonlyMap<string, PageContextPart>>(new Map())
-  const [slots, setSlots] = useState<
-    ReadonlyMap<string, { element: HTMLElement; fallback: boolean }>
-  >(new Map())
-  const registry = useMemo<Registry>(
+  const [slots, setSlots] = useState<ReadonlyMap<string, Slot>>(new Map())
+  const actions = useMemo<RegistryActions>(
     () => ({
-      abilities,
-      parts,
-      // A page's own slot beats the shell's fallback; among pages, the latest.
-      slot:
-        [...slots.values()].findLast((item) => !item.fallback)?.element ??
-        [...slots.values()].at(-1)?.element ??
-        null,
       setAbility: (key, ability) => setAbilities((map) => withEntry(map, key, ability)),
       setPart: (key, part) => setParts((map) => withEntry(map, key, part)),
       setSlot: (key, slot) => setSlots((map) => withEntry(map, key, slot)),
     }),
-    [abilities, parts, slots]
+    []
   )
-  return <AssistantRegistry value={registry}>{children}</AssistantRegistry>
+  const state = useMemo<RegistryState>(() => {
+    const all = [...slots.values()]
+    return {
+      abilities,
+      parts,
+      // A page's own slot beats the shell's fallback; among pages, the latest.
+      slot: (all.findLast((item) => !item.fallback) ?? all.at(-1))?.element ?? null,
+    }
+  }, [abilities, parts, slots])
+  return (
+    <Actions value={actions}>
+      <State value={state}>{children}</State>
+    </Actions>
+  )
 }
 
-/** The registry, for the bar. */
-export function useAssistantRegistry(): Registry | null {
-  return useContext(AssistantRegistry)
+/** What registered, for the bar. */
+export function useAssistantRegistry(): RegistryState | null {
+  return useContext(State)
 }
 
 /**
@@ -73,9 +88,9 @@ export function useAssistantRegistry(): Registry | null {
  * on it. Kept while the calling component is mounted.
  */
 export function useAssistantPage(part: PageContextPart) {
-  const registry = useContext(AssistantRegistry)
+  const setPart = useContext(Actions)?.setPart
   const key = useId()
-  const setPart = registry?.setPart
+  // Re-registers only when the content changes, not on every render.
   const json = JSON.stringify(part)
   useEffect(() => {
     if (!setPart) return
@@ -96,31 +111,19 @@ export function AssistantPageContext(part: PageContextPart) {
  * latest one, so it may close over fresh state.
  */
 export function useAssistantAbility(ability: AssistantAbility | null) {
-  const registry = useContext(AssistantRegistry)
+  const setAbility = useContext(Actions)?.setAbility
   const key = useId()
   const latest = useRef(ability)
   useEffect(() => {
     latest.current = ability
   })
-  const setAbility = registry?.setAbility
-  const description = ability
-    ? JSON.stringify([
-        ability.id,
-        ability.label,
-        ability.placeholder,
-        ability.priority,
-        ability.prominent ?? false,
-      ])
-    : null
+  const id = ability?.id
+  const label = ability?.label ?? ''
+  const placeholder = ability?.placeholder ?? ''
+  const priority = ability?.priority ?? 0
+  const prominent = ability?.prominent ?? false
   useEffect(() => {
-    if (!setAbility || !description) return
-    const [id, label, placeholder, priority, prominent] = JSON.parse(description) as [
-      string,
-      string,
-      string,
-      number,
-      boolean,
-    ]
+    if (!setAbility || !id) return
     setAbility(key, {
       id,
       label,
@@ -133,7 +136,7 @@ export function useAssistantAbility(ability: AssistantAbility | null) {
       },
     })
     return () => setAbility(key, null)
-  }, [setAbility, key, description])
+  }, [setAbility, key, id, label, placeholder, priority, prominent])
 }
 
 /**
@@ -149,9 +152,8 @@ export function AssistantSlot({
   /** Centred at the foot, or at the foot's end beside the page's own controls. */
   placement?: 'center' | 'end'
 }) {
-  const registry = useContext(AssistantRegistry)
+  const setSlot = useContext(Actions)?.setSlot
   const key = useId()
-  const setSlot = registry?.setSlot
   const [element, setElement] = useState<HTMLElement | null>(null)
   useEffect(() => {
     if (!setSlot || !element) return

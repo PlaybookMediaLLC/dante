@@ -1,5 +1,8 @@
 import type { PageContext } from './page-context'
 
+/** Characters one message to the assistant may have. */
+export const ASSISTANT_ASK_MAX = 2_000
+
 /**
  * The assistant bar's plug-in point. A page registers what the assistant can
  * do there as an ability (`useAssistantAbility`); the bar answers with the

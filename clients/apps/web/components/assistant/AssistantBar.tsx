@@ -11,10 +11,13 @@ import { StopIcon } from '@phosphor-icons/react/dist/ssr/Stop'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
-import { useCopilotAvailable } from '@/components/editor-ai/useCopilotAvailable'
-import type { AssistantAbility, AssistantEntry } from '@/lib/assistant/ability'
+import { useAiAvailable } from './useAiAvailable'
+import {
+  ASSISTANT_ASK_MAX,
+  type AssistantAbility,
+  type AssistantEntry,
+} from '@/lib/assistant/ability'
 import type { PageContext } from '@/lib/assistant/page-context'
-import { EDITOR_ASK_MAX } from '@/lib/ai/editor-ask'
 import { platformArea } from '@/lib/platform/navigation'
 import { withoutLocale } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
@@ -55,7 +58,7 @@ function pageTitle(): string {
  */
 export function AssistantBar() {
   const registry = useAssistantRegistry()
-  const available = useCopilotAvailable()
+  const available = useAiAvailable()
   const path = withoutLocale(usePathname())
   const [title, setTitle] = useState('')
   const [text, setText] = useState('')
@@ -86,10 +89,10 @@ export function AssistantBar() {
   // the bar open where it is the page's main tool and closed elsewhere.
   const prominent = ability.prominent === true
   useEffect(() => {
-    if (conversationAbility === ability.id || useConversation.getState().controller) return
+    if (conversationAbility === ability.id || running) return
     startOver(ability.id)
     setOpen(prominent)
-  }, [ability.id, conversationAbility, prominent])
+  }, [ability.id, conversationAbility, prominent, running])
 
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight })
@@ -97,20 +100,32 @@ export function AssistantBar() {
 
   if (!registry || !available || !registry.slot) return null
 
+  // Within the contract's limits, so a long name or fact never fails the turn.
+  const clip = (value: string, max: number) => value.slice(0, max)
   const page = (): PageContext => {
     const parts = [...registry.parts.values()]
     return {
-      area: platformArea(path) ?? path.split('/')[1] ?? 'home',
-      entities: parts.flatMap((part) => part.entities ?? []).slice(0, 8),
-      facts: parts.flatMap((part) => part.facts ?? []).slice(0, 12),
-      path,
-      title: pageTitle() || title,
+      area: clip(platformArea(path) ?? path.split('/')[1] ?? 'home', 40),
+      entities: parts
+        .flatMap((part) => part.entities ?? [])
+        .slice(0, 8)
+        .map((entity) => ({
+          id: clip(entity.id, 80),
+          type: clip(entity.type, 40),
+          ...(entity.name ? { name: clip(entity.name, 200) } : {}),
+        })),
+      facts: parts
+        .flatMap((part) => part.facts ?? [])
+        .slice(0, 12)
+        .map((fact) => clip(fact, 300)),
+      path: clip(path, 300),
+      title: clip(pageTitle() || title, 200),
     }
   }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    const ask = text.trim().slice(0, EDITOR_ASK_MAX)
+    const ask = text.trim().slice(0, ASSISTANT_ASK_MAX)
     if (!ask || running) return
     setText('')
     if (conversationAbility !== ability.id) startOver(ability.id)
@@ -208,7 +223,7 @@ export function AssistantBar() {
           aria-label="Ask the assistant"
           placeholder={ability.placeholder}
           value={text}
-          maxLength={EDITOR_ASK_MAX}
+          maxLength={ASSISTANT_ASK_MAX}
           onChange={(event) => setText(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Escape' && !prominent && !running) setOpen(false)
@@ -257,6 +272,7 @@ export function AssistantBar() {
       variant="custom"
       size={null}
       className="assistant-launcher"
+      aria-label="Open the assistant"
       data-board-control
       onClick={() => {
         setOpen(true)
