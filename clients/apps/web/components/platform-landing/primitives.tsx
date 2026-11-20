@@ -122,7 +122,7 @@ export function Window({
         className
       )}
     >
-      <div className="flex items-center justify-between gap-4 px-3 pb-2.5 pt-2 text-[13px]">
+      <div className="flex items-center justify-between gap-4 px-3 pb-2.5 pt-2 text-[0.8125rem]">
         <span className="flex min-w-0 items-center gap-2 truncate text-white/85">{title}</span>
         {meta ? <span className="shrink-0 text-[#858585]">{meta}</span> : null}
       </div>

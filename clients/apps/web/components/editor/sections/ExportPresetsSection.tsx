@@ -16,7 +16,7 @@ import { EXPORT_SIZE_PRESETS, SIZE_GROUP_LABELS } from '@/lib/export/sizes'
 export function ExportPresetsSection() {
   return (
     <SectionWrapper title="Export Presets" defaultOpen={false}>
-      <p className="mb-2 text-[10px] text-muted-foreground">Canvas size at 1×. Export scale multiplies these dimensions.</p>
+      <p className="mb-2 text-[0.625rem] text-muted-foreground">Canvas size at 1×. Export scale multiplies these dimensions.</p>
       <div className="grid grid-cols-2 gap-1.5">
         {EXPORT_SIZE_PRESETS.map((preset) => (
           <Button variant="custom" size={null}
@@ -28,14 +28,14 @@ export function ExportPresetsSection() {
             className="px-2.5 py-2 rounded-lg border border-border/30 hover:border-border/60 hover:bg-accent/50 transition-all text-left active:scale-[0.98]"
           >
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">
                 {SIZE_GROUP_LABELS[preset.group]}
               </span>
             </div>
-            <p className="text-[11px] font-semibold text-foreground mt-0.5">
+            <p className="text-[0.6875rem] font-semibold text-foreground mt-0.5">
               {preset.label}
             </p>
-            <p className="text-[9px] text-muted-foreground">{preset.width}×{preset.height}</p>
+            <p className="text-[0.5625rem] text-muted-foreground">{preset.width}×{preset.height}</p>
           </Button>
         ))}
       </div>

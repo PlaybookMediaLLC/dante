@@ -169,9 +169,9 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                         <Checkbox  checked={Boolean(choice)} onCheckedChange={(checked) => toggleTarget(target.id, (checked === true))} className="mt-0.5" />
                         <span className="min-w-0 flex-1">
                           <span className="font-medium">{target.shortName}</span> <span className="text-muted-foreground">· {target.name}</span>
-                          <span className="block text-[10px] text-muted-foreground">{target.devices}</span>
+                          <span className="block text-[0.625rem] text-muted-foreground">{target.devices}</span>
                         </span>
-                        <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px]', target.requirement === 'required' ? 'bg-foreground text-background' : 'bg-foreground/[0.07] text-muted-foreground')} title={target.requirementNote}>
+                        <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[0.625rem]', target.requirement === 'required' ? 'bg-foreground text-background' : 'bg-foreground/[0.07] text-muted-foreground')} title={target.requirementNote}>
                           {REQUIREMENT_BADGE[target.requirement]}
                         </span>
                       </Label>
@@ -185,7 +185,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                           >
                             <SelectTrigger
                               aria-label={`${target.shortName} size`}
-                              className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]"
+                              className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[0.6875rem]"
                             >
                               <SelectValue />
                             </SelectTrigger>
@@ -209,7 +209,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                             >
                               <SelectTrigger
                                 aria-label={`${target.shortName} orientation`}
-                                className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[11px]"
+                                className="h-7 rounded border border-foreground/10 bg-background px-1.5 text-[0.6875rem]"
                               >
                                 <SelectValue />
                               </SelectTrigger>
@@ -222,7 +222,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                               </SelectContent>
                             </Select>
                           ) : null}
-                          <span className="self-center text-[10px] text-muted-foreground">Up to {target.maxCount} per language</span>
+                          <span className="self-center text-[0.625rem] text-muted-foreground">Up to {target.maxCount} per language</span>
                         </div>
                       ) : null}
                     </div>
@@ -270,7 +270,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                 <span>
                   Slides ({settings.slideIds.length} of {document.slides.length})
                 </span>
-                <Button variant="custom" size={null} type="button" className="text-[11px] font-normal underline underline-offset-2" onClick={() => update({ slideIds: allSlideIds })}>
+                <Button variant="custom" size={null} type="button" className="text-[0.6875rem] font-normal underline underline-offset-2" onClick={() => update({ slideIds: allSlideIds })}>
                   All
                 </Button>
               </legend>
@@ -287,7 +287,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                         const slideIds = included ? settings.slideIds.filter((id) => id !== slide.id) : allSlideIds.filter((id) => id === slide.id || settings.slideIds.includes(id))
                         if (slideIds.length) update({ slideIds })
                       }}
-                      className={cn('h-7 min-w-7 rounded border px-1.5 text-[11px] tabular-nums', included ? 'border-foreground/40 bg-foreground/[0.1]' : 'border-foreground/10 text-muted-foreground line-through')}
+                      className={cn('h-7 min-w-7 rounded border px-1.5 text-[0.6875rem] tabular-nums', included ? 'border-foreground/40 bg-foreground/[0.1]' : 'border-foreground/10 text-muted-foreground line-through')}
                     >
                       {index + 1}
                     </Button>
@@ -327,7 +327,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                 <span className="text-muted-foreground">File name prefix</span>
                 <Input value={settings.prefix} maxLength={40} onChange={(event) => update({ prefix: event.target.value })} placeholder="e.g. your app name" className="mt-1 h-8 w-full rounded-md border border-foreground/10 bg-background px-2 text-xs" />
               </Label>
-              <p className="break-all text-[10px] text-muted-foreground">Example: {files[0]?.path ?? '—'}</p>
+              <p className="break-all text-[0.625rem] text-muted-foreground">Example: {files[0]?.path ?? '—'}</p>
             </fieldset>
           </div>
         </div>
@@ -352,7 +352,7 @@ export function ExportDialog({ open, onOpenChange, strict = false, beforeExport,
                           <SlideThumbnail key={slide.id} document={document} index={index} size={size} targetId={target.id} locale={settings.locales[0]} height={150} className="rounded ring-1 ring-foreground/10" />
                         ))}
                     </div>
-                    <figcaption className="text-[10px] text-muted-foreground">
+                    <figcaption className="text-[0.625rem] text-muted-foreground">
                       {target.shortName} · {sizeLabel(size)}
                     </figcaption>
                   </figure>

@@ -244,7 +244,7 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                     style={{ width: `${w}px`, height: `${h}px` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground mt-1">
+                <span className="text-[0.625rem] text-muted-foreground mt-1">
                   {ar.width}:{ar.height}
                 </span>
               </Button>
@@ -300,10 +300,10 @@ export const AspectRatioPicker = ({ onSelect }: AspectRatioPickerProps = {} as A
                       </div>
                     </div>
                     <div className="text-center mt-1">
-                      <span className="text-[10px] text-muted-foreground block leading-tight">
+                      <span className="text-[0.625rem] text-muted-foreground block leading-tight">
                         {preset.label}
                       </span>
-                      <span className="text-[10px] text-muted-foreground/60 block leading-tight">
+                      <span className="text-[0.625rem] text-muted-foreground/60 block leading-tight">
                         {preset.ratio}
                       </span>
                     </div>

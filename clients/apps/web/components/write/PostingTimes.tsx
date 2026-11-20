@@ -126,13 +126,13 @@ export function PostingTimes({
                     <title>{`${hour.hour}:00: ${hour.count ? `${hour.average.toFixed(1)} average from ${hour.count} posts` : 'not measured'}`}</title>
                   </rect>
                 ))}
-                <text x="0" y="98" className="fill-current text-[0.5625rem]">
+                <text x="0" y="98" className="fill-current text-[9px]">
                   00:00
                 </text>
-                <text x="132" y="98" className="fill-current text-[0.5625rem]">
+                <text x="132" y="98" className="fill-current text-[9px]">
                   12:00
                 </text>
-                <text x="258" y="98" className="fill-current text-[0.5625rem]">
+                <text x="258" y="98" className="fill-current text-[9px]">
                   23:00
                 </text>
               </svg>

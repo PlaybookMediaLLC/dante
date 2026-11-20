@@ -87,7 +87,7 @@ function HexColorField({
   };
 
   return (
-    <Label className="block min-w-0 space-y-1.5 text-[10px] text-muted-foreground">
+    <Label className="block min-w-0 space-y-1.5 text-[0.625rem] text-muted-foreground">
       <span>{label}</span>
       <span className="flex h-8 items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.035] px-1.5 focus-within:border-foreground/25 focus-within:ring-1 focus-within:ring-foreground/10">
         <Input
@@ -112,7 +112,7 @@ function HexColorField({
             }
           }}
           spellCheck={false}
-          className="min-w-[76px] flex-1 px-0 bg-transparent font-mono text-[10px] uppercase text-foreground outline-none"
+          className="min-w-[76px] flex-1 px-0 bg-transparent font-mono text-[0.625rem] uppercase text-foreground outline-none"
         />
       </span>
     </Label>
@@ -315,7 +315,7 @@ export function BackgroundSection() {
             )}>
               <Image01Icon size={14} className={customBgType === 'image' ? "text-foreground" : "text-muted-foreground"} />
             </div>
-            <span className={cn("text-[10px] font-medium", customBgType === 'image' ? "text-foreground" : "text-muted-foreground")}>Image</span>
+            <span className={cn("text-[0.625rem] font-medium", customBgType === 'image' ? "text-foreground" : "text-muted-foreground")}>Image</span>
           </div>
 
           <ColorPicker
@@ -354,7 +354,7 @@ export function BackgroundSection() {
                 }}
               />
             </div>
-            <span className={cn("text-[10px] font-medium", customBgType === 'transparent' ? "text-foreground" : "text-muted-foreground")}>Transparent</span>
+            <span className={cn("text-[0.625rem] font-medium", customBgType === 'transparent' ? "text-foreground" : "text-muted-foreground")}>Transparent</span>
           </Button>
         </div>
         {bgUploadError && <p className="text-xs text-destructive mt-2">{bgUploadError}</p>}
@@ -420,7 +420,7 @@ export function BackgroundSection() {
               e.stopPropagation();
               shuffleMagicGradient();
             }}
-            className="py-0.5 bg-foreground/[0.04] hover:bg-foreground/[0.08] cursor-pointer border border-foreground/10 rounded-md transition-colors flex text-[10px] text-muted-foreground space-x-1 px-2 items-center"
+            className="py-0.5 bg-foreground/[0.04] hover:bg-foreground/[0.08] cursor-pointer border border-foreground/10 rounded-md transition-colors flex text-[0.625rem] text-muted-foreground space-x-1 px-2 items-center"
           >
             <span>SHUFFLE</span>
             <ShuffleIcon size={12} />

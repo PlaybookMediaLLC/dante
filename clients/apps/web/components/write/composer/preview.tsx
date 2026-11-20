@@ -96,7 +96,7 @@ export function PreviewPanel({
   }
   return (
     <div className="flex flex-col gap-3 p-4" data-testid="preview-panel">
-      <p className="rounded-md border border-dashed border-input px-2 py-1 text-center text-[0.6875rem] text-muted-foreground">
+      <p className="rounded-md border border-dashed border-input px-2 py-1 text-center text-[11px] text-muted-foreground">
         Preview — not published
       </p>
       <PreviewToolbar
@@ -112,7 +112,7 @@ export function PreviewPanel({
           </div>
         </ScaledPreview>
       </DescribeMediaContext.Provider>
-      <p className="text-[0.6875rem] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground">
         Cutoffs vary by app and device.
       </p>
       <PreviewLengths item={item} />
@@ -286,7 +286,7 @@ function PreviewLengths({ item }: { item: PreviewCard }) {
   if (posts.length === 0) return null
   return (
     <ul
-      className="grid gap-0.5 text-[0.6875rem] tabular-nums"
+      className="grid gap-0.5 text-[11px] tabular-nums"
       data-testid="preview-lengths"
       title={countingNote(channel)}
     >
@@ -401,7 +401,7 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
       <p
         ref={paragraph}
         id={id}
-        className="whitespace-pre-wrap break-words text-[0.9375rem] leading-[20px] text-foreground"
+        className="whitespace-pre-wrap break-words text-[15px] leading-[20px] text-foreground"
         style={
           !open && lines
             ? {
@@ -420,7 +420,7 @@ function Truncated({ channel, text }: { channel: DraftChannel; text: string }) {
         <Button
           aria-controls={id}
           aria-expanded={open}
-          className="text-[0.9375rem] text-sky-700 dark:text-sky-400 hover:underline"
+          className="text-[15px] text-sky-700 dark:text-sky-400 hover:underline"
           onClick={() => setOpen(!open)}
           size={null}
           type="button"
@@ -551,7 +551,7 @@ function Poll({
           {option || `Option ${index + 1}`}
         </span>
       ))}
-      <p className="text-[0.6875rem] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground">
         {channel === 'threads' && poll.durationMinutes === 0
           ? 'Duration set by the platform'
           : poll.durationMinutes >= 1_440
@@ -569,7 +569,7 @@ function TargetCard({ target }: { target: DraftTarget }) {
       className="mt-2 rounded-xl border border-border p-3 text-sm text-foreground"
       data-testid="preview-target"
     >
-      <p className="text-[0.6875rem] text-muted-foreground">{target.author ?? target.url}</p>
+      <p className="text-[11px] text-muted-foreground">{target.author ?? target.url}</p>
       {target.text ? (
         <p className="mt-1 line-clamp-3">{target.text}</p>
       ) : (
@@ -642,7 +642,7 @@ function ThreadPreview({ item, target }: { item: PreviewCard; target: DraftTarge
                 </div>
               ) : null}
               {settings.disclosures?.madeWithAi || settings.disclosures?.paidPartnership ? (
-                <p className="mt-1 text-[0.6875rem] text-muted-foreground">
+                <p className="mt-1 text-[11px] text-muted-foreground">
                   {[
                     settings.disclosures.paidPartnership ? 'Paid partnership' : '',
                     settings.disclosures.madeWithAi ? 'Made with AI' : '',
@@ -652,7 +652,7 @@ function ThreadPreview({ item, target }: { item: PreviewCard; target: DraftTarge
                 </p>
               ) : null}
               {settings.replySettings && settings.replySettings !== 'everyone' ? (
-                <p className="mt-1 text-[0.6875rem] text-sky-700 dark:text-sky-400">
+                <p className="mt-1 text-[11px] text-sky-700 dark:text-sky-400">
                   Some accounts can’t reply
                 </p>
               ) : null}
@@ -711,7 +711,7 @@ function LinkedInPost({ item, target }: { item: PreviewCard; target: DraftTarget
           <p className="truncate text-ui-lg font-semibold">
             {account.displayName ?? account.handle ?? 'LinkedIn'}
           </p>
-          <p className="text-[0.6875rem] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             now · {options?.visibility === 'CONNECTIONS' ? 'Connections only' : 'Anyone'}
           </p>
         </div>

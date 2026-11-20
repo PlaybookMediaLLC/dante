@@ -72,7 +72,7 @@ export function ChecksDialog({ open, onOpenChange, onExport }: DialogProps & { o
                       <li key={issue.id} className="flex items-start gap-2 rounded-md border border-foreground/10 p-2 text-xs">
                         <span className="min-w-0 flex-1">
                           <span className="block">{issue.message}</span>
-                          <span className="block text-[10px] text-muted-foreground">
+                          <span className="block text-[0.625rem] text-muted-foreground">
                             {[slideNumber ? `Slide ${slideNumber}` : null, issue.targetId ? getStoreTarget(issue.targetId)?.shortName : null, issue.locale ? localeName(issue.locale) : null].filter(Boolean).join(' · ')}
                             {issue.source ? (
                               <>
@@ -85,7 +85,7 @@ export function ChecksDialog({ open, onOpenChange, onExport }: DialogProps & { o
                           </span>
                         </span>
                         {issue.slideId ? (
-                          <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => go(issue)}>
+                          <Button size="sm" variant="outline" className="h-7 text-[0.6875rem]" onClick={() => go(issue)}>
                             Show
                           </Button>
                         ) : null}

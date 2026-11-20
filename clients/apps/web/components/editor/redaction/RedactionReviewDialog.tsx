@@ -355,7 +355,7 @@ export function RedactionReviewDialog({
                 </p>
                 {items.length > 0 ? (
                   <Button variant="custom" size={null}
-                    className="text-[11px] text-muted-foreground hover:text-foreground"
+                    className="text-[0.6875rem] text-muted-foreground hover:text-foreground"
                     onClick={() => setItems((current) => current.map((item) => ({ ...item, approved: true })))}
                     type="button"
                   >
@@ -397,7 +397,7 @@ export function RedactionReviewDialog({
                   </li>
                 ))}
               </ul>
-              <p className="text-[11px] leading-snug text-muted-foreground">
+              <p className="text-[0.6875rem] leading-snug text-muted-foreground">
                 Click a region to select it, click again to skip or include it. Drag to move; drag the corner to resize;
                 drag on the screenshot to add one.
               </p>

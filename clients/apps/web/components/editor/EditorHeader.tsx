@@ -242,7 +242,7 @@ export function EditorHeader() {
             aria-expanded={showTemplates}
             aria-label="Templates"
             className={cn(
-              'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium',
+              'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[0.8125rem] font-medium',
               'transition-colors duration-150',
               showTemplates
                 ? 'bg-foreground/[0.08] text-foreground'
@@ -292,7 +292,7 @@ export function EditorHeader() {
                   value={String(rulerInterval)}
                 >
                   <SelectTrigger
-                    className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[11px] text-muted-foreground outline-none hover:text-foreground"
+                    className="h-7 shrink-0 cursor-pointer rounded-md border-0 bg-transparent px-1 text-[0.6875rem] text-muted-foreground outline-none hover:text-foreground"
                     disabled={!showRulers}
                     title="Ruler interval"
                     aria-label={'Ruler interval'}
@@ -397,7 +397,7 @@ export function EditorHeader() {
           {hasImage && showVideoExport && !isMobile ? (
             <Button variant="custom" size={null}
               aria-label="Export Video"
-              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+              className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
               onClick={() => setExportSlideshowOpen(true)}
               type="button"
             >
@@ -424,7 +424,7 @@ export function EditorHeader() {
               <Button variant="custom" size={null}
                 aria-label="Export"
                 className={cn(
-                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-foreground text-[13px] font-medium text-background',
+                  'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg bg-foreground text-[0.8125rem] font-medium text-background',
                   'shadow-sm transition-[opacity,transform] duration-150 hover:opacity-90 active:scale-[0.98]',
                   'disabled:pointer-events-none disabled:bg-foreground/[0.07] disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none',
                   isMobile ? 'px-2' : 'px-3'

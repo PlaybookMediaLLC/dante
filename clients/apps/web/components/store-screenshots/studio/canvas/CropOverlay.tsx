@@ -103,24 +103,24 @@ export function CropOverlay({ node, layer, owner, scale, overlay, toScreen, view
       <Button variant="custom" size={null} type="button" aria-label="Zoom screenshot out" title="Zoom out (−)" onClick={() => zoomBy(1 / 1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
         −
       </Button>
-      <span className="min-w-12 text-center text-[11px] tabular-nums text-muted-foreground" aria-live="polite">
+      <span className="min-w-12 text-center text-[0.6875rem] tabular-nums text-muted-foreground" aria-live="polite">
         {Math.round(layer.image.scale * 100)}%
       </span>
       <Button variant="custom" size={null} type="button" aria-label="Zoom screenshot in" title="Zoom in (+)" onClick={() => zoomBy(1.1)} className="flex size-8 items-center justify-center rounded-full hover:bg-foreground/[0.07]">
         +
       </Button>
       <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-foreground/10" />
-      <Button variant="custom" size={null} type="button" onClick={() => write(customFramingFor(node, 'fill'))} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Fill the screen">
+      <Button variant="custom" size={null} type="button" onClick={() => write(customFramingFor(node, 'fill'))} className="h-8 rounded-full px-2.5 text-[0.6875rem] hover:bg-foreground/[0.07]" title="Fill the screen">
         Fill
       </Button>
-      <Button variant="custom" size={null} type="button" onClick={() => write({ mode: 'custom', scale: 1, offsetX: 0, offsetY: 0 })} className="h-8 rounded-full px-2.5 text-[11px] hover:bg-foreground/[0.07]" title="Show the whole screenshot">
+      <Button variant="custom" size={null} type="button" onClick={() => write({ mode: 'custom', scale: 1, offsetX: 0, offsetY: 0 })} className="h-8 rounded-full px-2.5 text-[0.6875rem] hover:bg-foreground/[0.07]" title="Show the whole screenshot">
         Fit
       </Button>
       <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-foreground/10" />
-      <Button variant="custom" size={null} type="button" onClick={cancel} className="h-8 rounded-full px-2.5 text-[11px] text-muted-foreground hover:bg-foreground/[0.07]" title="Cancel (Esc)">
+      <Button variant="custom" size={null} type="button" onClick={cancel} className="h-8 rounded-full px-2.5 text-[0.6875rem] text-muted-foreground hover:bg-foreground/[0.07]" title="Cancel (Esc)">
         Cancel
       </Button>
-      <Button variant="custom" size={null} type="button" onClick={done} className="h-8 rounded-full bg-foreground px-3 text-[11px] font-medium text-background" title="Done (Enter)">
+      <Button variant="custom" size={null} type="button" onClick={done} className="h-8 rounded-full bg-foreground px-3 text-[0.6875rem] font-medium text-background" title="Done (Enter)">
         Done
       </Button>
     </div>

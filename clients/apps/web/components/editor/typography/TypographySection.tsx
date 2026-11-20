@@ -49,7 +49,7 @@ export function TypographySection() {
                 {template.layers.map((layer) => <span key={layer.role} style={{ fontFamily: getFontCSS(layer.fontFamily), fontWeight: layer.fontWeight, color: layer.color, fontSize: layer.role === 'headline' ? 15 : 9, lineHeight: layer.lineHeight ?? 1.2, letterSpacing: `${layer.letterSpacing ?? 0}em` }}>{layer.role === 'headline' ? 'Your next big thing' : layer.text}</span>)}
               </div>
             </div>
-            <p className="truncate px-1.5 py-1 text-[10px] font-medium text-muted-foreground group-hover:text-foreground">
+            <p className="truncate px-1.5 py-1 text-[0.625rem] font-medium text-muted-foreground group-hover:text-foreground">
               {template.name}
               {template.use === 'app-store' ? ' · App Store' : ''}
             </p>

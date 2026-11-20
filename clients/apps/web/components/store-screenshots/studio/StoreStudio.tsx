@@ -467,7 +467,7 @@ function StartScreen({ projects, onStart, onOpen, onImport }: { projects: Projec
                   <li key={project.id}>
                     <Button variant="custom" size={null} type="button" onClick={() => onOpen(project.id)} className="w-full rounded-lg border border-foreground/10 p-3 text-left hover:bg-foreground/[0.03]">
                       <span className="block truncate text-ui-lg font-medium">{project.name}</span>
-                      <span className="text-[11px] text-muted-foreground">{project.slideCount} slides</span>
+                      <span className="text-[0.6875rem] text-muted-foreground">{project.slideCount} slides</span>
                     </Button>
                   </li>
                 ))}

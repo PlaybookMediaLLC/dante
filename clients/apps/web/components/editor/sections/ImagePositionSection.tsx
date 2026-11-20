@@ -108,7 +108,7 @@ export function ImagePositionSection() {
         <Button variant="custom" size={null}
           type="button"
           onClick={handleAuto}
-          className="flex h-9 w-full items-center justify-center rounded-md bg-foreground/[0.04] text-[11px] font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+          className="flex h-9 w-full items-center justify-center rounded-md bg-foreground/[0.04] text-[0.6875rem] font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
         >
           Auto
         </Button>

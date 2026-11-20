@@ -52,7 +52,7 @@ function TemplateLoading({ width, height }: { width: number; height: number }): 
     <main className="flex min-h-0 flex-1 items-center overflow-auto bg-foreground/[0.018] px-5 py-8 sm:px-8">
       <div className="mx-auto w-full max-w-[1120px]">
         <div className="mb-5 text-center">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-xs">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-background px-2.5 py-1 text-[0.6875rem] font-medium text-muted-foreground shadow-xs">
             <span className="relative flex size-1.5" aria-hidden="true">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-foreground/30 motion-reduce:animate-none" />
               <span className="relative inline-flex size-1.5 rounded-full bg-foreground/55" />

@@ -397,7 +397,7 @@ export function ControlDivider() {
 export function ControlField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex shrink-0 flex-col items-start gap-1.5">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-white/40">
+      <span className="text-[0.625rem] font-medium uppercase tracking-wide text-white/40">
         {label}
       </span>
       {children}

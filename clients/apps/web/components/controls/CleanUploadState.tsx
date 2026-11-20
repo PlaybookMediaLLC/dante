@@ -339,7 +339,7 @@ export function CleanUploadState() {
           >
             <div className="flex items-center gap-2.5 w-full max-w-[120px]">
               <div className="flex-1 h-px bg-foreground/20" />
-              <span className="text-[10px] text-foreground/75">or</span>
+              <span className="text-[0.625rem] text-foreground/75">or</span>
               <div className="flex-1 h-px bg-foreground/20" />
             </div>
 

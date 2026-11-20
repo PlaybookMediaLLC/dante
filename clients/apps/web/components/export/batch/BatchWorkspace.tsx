@@ -174,7 +174,7 @@ function BatchItemCard({
         <DocumentPreview alt={`${item.name} with the batch style`} document={preview} />
         <span
           className={cn(
-            'absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium',
+            'absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.625rem] font-medium',
             item.status === 'done' && 'bg-emerald-500/90 text-white',
             item.status === 'failed' && 'bg-destructive text-white',
             item.status === 'rendering' && 'bg-background/90 text-foreground',
@@ -195,11 +195,11 @@ function BatchItemCard({
           <p className="truncate text-xs font-medium text-foreground" title={item.name}>
             {item.name}
           </p>
-          <p className="font-mono text-[10px] tabular-nums text-muted-foreground">
+          <p className="font-mono text-[0.625rem] tabular-nums text-muted-foreground">
             {item.width}×{item.height}
           </p>
           {item.error ? (
-            <p className="mt-1 text-[11px] leading-snug text-destructive" role="alert">
+            <p className="mt-1 text-[0.6875rem] leading-snug text-destructive" role="alert">
               {item.error}
             </p>
           ) : null}
@@ -540,7 +540,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                           {source.label}
                         </span>
                         {source.description ? (
-                          <span className="block truncate text-[11px] text-muted-foreground">
+                          <span className="block truncate text-[0.6875rem] text-muted-foreground">
                             {source.description}
                           </span>
                         ) : null}
@@ -564,7 +564,7 @@ export function BatchWorkspace({ onOpenChange, open, styleSources = [] }: BatchW
                 value={format}
               />
               {FORMAT_INFO[format].limitation ? (
-                <p className="text-[11px] leading-snug text-muted-foreground">
+                <p className="text-[0.6875rem] leading-snug text-muted-foreground">
                   {FORMAT_INFO[format].limitation}
                 </p>
               ) : null}

@@ -84,7 +84,7 @@ export function TimelineTrack({
     <div className="flex">
       {/* Track label */}
       <div className="w-28 shrink-0 flex items-center gap-1 px-2 py-1 bg-card border-b border-r border-border/30">
-        <span className="text-[10px] font-medium text-foreground/70 truncate flex-1">
+        <span className="text-[0.625rem] font-medium text-foreground/70 truncate flex-1">
           {track.name}
         </span>
         <Button
@@ -153,7 +153,7 @@ export function TimelineTrack({
         {/* Double-click hint */}
         {track.keyframes.length === 0 && !track.isLocked && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-[9px] text-foreground/30 italic">
+            <span className="text-[0.5625rem] text-foreground/30 italic">
               Double-click to add keyframe
             </span>
           </div>

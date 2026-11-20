@@ -994,7 +994,7 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                     >
                       <span aria-hidden="true">−</span>
                     </Button>
-                    <span className="min-w-9 text-center text-[10px] tabular-nums text-muted-foreground">
+                    <span className="min-w-9 text-center text-[0.625rem] tabular-nums text-muted-foreground">
                       {Math.round(source.image.scale * 100)}%
                     </span>
                     <Button variant="custom" size={null}
@@ -1017,14 +1017,14 @@ export const StoreSlideCanvas = React.memo(function StoreSlideCanvas({
                         onScreenImageChange?.(source.id, screenCropSession.original);
                         setScreenCropSession(null);
                       }}
-                      className="min-h-8 rounded-full px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
+                      className="min-h-8 rounded-full px-2.5 py-1 text-[0.625rem] font-medium text-muted-foreground hover:bg-foreground/[0.07] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/30"
                     >
                       Cancel
                     </Button>
                     <Button variant="custom" size={null}
                       type="button"
                       onClick={() => setScreenCropSession(null)}
-                      className="min-h-8 rounded-full bg-foreground px-2.5 py-1 text-[10px] font-medium text-background hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                      className="min-h-8 rounded-full bg-foreground px-2.5 py-1 text-[0.625rem] font-medium text-background hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
                     >
                       Done
                     </Button>

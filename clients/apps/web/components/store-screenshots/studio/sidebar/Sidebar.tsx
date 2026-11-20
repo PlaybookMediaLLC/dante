@@ -24,7 +24,7 @@ export function Sidebar(): React.JSX.Element {
             <TabsTrigger
               key={item}
               value={item}
-              className="h-7 rounded-md border-0 px-0 text-[11px] font-medium data-[state=active]:bg-foreground/[0.1] data-[state=active]:shadow-none"
+              className="h-7 rounded-md border-0 px-0 text-[0.6875rem] font-medium data-[state=active]:bg-foreground/[0.1] data-[state=active]:shadow-none"
             >
               {TABS[item]}
             </TabsTrigger>

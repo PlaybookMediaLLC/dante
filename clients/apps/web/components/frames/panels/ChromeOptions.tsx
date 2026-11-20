@@ -106,7 +106,7 @@ function Preview({
       </span>
       <span
         className={cn(
-          'w-full truncate text-center text-[10px] leading-tight',
+          'w-full truncate text-center text-[0.625rem] leading-tight',
           selected ? 'font-medium text-foreground' : 'text-muted-foreground'
         )}
       >
@@ -135,7 +135,7 @@ function AppearanceField({
         value={chrome.appearance}
       />
       {chrome.appearance === 'auto' ? (
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[0.6875rem] leading-snug text-muted-foreground">
           Follows the screenshot:{' '}
           {resolveAppearance('auto', chrome.tone) === 'dark' ? 'dark' : 'light'} chrome for this
           one.
@@ -184,7 +184,7 @@ function TabsField({
             placeholder={index === 0 ? 'Page title' : `Tab ${index + 1}`}
             value={title}
           />
-          <span id={`${group}-${index}-count`} className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{title.length}/60</span>
+          <span id={`${group}-${index}-count`} className="shrink-0 text-[0.625rem] tabular-nums text-muted-foreground">{title.length}/60</span>
           {tabs.length > 1 ? (
             <Button variant="custom" size={null}
               aria-label={`Remove tab ${index + 1}`}

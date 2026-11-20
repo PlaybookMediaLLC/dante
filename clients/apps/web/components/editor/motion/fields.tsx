@@ -55,7 +55,7 @@ export function NumberField({
           type="number"
           value={value}
         />
-        {suffix ? <span className="w-3 text-[10px] text-muted-foreground">{suffix}</span> : null}
+        {suffix ? <span className="w-3 text-[0.625rem] text-muted-foreground">{suffix}</span> : null}
       </div>
     </div>
   )

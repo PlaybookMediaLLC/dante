@@ -93,7 +93,7 @@ export function SegmentedControl({
               'relative z-10 flex h-full min-h-0 min-w-0 flex-1 items-center justify-center gap-1.5',
               'rounded-[5px] transition-colors duration-150',
               'outline-none focus-visible:ring-2 focus-visible:ring-foreground/25',
-              size === 'sm' ? 'px-1 text-[10px]' : 'px-1.5 text-[11px]',
+              size === 'sm' ? 'px-1 text-[0.625rem]' : 'px-1.5 text-[0.6875rem]',
               isActive
                 ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground'

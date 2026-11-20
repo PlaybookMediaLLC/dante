@@ -158,7 +158,7 @@ export function AnimationDialog({ open, onOpenChange, strict = false, beforeExpo
                 {playing ? 'Pause' : 'Play'}
               </Button>
               <Slider  aria-label="Timeline position" min={0} max={total} step={0.01} value={[time]} onValueChange={([nextValue]) => setTime(Number(nextValue))} className="flex-1" />
-              <span className="w-20 text-right text-[11px] tabular-nums text-muted-foreground">
+              <span className="w-20 text-right text-[0.6875rem] tabular-nums text-muted-foreground">
                 {time.toFixed(1)} / {total.toFixed(1)} s
               </span>
             </div>
@@ -169,7 +169,7 @@ export function AnimationDialog({ open, onOpenChange, strict = false, beforeExpo
                   type="button"
                   title={`${slide.name}: ${durations[index]} s`}
                   onClick={() => setTime(durations.slice(0, index).reduce((sum, value) => sum + value, 0) + Math.min(SETTLED_AT, durations[index] / 2))}
-                  className="border-r border-background bg-foreground/15 text-[9px] last:border-r-0 hover:bg-foreground/25"
+                  className="border-r border-background bg-foreground/15 text-[0.5625rem] last:border-r-0 hover:bg-foreground/25"
                   style={{ width: `${(durations[index] / total) * 100}%` }}
                 >
                   {index + 1}

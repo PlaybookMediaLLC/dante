@@ -75,14 +75,14 @@ function Rulers({ origin, scale, size, viewport }: { origin: Point; scale: numbe
   const ticks = (length: number) => Array.from({ length: Math.floor(length / step) + 1 }, (_, index) => index * step)
   return (
     <>
-      <div aria-hidden="true" className="absolute left-0 top-0 z-30 h-5 border-b border-foreground/10 bg-background/90 text-[9px] text-muted-foreground" style={{ width: viewport.width }}>
+      <div aria-hidden="true" className="absolute left-0 top-0 z-30 h-5 border-b border-foreground/10 bg-background/90 text-[0.5625rem] text-muted-foreground" style={{ width: viewport.width }}>
         {ticks(size.width).map((value) => (
           <span key={value} className="absolute top-0 h-full border-l border-foreground/20 pl-0.5" style={{ left: origin.x + value * scale }}>
             {value}
           </span>
         ))}
       </div>
-      <div aria-hidden="true" className="absolute left-0 top-0 z-30 w-5 border-r border-foreground/10 bg-background/90 text-[9px] text-muted-foreground" style={{ height: viewport.height }}>
+      <div aria-hidden="true" className="absolute left-0 top-0 z-30 w-5 border-r border-foreground/10 bg-background/90 text-[0.5625rem] text-muted-foreground" style={{ height: viewport.height }}>
         {ticks(size.height).map((value) => (
           <span key={value} className="absolute left-0 w-full border-t border-foreground/20 [writing-mode:vertical-rl]" style={{ top: origin.y + value * scale }}>
             {value}
@@ -644,7 +644,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
                   pendingDeviceRef.current = { slideId: slide.id, layerId: node.layerId }
                   fileInputRef.current?.click()
                 }}
-                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-foreground/15 bg-background px-3 py-1.5 text-[11px] font-medium shadow-md hover:bg-foreground/[0.05]"
+                className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-foreground/15 bg-background px-3 py-1.5 text-[0.6875rem] font-medium shadow-md hover:bg-foreground/[0.05]"
                 style={{ left: center.x, top: center.y }}
               >
                 Add screenshot
@@ -654,7 +654,7 @@ export function EditorCanvas({ onFiles }: EditorCanvasProps): React.JSX.Element 
         {view.rulers ? <Rulers origin={origin} scale={scale} size={size} viewport={viewport} /> : null}
       </div>
 
-      <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 text-[11px] text-muted-foreground" style={{ marginTop: view.rulers ? 20 : 0, marginLeft: view.rulers ? 20 : 0 }}>
+      <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 text-[0.6875rem] text-muted-foreground" style={{ marginTop: view.rulers ? 20 : 0, marginLeft: view.rulers ? 20 : 0 }}>
         <span className="rounded bg-background/80 px-1.5 py-0.5 tabular-nums">
           {target.shortName} · {size.width} × {size.height}
         </span>

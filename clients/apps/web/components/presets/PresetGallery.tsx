@@ -512,7 +512,7 @@ export function PresetGallery({
 
       {customPresets.length > 0 && (
         <>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+          <div className="text-[0.625rem] uppercase tracking-wider text-muted-foreground font-medium">
             My Presets
           </div>
           <div className={cn(layout === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3')}>
@@ -537,7 +537,7 @@ export function PresetGallery({
               </div>
             ))}
           </div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+          <div className="text-[0.625rem] uppercase tracking-wider text-muted-foreground font-medium">
             Built-in Presets
           </div>
         </>

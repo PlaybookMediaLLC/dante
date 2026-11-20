@@ -110,7 +110,7 @@ export function StudioHeader({
           role="status"
           aria-live="polite"
           className={cn(
-            'shrink-0 rounded px-1.5 py-0.5 text-[10px]',
+            'shrink-0 rounded px-1.5 py-0.5 text-[0.625rem]',
             saveStatus === 'error' || saveStatus === 'conflict' ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300' : 'text-muted-foreground'
           )}
         >
@@ -118,10 +118,10 @@ export function StudioHeader({
         </span>
         {saveStatus === 'conflict' ? (
           <span className="flex items-center gap-1">
-            <Button variant="custom" size={null} type="button" onClick={onLoadTheirs} className="h-7 rounded-md border border-foreground/15 px-2 text-[11px]">
+            <Button variant="custom" size={null} type="button" onClick={onLoadTheirs} className="h-7 rounded-md border border-foreground/15 px-2 text-[0.6875rem]">
               Load their version
             </Button>
-            <Button variant="custom" size={null} type="button" onClick={onKeepMine} className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background">
+            <Button variant="custom" size={null} type="button" onClick={onKeepMine} className="h-7 rounded-md bg-foreground px-2 text-[0.6875rem] text-background">
               Keep mine
             </Button>
           </span>
@@ -213,7 +213,7 @@ export function StudioHeader({
         <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => actions.openDialog('checks')} title="Store requirements and design checks for the planned export">
           Checks
           {issueCount.requirements + issueCount.recommendations > 0 ? (
-            <span className={cn('rounded-full px-1.5 text-[10px] tabular-nums', issueCount.requirements ? 'bg-destructive/15 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300')}>
+            <span className={cn('rounded-full px-1.5 text-[0.625rem] tabular-nums', issueCount.requirements ? 'bg-destructive/15 text-destructive' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300')}>
               {issueCount.requirements + issueCount.recommendations}
             </span>
           ) : null}
