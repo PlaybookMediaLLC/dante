@@ -25,6 +25,7 @@ export async function loadPostHog(): Promise<PostHog> {
  */
 function withPostHog(apply: (instance: PostHog) => void, failure: string): void {
   const run = (instance: PostHog) => {
+    if (!readConsent()?.analytics) return;
     try {
       apply(instance);
     } catch (error) {

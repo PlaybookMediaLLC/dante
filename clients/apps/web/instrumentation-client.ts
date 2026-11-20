@@ -6,6 +6,7 @@ import { canvasNavigationFailure } from '@/lib/canvas/navigation-diagnostics'
 // A blocked or failed analytics download must not surface as an unhandled
 // rejection, which the deployment-recovery notice treats as a broken update.
 const analyticsUnavailable = (error: unknown) => console.warn('[PostHog] Failed to load:', error)
+let analyticsAllowed = readConsent()?.analytics === true
 
 // Observe the request without changing Next's fetch or deployment-skew handling.
 try {
@@ -21,9 +22,11 @@ try {
         )
         if (!failure) continue
         console.warn('[Canvas navigation] Page data request failed', failure)
-        if (process.env.NEXT_PUBLIC_POSTHOG_KEY && readConsent()?.analytics)
+        if (process.env.NEXT_PUBLIC_POSTHOG_KEY && analyticsAllowed)
           void loadPostHog()
-            .then((posthog) => posthog.capture('canvas_navigation_failed', failure))
+            .then((posthog) => {
+              if (analyticsAllowed) posthog.capture('canvas_navigation_failed', failure)
+            })
             .catch(analyticsUnavailable)
       }
     }).observe({ type: 'resource', buffered: true })
@@ -40,23 +43,19 @@ const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
 if (posthogKey) {
   // PostHog loads only after the visitor accepts analytics: no request,
   // cookie or storage entry exists before that.
-  let started = false
+  let initialized = false
   const apply = (consent: Consent | null) => {
-    if (!consent?.analytics) {
-      if (started)
-        void loadPostHog()
-          .then((posthog) => posthog.opt_out_capturing())
-          .catch(analyticsUnavailable)
-      return
-    }
-    if (started)
-      return void loadPostHog()
-        .then((posthog) => posthog.opt_in_capturing({ captureEventName: false }))
-        .catch(analyticsUnavailable)
-    started = true
+    analyticsAllowed = consent?.analytics === true
+    if (!analyticsAllowed && !initialized) return
     // Downloaded here rather than imported: about 100 KB no visitor needs before consent.
     void loadPostHog()
-      .then((posthog) =>
+      .then((posthog) => {
+        // Consent can change while the download is pending.
+        if (!analyticsAllowed) {
+          if (initialized) posthog.opt_out_capturing()
+          return
+        }
+        if (initialized) return posthog.opt_in_capturing({ captureEventName: false })
         posthog.init(posthogKey, {
           api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
           ui_host: 'https://us.posthog.com',
@@ -67,7 +66,8 @@ if (posthogKey) {
           disable_session_recording: true,
           before_send: scrubEvent,
         })
-      )
+        initialized = true
+      })
       .catch(analyticsUnavailable)
   }
   apply(readConsent())
