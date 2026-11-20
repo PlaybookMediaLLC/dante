@@ -93,7 +93,9 @@ export function RecentWork({
       (item.type === 'Post' ? draftsEnabled : paidPlan) ||
       query.data?.items.some((work) => work.type === item.type)
   )
-  const items = (query.data?.items ?? []).filter((item) => !filter || item.type === filter)
+  // A filter whose kind is no longer offered falls back to All.
+  const active = filters.some((item) => item.type === filter) ? filter : null
+  const items = (query.data?.items ?? []).filter((item) => !active || item.type === active)
   return (
     <section aria-label="Continue working" className="home-recent">
       <div className="home-recent-bar">
@@ -104,7 +106,7 @@ export function RecentWork({
               type="button"
               variant="custom"
               size={null}
-              aria-pressed={filter === item.type}
+              aria-pressed={active === item.type}
               className="platform-tab"
               onClick={() => setFilter(item.type)}
             >
@@ -171,7 +173,9 @@ export function RecentWork({
                 <span className="home-item-text">
                   <span className="block truncate text-[13px] text-foreground">{item.title}</span>
                   <span className="block truncate text-[11.5px] text-muted-foreground">
-                    {view === 'grid' ? `${kindLabel(item)} · ` : ''}
+                    <span className={view === 'list' ? 'sm:hidden' : undefined}>
+                      {kindLabel(item)} ·{' '}
+                    </span>
                     <time dateTime={item.updatedAt.toISOString()}>
                       {relativeTime(item.updatedAt.toISOString())}
                     </time>
@@ -190,7 +194,7 @@ export function RecentWork({
       ) : null}
       {query.data?.items.length && !items.length ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No recent {FILTERS.find((item) => item.type === filter)?.label.toLowerCase()}.
+          No recent {FILTERS.find((item) => item.type === active)?.label.toLowerCase()}.
         </p>
       ) : null}
       {query.data && !query.data.items.length && !query.data.partial ? (

@@ -11,7 +11,6 @@ import { useCanvasUi } from '@/lib/canvas/ui-store'
 import { cn } from '@/lib/utils'
 import { ArrowUUpLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpLeft'
 import { ArrowUUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpRight'
-import { CaretDownIcon } from '@phosphor-icons/react/dist/ssr/CaretDown'
 import { ClockCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ClockCounterClockwise'
 import { ExportIcon } from '@phosphor-icons/react/dist/ssr/Export'
 import { MegaphoneIcon } from '@phosphor-icons/react/dist/ssr/Megaphone'
@@ -83,9 +82,6 @@ export function CanvasHeader({
         >
           <StackIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
           <h1 className="truncate">{name}</h1>
-          {canEdit ? (
-            <CaretDownIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden="true" />
-          ) : null}
         </Button>
         <span
           role="status"
@@ -105,8 +101,8 @@ export function CanvasHeader({
         </span>
       </div>
       <div className={pill}>
-        {/* Phones open the panels as sheets from the board's own bar instead. */}
-        <span className="hidden items-center gap-0.5 md:flex">
+        {/* Narrow screens open the panels as sheets from the board's own bar instead. */}
+        <span className="hidden items-center gap-0.5 lg:flex">
           <Tool label="Artboards & tools" pressed={leftOpen} onClick={() => togglePanel('left')}>
             <SidebarSimpleIcon className="size-4" />
           </Tool>

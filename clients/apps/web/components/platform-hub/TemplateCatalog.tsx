@@ -33,22 +33,25 @@ function PreviewCard({
   description,
   href,
   action,
+  text = false,
   children,
 }: {
   name: string
   description: string
   href: string
   action: string
+  /** The preview is words, not a picture: the tile grows to fit them. */
+  text?: boolean
   children: ReactNode
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className="create-tile">
+    <li className={text ? 'create-tile is-text' : 'create-tile'}>
       <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="create-tile-media">
         {near ? (
           <div aria-hidden="true">{children}</div>
         ) : (
-          <span className="text-xs text-black/40">Preview loads as you scroll</span>
+          <span className="text-xs text-foreground/40">Preview loads as you scroll</span>
         )}
       </div>
       <div className="create-tile-label">
@@ -224,6 +227,7 @@ export default function TemplateCatalog() {
                 description={template.description}
                 href={`/workflows/new?template=${template.id}`}
                 action="Use template"
+                text
               >
                 <WorkflowTemplatePreview template={template} />
               </PreviewCard>

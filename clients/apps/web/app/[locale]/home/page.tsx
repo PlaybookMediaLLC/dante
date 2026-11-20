@@ -121,8 +121,10 @@ export default async function HomePage({
           </>
         }
       >
-        <section aria-label="Start something new" className="platform-home">
-          <h2 className="home-eyebrow">Start something new</h2>
+        <section aria-labelledby="home-start" className="platform-home">
+          <h2 className="home-eyebrow" id="home-start">
+            Start something new
+          </h2>
           {available.length < starters.length ? (
             <p className="mb-3 text-sm text-muted-foreground">
               Your {roleLabels[normalizeOrganizationRole(access.role)]} role can view this
