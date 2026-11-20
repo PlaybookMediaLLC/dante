@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.53.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.52.1...v2.53.0) (2026-11-20)
+
+
+### Features
+
+* **analyze:** show TikTok followers and public videos ([22b1d67](https://github.com/PlaybookMediaLLC/shots/commit/22b1d67847fb99933d06fbe85c1870bf7d348f30))
+* **analyze:** show TikTok followers and public videos ([fcf9b48](https://github.com/PlaybookMediaLLC/shots/commit/fcf9b488ebf4c20de27b2e0c55e351a09353f34a))
+* **web:** render authenticated pages at 75% instead of 80% ([6d4de7e](https://github.com/PlaybookMediaLLC/shots/commit/6d4de7e9b7489494e95308d3538c8cf421081c66))
+* **web:** render authenticated pages at 80% ([ecf7aa7](https://github.com/PlaybookMediaLLC/shots/commit/ecf7aa7d8bd05c76792a41ea76cbe9d350a62bcd))
+* **web:** render authenticated pages at 80% scale on desktop ([6e18670](https://github.com/PlaybookMediaLLC/shots/commit/6e18670114620b6380b9ad6a85024303b3f78f8d))
+* **web:** render authenticated pages at 80% scale on desktop ([097a3cf](https://github.com/PlaybookMediaLLC/shots/commit/097a3cf3cca53907f02e1acff3c7980702760b96))
+* **web:** size shell and home text in rem so the 80% scale reaches it ([09dc5a7](https://github.com/PlaybookMediaLLC/shots/commit/09dc5a799e146a46baab73add9d73fe41f69a5b2))
+
 ## [2.52.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.52.0...v2.52.1) (2026-11-20)
 
 
