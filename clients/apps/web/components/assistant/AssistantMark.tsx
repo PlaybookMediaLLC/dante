@@ -26,7 +26,7 @@ const CLOUD = (() => {
  * The assistant's mark: a small, puffy cloud with two dot eyes, lit from the
  * top left. Decorative; whatever it sits in names the assistant.
  */
-export function AssistantMark({ className, size = 18 }: { className?: string; size?: number }) {
+export function AssistantMark({ className, size = 22 }: { className?: string; size?: number }) {
   const id = useId()
   return (
     <svg

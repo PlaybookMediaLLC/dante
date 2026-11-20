@@ -6,7 +6,8 @@ import {
   internalHref,
   pageContextSchema,
 } from '@/lib/assistant/page-context'
-import { recent } from '@/components/assistant/workspace-ability'
+import { recent, workspaceSuggestions } from '@/components/assistant/workspace-ability'
+import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
 
 test('the page goes to the model as one-line data in a page_context block', () => {
   const page = pageContextSchema.parse({
@@ -33,10 +34,13 @@ test('the page goes to the model as one-line data in a page_context block', () =
 test('only addresses inside the app can be offered', () => {
   assert.equal(internalHref('/canvas/c1'), '/canvas/c1')
   assert.equal(internalHref(' /editor?project=p1 '), '/editor?project=p1')
-  // A new visual's prefilled request, encoded, is a long but safe address.
-  const ask = `/editor?${new URLSearchParams({ ask: 'é'.repeat(250), start: 'new' })}`
-  assert.ok(ask.length > 300)
-  assert.equal(internalHref(ask), ask)
+  // A new visual's longest prefilled request, in any script, is a long but safe address.
+  for (const character of ['é', '界', '😀']) {
+    const ask = editorAskHref(character.repeat(EDITOR_ASK_MAX))
+    assert.ok(ask.length > 2_000)
+    assert.equal(internalHref(ask), ask, character)
+  }
+  assert.ok(internalHref(`/${'x'.repeat(INTERNAL_HREF_MAX - 1)}`))
   for (const unsafe of [
     'https://evil.example',
     '//evil.example/path',
@@ -62,4 +66,18 @@ test("a long conversation keeps its newest turns, starting at one of the person'
   // Six fit, but the sixth-newest is a tool result: the kept part starts at "ask 3".
   assert.deepEqual(recent(messages, 6), turn(3))
   assert.deepEqual(recent(messages, 2), [])
+})
+
+test('the bar offers only asks the member can carry out', () => {
+  const starts = (asks: string[]) => asks.filter((ask) => /^(Make|Start)\b/.test(ask))
+  assert.ok(starts(workspaceSuggestions('home', { canEdit: true, paidPlan: true })).length >= 2)
+  // A viewer cannot start work; a free workspace cannot start a canvas.
+  assert.deepEqual(starts(workspaceSuggestions('home', { canEdit: false, paidPlan: true })), [])
+  assert.deepEqual(
+    workspaceSuggestions('home', { canEdit: true, paidPlan: false }).filter((ask) =>
+      /canvas/i.test(ask)
+    ),
+    []
+  )
+  assert.ok(workspaceSuggestions(undefined, { canEdit: false, paidPlan: false }).length > 0)
 })

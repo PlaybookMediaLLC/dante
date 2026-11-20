@@ -139,6 +139,12 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
     library.getByRole('link', { exact: true, name: 'Pricing banner copy' })
   ).toBeVisible()
 
+  // The copy reaches the sidebar's Recents too, so its removal below is proven there.
+  const recents = page.getByRole('region', { name: 'Recents' })
+  await expect(
+    recents.getByRole('link', { exact: true, name: 'Pricing banner copy' })
+  ).toBeVisible()
+
   await page.getByRole('button', { name: 'Actions for Pricing banner copy' }).click()
   await page.getByRole('menuitem', { name: 'Delete…' }).click()
   const confirm = page.getByRole('alertdialog', { name: 'Delete “Pricing banner copy”?' })

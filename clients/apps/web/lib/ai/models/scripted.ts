@@ -881,11 +881,13 @@ function scriptAssistant(system: string, text: string, results: ToolResult[]): L
   // A request to make something starts it: a canvas when it names one, else a visual.
   const ask = text.split('\n\n').at(-1)?.trim() ?? ''
   if (/^(make|start|create)\b/i.test(ask)) {
-    if (!results.some((result) => result.toolName === 'startWork')) {
+    const started = results.find((result) => result.toolName === 'startWork')
+    if (!started) {
       const input = /canvas/i.test(ask) ? { kind: 'canvas', recipe: 'product-launch' } : { ask, kind: 'visual' }
       return toolCalls([{ input, toolName: 'startWork' }])
     }
-    return [{ text: 'Your new work is ready to start: use the button below.', type: 'text' }]
+    const ok = (started.output as { ok?: boolean } | null)?.ok === true
+    return [{ text: ok ? 'Your new work is ready to start: use the button below.' : 'I cannot start that here.', type: 'text' }]
   }
   const work = results.find((result) => result.toolName === 'listRecentWork')
   if (!work) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])

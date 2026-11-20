@@ -10,10 +10,10 @@ import { StopIcon } from '@phosphor-icons/react/dist/ssr/Stop'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
+import { useKeys } from '@/components/write/shortcuts'
 import { useAiAvailable } from './useAiAvailable'
 import {
   ASSISTANT_ASK_MAX,
-  ASSISTANT_SUGGESTIONS_MAX,
   type AssistantAbility,
   type AssistantEntry,
 } from '@/lib/assistant/ability'
@@ -49,6 +49,9 @@ const useConversation = create<{
 
 const setOpen = (open: boolean) => useConversation.setState({ open })
 
+/** Most suggested asks the bar shows. */
+const SUGGESTIONS_MAX = 4
+
 /** Open the bar with the cursor in it. */
 const openWithFocus = () =>
   useConversation.setState((state) => ({ open: true, focus: state.focus + 1 }))
@@ -70,7 +73,14 @@ function pageTitle(): string {
  * with the page's highest-priority ability, else the workspace assistant.
  * Shown where the workspace has AI.
  */
-export function AssistantBar() {
+export function AssistantBar({
+  canEdit,
+  paidPlan,
+}: {
+  /** The member may make work, so the bar offers asks that start some. */
+  canEdit: boolean
+  paidPlan: boolean
+}) {
   const registry = useAssistantRegistry()
   const available = useAiAvailable()
   const path = withoutLocale(usePathname())
@@ -97,7 +107,7 @@ export function AssistantBar() {
   const registered = [...(registry?.abilities.values() ?? [])]
   const ability: AssistantAbility = registered.reduce<AssistantAbility>(
     (best, item) => (item.priority > best.priority ? item : best),
-    workspaceAbility(title, area)
+    workspaceAbility(title, area, { canEdit, paidPlan })
   )
 
   // A different ability starts its own conversation (a running one finishes first), with
@@ -124,8 +134,12 @@ export function AssistantBar() {
   useEffect(() => {
     if (!shown) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.defaultPrevented || event.key.toLowerCase() !== 'j') return
+      // `code` too, so the shortcut holds on non-Latin keyboard layouts.
+      if (event.defaultPrevented || (event.key.toLowerCase() !== 'j' && event.code !== 'KeyJ'))
+        return
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+      // A rich-text editor (the post composer, Plate) keeps ⌘J for its own Ask AI.
+      if (event.target instanceof HTMLElement && event.target.isContentEditable) return
       event.preventDefault()
       openWithFocus()
     }
@@ -161,7 +175,6 @@ export function AssistantBar() {
   const send = async (value: string) => {
     const ask = value.trim().slice(0, ASSISTANT_ASK_MAX)
     if (!ask || running) return
-    setText('')
     if (conversationAbility !== ability.id) startOver(ability.id)
     const controller = new AbortController()
     useConversation.setState({ controller })
@@ -189,11 +202,11 @@ export function AssistantBar() {
   }
   const submit = (event: FormEvent) => {
     event.preventDefault()
+    if (!text.trim() || running) return
+    setText('')
     void send(text)
   }
-  const suggestions = entries.length
-    ? []
-    : (ability.suggestions ?? []).slice(0, ASSISTANT_SUGGESTIONS_MAX)
+  const suggestions = entries.length ? [] : (ability.suggestions ?? []).slice(0, SUGGESTIONS_MAX)
 
   const bar = open ? (
     <section aria-label="Assistant" className="assistant" data-board-control>
@@ -272,7 +285,7 @@ export function AssistantBar() {
         </div>
       ) : null}
       <form onSubmit={submit} className="assistant-bar">
-        <AssistantMark className="-mx-px shrink-0" size={22} />
+        <AssistantMark className="-mx-px shrink-0" />
         <span className="assistant-context" title={`The assistant sees: ${ability.label}`}>
           {ability.label}
         </span>
@@ -343,6 +356,7 @@ export function AssistantLauncher({
   const registry = useAssistantRegistry()
   const available = useAiAvailable()
   const open = useConversation((state) => state.open)
+  const keys = useKeys()
   if (!registry?.slot || !available) return null
   return (
     <Button
@@ -351,7 +365,7 @@ export function AssistantLauncher({
       size={null}
       aria-label="Open the assistant"
       aria-expanded={open}
-      title="Ask AI about this page or your workspace (⌘J)"
+      title={`Ask AI about this page or your workspace (${keys.label({ key: 'j', mod: true })})`}
       className={cn(
         'flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
         collapsed && 'mx-auto size-10 justify-center px-0'
@@ -361,7 +375,7 @@ export function AssistantLauncher({
         openWithFocus()
       }}
     >
-      <AssistantMark className="-mx-px shrink-0" size={22} />
+      <AssistantMark className="-mx-px shrink-0" />
       {collapsed ? null : 'Ask AI'}
     </Button>
   )

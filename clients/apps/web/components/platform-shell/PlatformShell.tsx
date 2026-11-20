@@ -6,6 +6,7 @@ import { AssistantBar } from '@/components/assistant/AssistantBar'
 import { AssistantProvider, AssistantSlot } from '@/components/assistant/AssistantProvider'
 import { PendingDraftInput } from '@/components/write/pending-draft'
 import { getPageAccess } from '@/lib/auth/page-access'
+import { accessAllows } from '@/lib/auth/permissions'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { NAVIGATION_COOKIE, parseNavigation } from '@/lib/settings/appearance'
 import type { PlatformAccess } from '@/lib/platform/navigation'
@@ -55,6 +56,7 @@ export async function PlatformShell({
     paidPlan: access?.hasPaidPlan ?? true,
   }
   const brandCss = brandThemeCss(access?.whitelabel)
+  const assistantCanEdit = access ? accessAllows(access, 'artifact:edit') : false
   return (
     <PreferencesProvider>
       <AssistantProvider>
@@ -122,7 +124,7 @@ export async function PlatformShell({
                 <PendingDraftInput />
                 {/* The AI chat bar sits over the page unless the page gives it a slot of its own. */}
                 <AssistantSlot fallback />
-                <AssistantBar />
+                <AssistantBar canEdit={assistantCanEdit} paidPlan={platformAccess.paidPlan} />
               </div>
             ) : (
               <div
@@ -133,7 +135,7 @@ export async function PlatformShell({
                 {children}
                 <PendingDraftInput variant="editor" />
                 {/* Full-bleed editors show the bar only in a slot of their own, as the canvas gives. */}
-                <AssistantBar />
+                <AssistantBar canEdit={assistantCanEdit} paidPlan={platformAccess.paidPlan} />
               </div>
             )}
             <OnboardingProgressCard />

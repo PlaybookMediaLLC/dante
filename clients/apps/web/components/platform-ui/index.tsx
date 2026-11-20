@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
  * empty state. Fork-owned so upstream editor files stay untouched.
  */
 
-// full: 1120px of content inside the 40px gutters.
+// full: 1400px of content inside the 40px gutters.
 const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', full: 'md:max-w-[1480px]' } as const
 
 /**

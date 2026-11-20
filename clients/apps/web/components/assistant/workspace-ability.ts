@@ -12,37 +12,61 @@ import type { PlatformArea } from '@/lib/platform/navigation'
  */
 const WORKSPACE_ABILITY_ID = 'workspace'
 
-/** One-click asks per area, each one the assistant's tools can answer. */
-const SUGGESTIONS: Partial<Record<PlatformArea, readonly string[]>> = {
+/**
+ * One-click asks per area, each one the assistant's tools can answer. `make`
+ * asks start work (startWork needs `artifact:edit`); `canvas` ones also need
+ * a paid plan.
+ */
+type Suggestion = { ask: string; needs?: 'make' | 'canvas' }
+const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   home: [
-    'What did we work on most recently?',
-    'Make a launch visual for our newest feature',
-    'Start a product launch canvas',
+    { ask: 'What did we work on most recently?' },
+    { ask: 'Make a launch visual for our newest feature', needs: 'make' },
+    { ask: 'Start a product launch canvas', needs: 'canvas' },
   ],
   create: [
-    'Make a dark hero shot for a new feature',
-    'Which canvas fits a release announcement?',
-    'Start a feature walkthrough canvas',
+    { ask: 'Make a dark hero shot for a new feature', needs: 'make' },
+    { ask: 'Which canvas fits a release announcement?' },
+    { ask: 'Start a feature walkthrough canvas', needs: 'canvas' },
   ],
   campaigns: [
-    'Which campaigns are still drafts?',
-    'What do you know about our product?',
-    'Where do I start a new campaign?',
+    { ask: 'Which campaigns are still drafts?' },
+    { ask: 'What do you know about our product?' },
+    { ask: 'Where do I start a new campaign?' },
   ],
   publish: [
-    'Which posts are scheduled?',
-    'Open my latest post draft',
-    'Where do I connect a social account?',
+    { ask: 'Which posts are scheduled?' },
+    { ask: 'Open my latest post draft' },
+    { ask: 'Where do I connect a social account?' },
   ],
   library: [
-    'Find my latest canvas',
-    'Which screenshots changed most recently?',
-    'Make a launch visual for our newest feature',
+    { ask: 'Find my latest canvas' },
+    { ask: 'Which screenshots changed most recently?' },
+    { ask: 'Make a launch visual for our newest feature', needs: 'make' },
   ],
-  automate: ['Where do I connect GitHub?', 'What can I automate when a release ships?'],
-  settings: ['Where do I change brand colours?', 'Where do I invite a teammate?'],
+  automate: [
+    { ask: 'Where do I connect GitHub?' },
+    { ask: 'What can I automate when a release ships?' },
+  ],
+  settings: [{ ask: 'Where do I change brand colours?' }, { ask: 'Where do I invite a teammate?' }],
 }
-const DEFAULT_SUGGESTIONS = ['What can you help with here?', 'Find my latest work']
+const DEFAULT_SUGGESTIONS: readonly Suggestion[] = [
+  { ask: 'What can you help with here?' },
+  { ask: 'Find my latest work' },
+]
+
+/** What the member may start here, which decides the asks worth offering. */
+export type WorkspaceAllowance = { canEdit: boolean; paidPlan: boolean }
+
+/** The area's one-click asks this member can carry out. */
+export function workspaceSuggestions(
+  area: PlatformArea | undefined,
+  { canEdit, paidPlan }: WorkspaceAllowance
+): string[] {
+  return ((area && SUGGESTIONS[area]) || DEFAULT_SUGGESTIONS)
+    .filter((item) => !item.needs || (canEdit && (item.needs === 'make' || paidPlan)))
+    .map((item) => item.ask)
+}
 
 /**
  * The newest `room` messages, starting at one of the person's, so a tool call
@@ -86,7 +110,8 @@ async function askWorkspace({ ask, memory, page, push, signal }: AbilityRun) {
 /** The workspace assistant, labelled with the page it is asked from. */
 export function workspaceAbility(
   pageTitle: string,
-  area: PlatformArea | undefined
+  area: PlatformArea | undefined,
+  allowance: WorkspaceAllowance
 ): AssistantAbility {
   return {
     id: WORKSPACE_ABILITY_ID,
@@ -94,6 +119,6 @@ export function workspaceAbility(
     placeholder: 'Ask, find, or start something new',
     priority: 0,
     run: askWorkspace,
-    suggestions: (area && SUGGESTIONS[area]) || DEFAULT_SUGGESTIONS,
+    suggestions: workspaceSuggestions(area, allowance),
   }
 }

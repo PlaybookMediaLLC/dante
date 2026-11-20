@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useAssistantAbility } from '@/components/assistant/AssistantProvider'
-import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
+import { editorAskHref } from '@/lib/ai/editor-ask'
 
 /**
  * Create's assistant ability: describe a visual, and a new screenshot opens
@@ -24,9 +24,7 @@ export function CreateVisualAbility() {
     ],
     run: async ({ ask, push }) => {
       push({ kind: 'note', text: 'Opening the editor with your request…' })
-      router.push(
-        `/editor?${new URLSearchParams({ start: 'new', [EDITOR_ASK_PARAM]: ask.slice(0, EDITOR_ASK_MAX) })}`
-      )
+      router.push(editorAskHref(ask))
     },
   })
   return null

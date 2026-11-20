@@ -52,8 +52,13 @@ export function describePage(page: PageContext): string {
   return `<page_context>\n${parts.join('\n')}\n</page_context>`
 }
 
-/** Longest address the assistant offers: room for a new visual's prefilled request. */
-export const INTERNAL_HREF_MAX = 2_048
+/**
+ * Longest address the assistant offers: room for a new visual's prefilled
+ * request in any script. Percent-encoded, one UTF-16 unit of the 500-unit
+ * request takes up to 9 characters (a 3-byte character), so the editor's
+ * start address reaches about 4,522.
+ */
+export const INTERNAL_HREF_MAX = 4_608
 
 /**
  * An address inside this app the assistant may offer, or null. Only a path:

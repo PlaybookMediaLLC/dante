@@ -1,14 +1,15 @@
 import 'server-only'
 
 import { z } from 'zod'
-import { internalHref } from '@/lib/assistant/page-context'
-import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
+import { INTERNAL_HREF_MAX, internalHref } from '@/lib/assistant/page-context'
+import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
 import { defineTool, type ToolRun } from '@/lib/ai/tools/executor'
 import { marketingTools } from '@/lib/ai/tools/marketing'
 import { marketingServices } from '@/lib/ai/tools/marketing-services'
 import { accessAllows } from '@/lib/auth/permissions'
 import { CANVAS_RECIPES, canvasRecipeSchema } from '@/lib/canvas/recipes'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
+import { WorkspaceEntitlementError, requireWorkspaceFeature } from '@/lib/tenant/entitlements'
 import { PLATFORM_DESTINATIONS } from '@/lib/platform/navigation'
 import { listCampaigns } from '@/lib/tenant/campaigns'
 import { listCanvases } from '@/lib/tenant/canvases'
@@ -41,6 +42,17 @@ export type AssistantTurnState = {
 const MAX_LINKS = 4
 
 const WORK_KINDS = ['screenshot', 'canvas', 'post'] as const
+
+/** startWork's description: the same every turn, with each canvas recipe the model may pick. */
+const START_WORK_DESCRIPTION =
+  'Put a button under your reply that starts new work, set up from the request; nothing is ' +
+  'made until the person clicks it. kind "visual" opens a new screenshot with the editor ' +
+  'assistant holding `ask` (the visual to make, in the person\'s words). kind "canvas" ' +
+  'opens a new multi-artboard canvas from a recipe: ' +
+  Object.entries(CANVAS_RECIPES)
+    .map(([id, recipe]) => `${id} (${recipe.name}: ${recipe.description})`)
+    .join('; ') +
+  '.'
 
 export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState) {
   const access = run.access
@@ -165,23 +177,30 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   })
 
   const startWork = defineTool(run, {
-    description:
-      'Put a button under your reply that starts new work, set up from the request; nothing is ' +
-      'made until the person clicks it. kind "visual" opens a new screenshot with the editor ' +
-      'assistant holding `ask` (the visual to make, in the person\'s words). kind "canvas" ' +
-      'opens a new multi-artboard canvas from a recipe: ' +
-      Object.entries(CANVAS_RECIPES)
-        .map(([id, recipe]) => `${id} (${recipe.name}: ${recipe.description})`)
-        .join('; ') +
-      '.',
+    description: START_WORK_DESCRIPTION,
     effect: 'read',
-    execute: (input) => {
+    execute: async (input) => {
       if (state.links.length >= MAX_LINKS)
         return { error: 'Four buttons is the most.', ok: false as const }
+      if (input.kind === 'canvas') {
+        // Canvases are paid; a free workspace would land on the upgrade page without its recipe.
+        try {
+          await requireWorkspaceFeature(access, 'workspace:paid')
+        } catch (error) {
+          if (!(error instanceof WorkspaceEntitlementError)) throw error
+          return {
+            error: 'Canvases need a paid plan here; start a visual instead.',
+            ok: false as const,
+          }
+        }
+      }
       const href =
         input.kind === 'visual'
-          ? `/editor?${new URLSearchParams({ start: 'new', [EDITOR_ASK_PARAM]: input.ask })}`
+          ? editorAskHref(input.ask)
           : `/canvas/new?${new URLSearchParams({ recipe: input.recipe })}`
+      // The contract caps addresses; never offer one the reply could not carry.
+      if (!internalHref(href))
+        return { error: 'That request is too long for a button; shorten it.', ok: false as const }
       const label =
         input.kind === 'visual'
           ? 'Start this visual'
@@ -215,7 +234,7 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
       return { offered: true, ok: true as const }
     },
     inputSchema: z.object({
-      href: z.string().trim().min(1).max(300),
+      href: z.string().trim().min(1).max(INTERNAL_HREF_MAX),
       label: z.string().trim().min(1).max(60),
     }),
     maxCallsPerRun: MAX_LINKS + 2,
