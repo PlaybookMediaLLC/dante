@@ -174,8 +174,8 @@ export function RecentWork({
                   <Thumb item={item} size={view === 'list' ? 'row' : 'card'} />
                 </span>
                 <span className="home-item-text">
-                  <span className="block truncate text-[14px] text-foreground">{item.title}</span>
-                  <span className="block truncate text-[12px] text-muted-foreground">
+                  <span className="block truncate text-[0.875rem] text-foreground">{item.title}</span>
+                  <span className="block truncate text-[0.75rem] text-muted-foreground">
                     <span className={view === 'list' ? 'sm:hidden' : undefined}>
                       {kindLabel(item)} ·{' '}
                     </span>
