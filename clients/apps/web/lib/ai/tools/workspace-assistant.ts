@@ -3,6 +3,8 @@ import 'server-only'
 import { z } from 'zod'
 import { INTERNAL_HREF_MAX, internalHref } from '@/lib/assistant/page-context'
 import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
+import { ASSISTANT_POST_MAX } from '@/lib/api/contracts/ai'
+import { CAMPAIGN_SHIP_MAX, campaignShipHref } from '@/lib/campaigns/ship-ask'
 import { defineTool, type ToolRun } from '@/lib/ai/tools/executor'
 import { marketingTools } from '@/lib/ai/tools/marketing'
 import { marketingServices } from '@/lib/ai/tools/marketing-services'
@@ -36,6 +38,8 @@ export type AssistantTurnState = {
   known: Set<string>
   /** The links to show under the reply. */
   links: { href: string; label: string }[]
+  /** Posts written this turn, each offered to open as a draft. */
+  posts: { text: string }[]
 }
 
 /** Most links one reply offers. */
@@ -43,12 +47,17 @@ const MAX_LINKS = 4
 
 const WORK_KINDS = ['screenshot', 'canvas', 'post'] as const
 
+/** Most posts one reply drafts. */
+const MAX_POSTS = 2
+
 /** startWork's description: the same every turn, with each canvas recipe the model may pick. */
 const START_WORK_DESCRIPTION =
   'Put a button under your reply that starts new work, set up from the request; nothing is ' +
   'made until the person clicks it. kind "visual" opens a new screenshot with the editor ' +
-  'assistant holding `ask` (the visual to make, in the person\'s words). kind "canvas" ' +
-  'opens a new multi-artboard canvas from a recipe: ' +
+  'assistant holding `ask` (the visual to make, in the person\'s words). kind "campaign" ' +
+  'opens a new launch campaign with `shipped` (what they shipped, in one or two sentences) ' +
+  'ready to send to the campaign agent. kind "canvas" opens a new multi-artboard canvas ' +
+  'from a recipe: ' +
   Object.entries(CANVAS_RECIPES)
     .map(([id, recipe]) => `${id} (${recipe.name}: ${recipe.description})`)
     .join('; ') +
@@ -176,46 +185,83 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     timeoutMs: 5_000,
   })
 
+  /** Whether the workspace's plan includes `feature`; a backend failure still fails the call. */
+  async function allowed(feature: 'campaign:workflow' | 'content:drafts' | 'workspace:paid') {
+    try {
+      await requireWorkspaceFeature(access, feature)
+      return true
+    } catch (error) {
+      if (error instanceof WorkspaceEntitlementError) return false
+      throw error
+    }
+  }
+
+  const draftPost = defineTool(run, {
+    description:
+      'Write a social post for the person and offer it under your reply, to open as a draft ' +
+      'in the post editor. Nothing is saved until they click. Write the finished post, ' +
+      'grounded in what your tools returned (the product, the work, the campaign); never ' +
+      'invent features, numbers or links. At most two per reply.',
+    effect: 'read',
+    execute: async ({ text }) => {
+      if (state.posts.length >= MAX_POSTS)
+        return { error: 'Two posts is the most.', ok: false as const }
+      if (!contentDraftsEnabled() || !(await allowed('content:drafts')))
+        return { error: 'Posts are not on for this workspace.', ok: false as const }
+      state.posts.push({ text })
+      return { offered: true, ok: true as const }
+    },
+    inputSchema: z.object({ text: z.string().trim().min(1).max(ASSISTANT_POST_MAX) }),
+    maxCallsPerRun: MAX_POSTS + 1,
+    name: 'draftPost',
+    permission: 'artifact:edit',
+    timeoutMs: 15_000,
+  })
+
   const startWork = defineTool(run, {
     description: START_WORK_DESCRIPTION,
     effect: 'read',
     execute: async (input) => {
       if (state.links.length >= MAX_LINKS)
         return { error: 'Four buttons is the most.', ok: false as const }
-      if (input.kind === 'canvas') {
-        // Canvases are paid; a free workspace would land on the upgrade page without its recipe.
-        try {
-          await requireWorkspaceFeature(access, 'workspace:paid')
-        } catch (error) {
-          if (!(error instanceof WorkspaceEntitlementError)) throw error
-          return {
-            error: 'Canvases need a paid plan here; start a visual instead.',
-            ok: false as const,
-          }
+      // A button the plan does not open would land on the upgrade page without its request.
+      if (input.kind === 'canvas' && !(await allowed('workspace:paid')))
+        return {
+          error: 'Canvases need a paid plan here; start a visual instead.',
+          ok: false as const,
         }
-      }
+      if (input.kind === 'campaign' && !(await allowed('campaign:workflow')))
+        return { error: 'Campaigns are not on for this workspace.', ok: false as const }
       const href =
         input.kind === 'visual'
           ? editorAskHref(input.ask)
-          : `/canvas/new?${new URLSearchParams({ recipe: input.recipe })}`
+          : input.kind === 'campaign'
+            ? campaignShipHref(input.shipped)
+            : `/canvas/new?${new URLSearchParams({ recipe: input.recipe })}`
       // The contract caps addresses; never offer one the reply could not carry.
       if (!internalHref(href))
         return { error: 'That request is too long for a button; shorten it.', ok: false as const }
       const label =
         input.kind === 'visual'
           ? 'Start this visual'
-          : `Start a ${CANVAS_RECIPES[input.recipe].name} canvas`
+          : input.kind === 'campaign'
+            ? 'Start this campaign'
+            : `Start a ${CANVAS_RECIPES[input.recipe].name} canvas`
       if (!state.links.some((link) => link.href === href)) state.links.push({ href, label })
       return { offered: true, ok: true as const }
     },
     inputSchema: z.discriminatedUnion('kind', [
       z.object({ ask: z.string().trim().min(1).max(EDITOR_ASK_MAX), kind: z.literal('visual') }),
       z.object({ kind: z.literal('canvas'), recipe: canvasRecipeSchema }),
+      z.object({
+        kind: z.literal('campaign'),
+        shipped: z.string().trim().min(1).max(CAMPAIGN_SHIP_MAX),
+      }),
     ]),
     maxCallsPerRun: 3,
     name: 'startWork',
     permission: 'artifact:edit',
-    timeoutMs: 2_000,
+    timeoutMs: 15_000,
   })
 
   const offerLink = defineTool(run, {
@@ -244,6 +290,7 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   })
 
   return {
+    draftPost,
     findPages,
     getBrand,
     getProduct,

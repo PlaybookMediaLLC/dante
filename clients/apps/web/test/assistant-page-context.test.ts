@@ -8,6 +8,7 @@ import {
 } from '@/lib/assistant/page-context'
 import { recent, workspaceSuggestions } from '@/components/assistant/workspace-ability'
 import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
+import { CAMPAIGN_SHIP_MAX, campaignShipHref } from '@/lib/campaigns/ship-ask'
 
 test('the page goes to the model as one-line data in a page_context block', () => {
   const page = pageContextSchema.parse({
@@ -39,7 +40,12 @@ test('only addresses inside the app can be offered', () => {
     const ask = editorAskHref(character.repeat(EDITOR_ASK_MAX))
     assert.ok(ask.length > 2_000)
     assert.equal(internalHref(ask), ask, character)
+    const shipped = campaignShipHref(character.repeat(CAMPAIGN_SHIP_MAX))
+    assert.equal(internalHref(shipped), shipped, character)
   }
+  const shipped = new URL(campaignShipHref('Invoices & #reminders'), 'http://shots.test')
+  assert.equal(shipped.pathname, '/campaigns')
+  assert.equal(shipped.searchParams.get('ship'), 'Invoices & #reminders')
   assert.ok(internalHref(`/${'x'.repeat(INTERNAL_HREF_MAX - 1)}`))
   for (const unsafe of [
     'https://evil.example',

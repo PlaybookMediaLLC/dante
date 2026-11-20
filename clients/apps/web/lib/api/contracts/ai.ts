@@ -66,13 +66,20 @@ export const assistantLinkSchema = z.object({
   label: z.string().max(120),
 })
 
+/** Characters of one post the assistant drafts. */
+export const ASSISTANT_POST_MAX = 3_000
+
+/** A post the assistant wrote, offered to open as a draft. */
+export const assistantPostSchema = z.object({ text: z.string().min(1).max(ASSISTANT_POST_MAX) })
+
 /**
- * The assistant's reply, the places it offers, and the turn's AI SDK
+ * The assistant's reply, the places it offers, the posts it wrote, and the turn's AI SDK
  * messages, which the browser keeps and sends with its next turn.
  */
 export const workspaceAssistantResponseSchema = z.object({
   links: z.array(assistantLinkSchema),
   messages: z.array(z.looseObject({ role: editorResponseRoleSchema })),
+  posts: z.array(assistantPostSchema).max(2),
   text: z.string(),
 })
 

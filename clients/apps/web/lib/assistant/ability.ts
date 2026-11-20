@@ -15,6 +15,8 @@ export const ASSISTANT_ASK_MAX = 2_000
 export type AssistantEntry =
   | { kind: 'user' | 'assistant' | 'change' | 'error' | 'note'; text: string }
   | { kind: 'link'; text: string; href: string }
+  /** A post the assistant wrote, offered to open as a draft. */
+  | { kind: 'post'; text: string }
 
 /** What an ability's run gets. */
 export type AbilityRun = {

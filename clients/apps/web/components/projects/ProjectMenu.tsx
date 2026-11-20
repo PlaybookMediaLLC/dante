@@ -11,6 +11,8 @@ import { FolderOpenIcon as Folder01Icon } from '@phosphor-icons/react/dist/ssr/F
 import { NotePencilIcon as PencilEdit01Icon } from '@phosphor-icons/react/dist/ssr/NotePencil'
 import { ClockCounterClockwiseIcon as WorkHistoryIcon } from '@phosphor-icons/react/dist/ssr/ClockCounterClockwise'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
+import { RECENT_WORK_KEY } from '@/components/platform-hub/work'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -79,6 +81,9 @@ function errorMessage(error: unknown): string {
 export function ProjectMenu({ compact = false }: { compact?: boolean }) {
   const trpcClient = useTRPCClient()
   const router = useRouter()
+  const queryClient = useQueryClient()
+  // The sidebar's Recents lists this project; a new name or copy shows there at once.
+  const refreshRecents = () => void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
   const { data: session, isPending } = useHydratedSession()
   const project = useProjectSession()
   const [nameDialog, setNameDialog] = React.useState<NameDialog>(null)
@@ -127,6 +132,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
         onOpenChange={(open) => setNameDialog(open ? 'create' : null)}
         onSubmit={async (name) => {
           await createProjectFromEditor(trpcClient, name)
+          refreshRecents()
           toast.success(`Saved “${name}”`, {
             action: { label: 'All projects', onClick: () => router.push('/library') },
           })
@@ -140,7 +146,10 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
         label="Project name"
         maxLength={200}
         onOpenChange={(open) => setNameDialog(open ? 'rename' : null)}
-        onSubmit={renameOpenProject}
+        onSubmit={async (name) => {
+          await renameOpenProject(name)
+          refreshRecents()
+        }}
         open={nameDialog === 'rename'}
         submitLabel="Rename"
         title="Rename project"
@@ -246,7 +255,10 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
             disabled={busy}
             onSelect={() =>
               void run(
-                duplicateOpenProject,
+                async () => {
+                  await duplicateOpenProject()
+                  refreshRecents()
+                },
                 'Duplicated. You are now editing the copy.',
                 'Could not duplicate the project'
               )

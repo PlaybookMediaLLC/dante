@@ -880,10 +880,21 @@ function scriptAssistant(system: string, text: string, results: ToolResult[]): L
   const page = system.match(/^Page: (.+?) \(/m)?.[1] ?? 'this page'
   // A request to make something starts it: a canvas when it names one, else a visual.
   const ask = text.split('\n\n').at(-1)?.trim() ?? ''
+  // A request to write a post drafts one.
+  if (/^(draft|write)\b/i.test(ask)) {
+    const drafted = results.find((result) => result.toolName === 'draftPost')
+    if (!drafted) return toolCalls([{ input: { text: 'We just shipped something new. Here is what changed and why it matters.' }, toolName: 'draftPost' }])
+    const ok = (drafted.output as { ok?: boolean } | null)?.ok === true
+    return [{ text: ok ? 'Here is a post to start from.' : 'I cannot draft posts here.', type: 'text' }]
+  }
   if (/^(make|start|create)\b/i.test(ask)) {
     const started = results.find((result) => result.toolName === 'startWork')
     if (!started) {
-      const input = /canvas/i.test(ask) ? { kind: 'canvas', recipe: 'product-launch' } : { ask, kind: 'visual' }
+      const input = /canvas/i.test(ask)
+        ? { kind: 'canvas', recipe: 'product-launch' }
+        : /campaign/i.test(ask)
+          ? { kind: 'campaign', shipped: ask }
+          : { ask, kind: 'visual' }
       return toolCalls([{ input, toolName: 'startWork' }])
     }
     const ok = (started.output as { ok?: boolean } | null)?.ok === true

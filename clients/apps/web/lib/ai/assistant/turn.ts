@@ -54,7 +54,7 @@ export async function runWorkspaceAssistantTurn(
   const backend = backendSDK(access)
   const run = createToolRun({ access, audit: (event) => backend.appendAuditEvent(event), signal })
   // The page's own address is always offerable; the rest must come from a tool.
-  const state: AssistantTurnState = { known: new Set([page.path]), links: [] }
+  const state: AssistantTurnState = { known: new Set([page.path]), links: [], posts: [] }
   try {
     return await withAiCredits(access, async () => {
       const result = await generateText({
@@ -65,7 +65,12 @@ export async function runWorkspaceAssistantTurn(
         system: `${WORKSPACE_ASSISTANT_INSTRUCTIONS}\n\n${describePage(page)}`,
         tools: workspaceAssistantTools(run, state),
       })
-      return { links: state.links, messages: result.response.messages, text: result.text }
+      return {
+        links: state.links,
+        messages: result.response.messages,
+        posts: state.posts,
+        text: result.text,
+      }
     })
   } finally {
     await flushToolRun(run)

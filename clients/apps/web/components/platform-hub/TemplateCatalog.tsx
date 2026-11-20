@@ -79,7 +79,7 @@ function PreviewCard({
 /** A wall of screenshot templates for Create's front page, opening the same editor. */
 export function TemplateStrip({ count = 10 }: { count?: number }) {
   return (
-    <ul className="create-gallery">
+    <ul className="create-gallery is-row">
       {IMAGE_TEMPLATES.slice(0, count).map((template) => (
         <PreviewCard
           key={template.preset.id}

@@ -15,6 +15,8 @@ import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
 import { useAssistantAbility } from '@/components/assistant/AssistantProvider'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { CAMPAIGN_SHIP_MAX, CAMPAIGN_SHIP_PARAM } from '@/lib/campaigns/ship-ask'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
@@ -36,7 +38,11 @@ export function ShipInput({
   products?: { name: string; slug: string; url: string }[]
 }) {
   const client = useTRPCClient()
-  const [value, setValue] = useState('')
+  // The assistant opens this box with what was shipped already written (`?ship=`).
+  const params = useSearchParams()
+  const [value, setValue] = useState(
+    () => params.get(CAMPAIGN_SHIP_PARAM)?.trim().slice(0, CAMPAIGN_SHIP_MAX) ?? ''
+  )
   const [productSlug, setProductSlug] = useState(products[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)

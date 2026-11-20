@@ -23,6 +23,7 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
     { ask: 'What did we work on most recently?' },
     { ask: 'Make a launch visual for our newest feature', needs: 'make' },
     { ask: 'Start a product launch canvas', needs: 'canvas' },
+    { ask: 'Draft a post about our latest release', needs: 'make' },
   ],
   create: [
     { ask: 'Make a dark hero shot for a new feature', needs: 'make' },
@@ -31,13 +32,13 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   ],
   campaigns: [
     { ask: 'Which campaigns are still drafts?' },
+    { ask: 'Start a campaign for our latest release', needs: 'make' },
     { ask: 'What do you know about our product?' },
-    { ask: 'Where do I start a new campaign?' },
   ],
   publish: [
+    { ask: 'Draft a post about our latest release', needs: 'make' },
     { ask: 'Which posts are scheduled?' },
     { ask: 'Open my latest post draft' },
-    { ask: 'Where do I connect a social account?' },
   ],
   library: [
     { ask: 'Find my latest canvas' },
@@ -101,6 +102,7 @@ async function askWorkspace({ ask, memory, page, push, signal }: AbilityRun) {
   const reply = workspaceAssistantResponseSchema.parse(body)
   memory.current = [...messages, ...reply.messages]
   if (reply.text) push({ kind: 'assistant', text: reply.text })
+  for (const post of reply.posts) push({ kind: 'post', text: post.text })
   for (const link of reply.links) {
     const href = internalHref(link.href)
     if (href) push({ href, kind: 'link', text: link.label })

@@ -18,7 +18,7 @@ function setup(role: OrganizationRole) {
     },
     audit: async () => {},
   })
-  const state: AssistantTurnState = { known: new Set(['/home']), links: [] }
+  const state: AssistantTurnState = { known: new Set(['/home']), links: [], posts: [] }
   return { state, tools: workspaceAssistantTools(run, state) }
 }
 
@@ -54,4 +54,11 @@ test('startWork shares the four-button limit with offerLink', async () => {
   const result = await tools.startWork.execute({ ask: 'A hero', kind: 'visual' }, options)
   assert.equal(result.ok, false)
   assert.equal(state.links.length, 4)
+})
+
+test('a viewer cannot draft a post', async () => {
+  const { state, tools } = setup('viewer')
+  const result = await tools.draftPost.execute({ text: 'We shipped invoices.' }, options)
+  assert.equal(result.ok, false)
+  assert.deepEqual(state.posts, [])
 })

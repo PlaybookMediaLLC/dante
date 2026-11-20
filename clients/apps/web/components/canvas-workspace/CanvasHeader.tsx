@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
+import { RECENT_WORK_KEY } from '@/components/platform-hub/work'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { CanvasSession, CanvasSessionState } from '@/lib/canvas/session'
@@ -56,6 +58,7 @@ export function CanvasHeader({
   const [renaming, setRenaming] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
   const leftOpen = useCanvasUi((ui) => ui.leftOpen)
   const rightOpen = useCanvasUi((ui) => ui.rightOpen)
   const togglePanel = useCanvasUi((ui) => ui.togglePanel)
@@ -222,6 +225,7 @@ export function CanvasHeader({
             })
             setName(record.name)
             session.record.name = record.name
+            void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
             setRenaming(false)
           }}
         />

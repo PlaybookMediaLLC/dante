@@ -168,6 +168,16 @@ test(
     await expect(assistant.getByRole('textbox', { name: 'Ask the assistant' })).toBeFocused()
     await expect(assistant.getByText(/^You are on Home\./)).toBeVisible()
 
+    // Asked for a post, it writes one, and one click opens it as a draft in the post editor.
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await assistant.getByRole('button', { name: 'Draft a post about our latest release' }).click()
+    await expect(assistant.getByText(/^We just shipped something new\./)).toBeVisible({
+      timeout: 60_000,
+    })
+    await assistant.getByRole('button', { name: 'Open as a draft' }).click()
+    await expect(page).toHaveURL(/\/publish\/[^/?]+$/, { timeout: 60_000 })
+    await expect(page.getByText(/^We just shipped something new\./).first()).toBeVisible()
+
     // On a canvas the artboard copilot answers instead, with the bar open on the board.
     const canvas = await trpcMutation(page, 'canvas.create', {
       id: newCreativeSetId(),

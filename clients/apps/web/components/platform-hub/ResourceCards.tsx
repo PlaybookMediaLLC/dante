@@ -23,7 +23,7 @@ export function ResourceCards({
   }[]
 }) {
   return (
-    <ul className="create-gallery">
+    <ul className="create-gallery is-row is-square">
       {items.map((item) => (
         <li className="create-tile group" key={item.title}>
           <span aria-hidden="true" className="create-tile-media is-spread">

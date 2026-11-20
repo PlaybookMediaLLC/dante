@@ -22,6 +22,7 @@ import { platformArea } from '@/lib/platform/navigation'
 import { withoutLocale } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
 import { AssistantMark } from './AssistantMark'
+import { AssistantPost } from './AssistantPost'
 import { useAssistantRegistry } from './AssistantProvider'
 import { workspaceAbility } from './workspace-ability'
 
@@ -236,6 +237,7 @@ export function AssistantBar({
                 key={index}
                 className={cn(
                   'max-w-[85%] text-[13px] leading-relaxed',
+                  entry.kind === 'post' && 'w-full',
                   entry.kind === 'user' &&
                     'justify-self-end rounded-2xl bg-foreground px-3 py-1.5 text-background',
                   entry.kind === 'assistant' && 'rounded-2xl bg-foreground/[0.05] px-3 py-1.5',
@@ -252,6 +254,8 @@ export function AssistantBar({
                   >
                     {entry.text} →
                   </SidebarLink>
+                ) : entry.kind === 'post' ? (
+                  <AssistantPost text={entry.text} />
                 ) : entry.kind === 'change' ? (
                   `✓ ${entry.text}`
                 ) : (

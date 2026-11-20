@@ -664,6 +664,14 @@
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 208px), 1fr));
   gap: 8px;
 }
+/* A short strip (Create's tools, its template picks) fills one row instead of orphaning a tile. */
+.create-gallery.is-row {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+}
+/* The tools are square entry points, shorter than the template wall below them. */
+.create-gallery.is-square > .create-tile {
+  aspect-ratio: 1;
+}
 .create-tile {
   --tile: #e9e4f3;
   position: relative;
@@ -770,7 +778,8 @@
 @media (max-width: 639px) {
   .home-starters,
   .home-cards,
-  .create-gallery {
+  .create-gallery,
+  .create-gallery.is-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
