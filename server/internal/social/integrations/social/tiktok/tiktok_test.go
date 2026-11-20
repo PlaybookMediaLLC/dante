@@ -301,13 +301,44 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-// A presigned R2 URL cannot be on a TikTok-verified domain, so hosted video
-// is uploaded from the URL, never pulled by TikTok.
-func TestHostedVideoUsesFileUpload(t *testing.T) {
-	post := integrations.PostDetails{Media: []integrations.MediaContent{{Path: "https://media.example.test/canary.mp4?signature=private", Type: "video"}}}
-	source := buildSourceInfoBody(post, &TikTokDTO{}, 123)["source_info"].(map[string]any)
-	if source["source"] != "FILE_UPLOAD" || source["video_url"] != nil || source["video_size"] != int64(123) {
-		t.Fatalf("hosted video must use file upload, got %v", source)
+func TestHostedVideoIsPulledWithoutReadingOrUploadingBytes(t *testing.T) {
+	for _, method := range []string{"DIRECT_POST", "UPLOAD"} {
+		t.Run(method, func(t *testing.T) {
+			calls := 0
+			location := "https://shots.example.test/provider-media/media.mp4?token=private"
+			p := setup(t, func(w http.ResponseWriter, r *http.Request) {
+				calls++
+				if r.Method != http.MethodPost || r.URL.Path != "/v2/post/publish"+postingMethod(method, false) {
+					t.Errorf("unexpected request %s %s", r.Method, r.URL.Path)
+				}
+				var body map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+				}
+				want := map[string]any{"source": "PULL_FROM_URL", "video_url": location}
+				if !reflect.DeepEqual(body["source_info"], want) {
+					t.Errorf("source_info=%v", body["source_info"])
+				}
+				// Even an unexpected upload URL must not trigger a second transfer.
+				io.WriteString(w, `{"data":{"publish_id":"session","upload_url":"`+apiURL+`/upload"}}`)
+			})
+			post := integrations.PostDetails{ID: "post", Settings: json.RawMessage(`{"content_posting_method":"` + method + `","privacy_level":"SELF_ONLY"}`),
+				Media: []integrations.MediaContent{{Path: location, Type: "video"}}}
+			result, err := p.PostPending(context.Background(), "id", "token", []integrations.PostDetails{post}, profilePtr("fixture"))
+			if err != nil || calls != 1 || len(result) != 1 || result[0].Status != "pending" || string(result[0].PendingData) != `{"publishId":"session"}` {
+				t.Fatalf("result=%v calls=%d err=%v", result, calls, err)
+			}
+		})
+	}
+}
+
+func TestInvalidHostedMediaIsRejectedBeforePublishing(t *testing.T) {
+	p := setup(t, func(w http.ResponseWriter, r *http.Request) { t.Error("invalid media reached TikTok") })
+	for _, location := range []string{"http://media.test/video.mp4", "https://user:secret@media.test/video.mp4", "https:///video.mp4", "https://media.test/video.mp4#secret", "//media.test/video.mp4", "ftp://media.test/video.mp4", "%invalid"} {
+		_, err := p.PostPending(context.Background(), "id", "token", []integrations.PostDetails{{Media: []integrations.MediaContent{{Path: location, Type: "video"}}}}, profilePtr("fixture"))
+		if err == nil || strings.Contains(err.Error(), location) {
+			t.Errorf("invalid URL was accepted or reflected: %q", location)
+		}
 	}
 }
 
@@ -399,7 +430,7 @@ func TestPostWaitsForNativeReceiptWithoutRepeatingInit(t *testing.T) {
 					t.Errorf("unexpected request %s", r.URL.Path)
 				}
 			})
-			result, err := p.Post(context.Background(), "id", "token", []integrations.PostDetails{{Settings: json.RawMessage(`{"content_posting_method":"DIRECT_POST","privacy_level":"SELF_ONLY"}`), Media: []integrations.MediaContent{{Path: apiURL + "/video.mp4", Type: "video"}}}}, profilePtr("fixture"))
+			result, err := p.Post(context.Background(), "id", "token", []integrations.PostDetails{{Settings: json.RawMessage(`{"content_posting_method":"DIRECT_POST","privacy_level":"SELF_ONLY"}`), Media: []integrations.MediaContent{{Path: "https://media.test/video.mp4", Type: "video"}}}}, profilePtr("fixture"))
 			if initCalls != 1 {
 				t.Fatalf("init calls=%d", initCalls)
 			}

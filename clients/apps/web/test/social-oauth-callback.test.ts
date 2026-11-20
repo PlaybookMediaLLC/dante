@@ -82,6 +82,47 @@ test('LinkedIn uses the same session-bound callback exchange', async () => {
   assert.equal(result.status, 303)
 })
 
+test('LinkedIn app permission refusals explain that reconnecting cannot fix app approval', async () => {
+  for (const provider of ['linkedin', 'linkedin-page']) {
+    const result = await completeSocialOAuth(
+      new Request(
+        `https://app.test/integrations/social/${provider}?error=unauthorized_scope_error&error_description=private-provider-detail&code=private-code&state=private-state`
+      ),
+      provider,
+      {
+        exchange: async () => assert.fail('a refused grant must not be exchanged'),
+        onConnected: async () => assert.fail('a refused grant must not connect an account'),
+      }
+    )
+    assert.equal(result.status, 400)
+    assert.equal(result.headers.get('cache-control'), 'no-store')
+    assert.equal(result.headers.get('referrer-policy'), 'no-referrer')
+    const text = await result.text()
+    assert.match(text, /LinkedIn has not approved the permissions requested by Shots/)
+    assert.match(text, /Contact Shots support/)
+    assert.doesNotMatch(text, /start again|private-/)
+  }
+})
+
+test('other OAuth errors remain generic and never reflect provider details', async () => {
+  for (const [provider, error] of [
+    ['linkedin-page', 'access_denied'],
+    ['linkedin-page', '<script>private-detail</script>'],
+    ['tiktok', 'unauthorized_scope_error'],
+  ]) {
+    const query = new URLSearchParams({ error, error_description: 'private-detail' })
+    const result = await completeSocialOAuth(
+      new Request(`https://app.test/integrations/social/${provider}?${query}`),
+      provider,
+      { exchange: async () => assert.fail('an error must not exchange a grant') }
+    )
+    assert.equal(result.status, 400)
+    const text = await result.text()
+    assert.match(text, /Nothing was changed; start again when you are ready\.$/)
+    assert.doesNotMatch(text, /private-detail|<script>/)
+  }
+})
+
 for (const provider of ['facebook', 'gmb'] as const)
   test(`a ${provider} page or location is chosen after sign-in, as a LinkedIn page is`, async () => {
     process.env.BETTER_AUTH_SECRET = 'test-picker-secret-at-least-thirty-two-characters'
