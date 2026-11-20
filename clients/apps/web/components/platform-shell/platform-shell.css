@@ -174,12 +174,12 @@ html:has(.platform-shell[data-platform-variant='page']) {
   font-feature-settings: 'tnum';
 }
 
-/* Pages render at 80%, like browser zoom: rem sizes follow the root font
+/* Pages render at 75%, like browser zoom: rem sizes follow the root font
    size. Not CSS zoom, which shrinks h-dvh and skews popover positions.
    Phones keep full size for touch targets. */
 @media (min-width: 768px) {
   html:has(.platform-shell[data-platform-variant='page']) {
-    font-size: 80%;
+    font-size: 75%;
   }
 }
 
