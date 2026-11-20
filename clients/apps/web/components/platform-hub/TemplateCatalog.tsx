@@ -43,42 +43,32 @@ function PreviewCard({
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className="studio-shot">
-      <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="studio-shot-media">
-        <div className="grid size-full place-items-center p-3">
-          {near ? (
-            <div className="w-full" aria-hidden="true">
-              {children}
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">Preview loads as you scroll</span>
-          )}
-        </div>
-        <span aria-hidden="true" className="studio-shot-overlay">
-          {description}
-        </span>
+    <li className="create-tile">
+      <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="create-tile-media">
+        {near ? (
+          <div aria-hidden="true">{children}</div>
+        ) : (
+          <span className="text-xs text-black/40">Preview loads as you scroll</span>
+        )}
       </div>
-      <div className="studio-shot-meta">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium">{name}</h3>
-          <p className="truncate text-xs text-muted-foreground">{description}</p>
-        </div>
-        <SidebarLink
-          aria-label={`${action}: ${name}`}
-          href={href}
-          className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/[0.04]"
-        >
-          {action}
-        </SidebarLink>
+      <div className="create-tile-label">
+        <h3 className="truncate">{name}</h3>
+        <p>{description}</p>
       </div>
+      <SidebarLink
+        aria-label={`${action}: ${name}`}
+        href={href}
+        title={description}
+        className="create-tile-link"
+      />
     </li>
   )
 }
 
-/** A short row of screenshot templates for Home, opening the same editor. */
-export function TemplateStrip({ count = 4 }: { count?: number }) {
+/** A wall of screenshot templates for Create's front page, opening the same editor. */
+export function TemplateStrip({ count = 10 }: { count?: number }) {
   return (
-    <ul className="studio-grid studio-strip">
+    <ul className="create-gallery">
       {IMAGE_TEMPLATES.slice(0, count).map((template) => (
         <PreviewCard
           key={template.preset.id}
@@ -142,7 +132,7 @@ export default function TemplateCatalog() {
           </Button>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-[13px] text-muted-foreground">
         Use template opens a new screenshot or Canvas with that template applied. Animated, store
         and workflow templates are chosen again in their editor. Browsing never changes your saved
         work.
@@ -158,7 +148,7 @@ export default function TemplateCatalog() {
           category to retry.
         </p>
       ) : null}
-      <ul key={category} className="studio-grid">
+      <ul key={category} className="create-gallery">
         {category === 'Screenshots'
           ? IMAGE_TEMPLATES.map((template) => (
               <PreviewCard

@@ -41,6 +41,10 @@ const TimelineEditor = dynamic(
   { ssr: false }
 )
 
+/** Side panels float on the board's grey as cards, like a slides tool's comment pane. */
+const FLOATING_PANEL =
+  'w-[288px] shrink-0 rounded-2xl border border-black/[0.06] bg-background shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.14)] dark:border-white/10'
+
 /**
  * The open canvas: header, insert and layer tools on the left, the
  * infinite board in the centre, contextual properties on the right. Each
@@ -255,7 +259,7 @@ export function CanvasWorkspace({
 
   return (
     <main
-      className="flex h-[var(--editor-height,100dvh)] min-h-[560px] flex-col bg-background"
+      className="flex h-[var(--editor-height,100dvh)] min-h-[560px] flex-col bg-[#eceeed] dark:bg-[#141615]"
       data-testid="canvas-workspace"
     >
       <CanvasHeader
@@ -324,9 +328,9 @@ export function CanvasWorkspace({
           </Button>
         </div>
       ) : null}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden md:pb-3">
         {!isMobile && leftOpen ? (
-          <aside aria-label="Canvas tools" className="w-[280px] shrink-0 overflow-hidden border-r">
+          <aside aria-label="Canvas tools" className={`${FLOATING_PANEL} ms-3 overflow-hidden`}>
             <LeftPanel {...panelProps} />
           </aside>
         ) : null}
@@ -369,7 +373,7 @@ export function CanvasWorkspace({
           )}
         </section>
         {!isMobile && rightOpen ? (
-          <aside aria-label="Properties" className="w-[300px] shrink-0 overflow-y-auto border-l">
+          <aside aria-label="Properties" className={`${FLOATING_PANEL} me-3 overflow-y-auto`}>
             <RightPanel {...panelProps} />
           </aside>
         ) : null}

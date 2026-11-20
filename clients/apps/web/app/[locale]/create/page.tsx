@@ -6,7 +6,9 @@ import { Page } from '@/components/platform-ui'
 import { AreaNavigation } from '@/components/platform-hub/AreaNavigation'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
 import { ResourceCards } from '@/components/platform-hub/ResourceCards'
-import { TemplateBrowser } from '@/components/platform-hub/TemplateBrowser'
+import { TemplateBrowser, TemplateHighlights } from '@/components/platform-hub/TemplateBrowser'
+import { SidebarLink } from '@/components/platform-shell/SidebarLink'
+import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
 
 type CreatePageProps = {
@@ -118,6 +120,23 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
                   ]
             }
           />
+        )}
+        {view ? null : (
+          // The front page of the editors: start from a finished look as well as a blank.
+          <section aria-labelledby="create-templates" className="grid gap-3 pt-2">
+            <div className="flex items-end justify-between gap-3">
+              <h2 id="create-templates" className="text-[13px] text-muted-foreground">
+                Start from a template
+              </h2>
+              <SidebarLink
+                href="/create?view=templates"
+                className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                All templates <ArrowRight size={13} aria-hidden="true" />
+              </SidebarLink>
+            </div>
+            <TemplateHighlights />
+          </section>
         )}
       </Page>
     </PlatformShell>

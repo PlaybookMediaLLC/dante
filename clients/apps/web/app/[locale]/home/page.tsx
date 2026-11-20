@@ -11,10 +11,10 @@ import { CampaignsIcon as Megaphone } from '@/components/platform-shell/icons'
 import { AutomateIcon as Workflow } from '@/components/platform-shell/icons'
 import { CategoryIcon as Shapes } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
+import { SearchField } from '@/components/platform-shell/ShellActions'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
-import { TemplateHighlights } from '@/components/platform-hub/TemplateBrowser'
 import { requirePaidPageAccess, sessionTenant } from '@/lib/auth/page-access'
 import type { OrganizationAccess } from '@/lib/auth/access'
 import { Suspense } from 'react'
@@ -110,21 +110,19 @@ export default async function HomePage({
     >
       <Page
         title="Home"
-        description="What will you make today?"
         actions={
-          paid ? (
-            <ButtonLink href="/create?view=templates" variant="outline" className="gap-2">
-              <Shapes size={16} aria-hidden="true" /> Explore design templates{' '}
-              <ArrowRight size={15} aria-hidden="true" />
-            </ButtonLink>
-          ) : (
-            <ButtonLink href="/upgrade" variant="outline" className="gap-2">
-              See plans <ArrowRight size={15} aria-hidden="true" />
-            </ButtonLink>
-          )
+          <>
+            <SearchField />
+            {paid ? null : (
+              <ButtonLink href="/upgrade" variant="outline" className="gap-2 rounded-full">
+                See plans <ArrowRight size={15} aria-hidden="true" />
+              </ButtonLink>
+            )}
+          </>
         }
       >
-        <section aria-label="Start something new" className="platform-home">
+        <section aria-label="Start something new" className="platform-home home-start-row">
+          <h2 className="home-eyebrow">Start something new</h2>
           {available.length < starters.length ? (
             <p className="mb-3 text-sm text-muted-foreground">
               Your {roleLabels[normalizeOrganizationRole(access.role)]} role can view this
@@ -132,26 +130,27 @@ export default async function HomePage({
               workspace owner or admin for more access.
             </p>
           ) : null}
-          <ul className="home-actions">
+          <ul className="home-starters">
             {available.map(({ title, description, href, icon: Icon, pro, startsPost }, index) => {
               const content = (
                 <>
-                  {/* A small grain stage, like the gallery's covers. */}
-                  <Stage className="size-12 shrink-0 rounded-lg" variant={index}>
-                    <span className="grid size-7 place-items-center rounded-md bg-[#090909]/90 text-white ring-1 ring-white/10">
-                      <Icon size={16} aria-hidden="true" />
-                    </span>
-                  </Stage>
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-ui-lg font-medium text-foreground">
-                      {title}
-                      {pro ? <span className="platform-pro-badge">Pro</span> : null}
-                    </span>
-                    <span className="mt-1 block text-[13px] leading-relaxed text-muted-foreground">
-                      {description}
+                  <span className="home-starter-tile" aria-hidden="true">
+                    {/* A page coming out of the tile, like a template's first sheet. */}
+                    <span className="home-starter-sheet">
+                      <Stage className="h-14 w-full rounded-md" variant={index}>
+                        <span className="grid size-7 place-items-center rounded-md bg-[#090909]/90 text-white ring-1 ring-white/10">
+                          <Icon size={15} />
+                        </span>
+                      </Stage>
+                      <span className="mt-2.5 block h-1.5 w-[70%] rounded-full bg-foreground/15" />
+                      <span className="mt-1.5 block h-1.5 w-[48%] rounded-full bg-foreground/10" />
                     </span>
                   </span>
-                  <ArrowRight size={14} aria-hidden="true" className="home-action-arrow" />
+                  <span className="home-starter-title">
+                    {title}
+                    {pro ? <span className="platform-pro-badge">Pro</span> : null}
+                  </span>
+                  <span className="home-starter-detail">{description}</span>
                 </>
               )
               return (
@@ -159,13 +158,31 @@ export default async function HomePage({
                   {startsPost ? (
                     <StartPostAction>{content}</StartPostAction>
                   ) : (
-                    <SidebarLink href={href} className="home-action group">
+                    <SidebarLink href={href} className="home-starter group">
                       {content}
                     </SidebarLink>
                   )}
                 </li>
               )
             })}
+            {paid ? (
+              <li>
+                <SidebarLink href="/create?view=templates" className="home-starter group">
+                  <span className="home-starter-tile home-starter-collage" aria-hidden="true">
+                    {[0, 1, 2, 3].map((variant) => (
+                      <Stage key={variant} className="size-full rounded-lg" variant={variant + 2}>
+                        {null}
+                      </Stage>
+                    ))}
+                    <span className="home-starter-collage-icon">
+                      <Shapes size={16} />
+                    </span>
+                  </span>
+                  <span className="home-starter-title">Browse all templates</span>
+                  <span className="home-starter-detail">Finished looks for your next visual.</span>
+                </SidebarLink>
+              </li>
+            ) : null}
           </ul>
         </section>
 
@@ -183,39 +200,17 @@ export default async function HomePage({
           <NeedsAttention />
         </div>
 
-        {paid ? (
-          <section aria-labelledby="home-templates" className="platform-home grid gap-4">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-normal tracking-[-0.01em]" id="home-templates">
-                  Start from a template
-                </h2>
-                <p className="mt-0.5 text-sm text-muted-foreground">
-                  Finished looks for your next screenshot.
-                </p>
-              </div>
-              <SidebarLink
-                href="/create?view=templates"
-                className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                All templates <ArrowRight size={14} aria-hidden="true" />
-              </SidebarLink>
-            </div>
-            <TemplateHighlights />
-          </section>
-        ) : null}
-
         <SidebarLink href={gated('/library?view=brand')} className="platform-home home-brand group">
           <span className="flex items-center gap-3">
             <span className="grid size-8 shrink-0 place-items-center">
               <Shapes size={19} className="text-muted-foreground" aria-hidden="true" />
             </span>
             <span>
-              <span className="flex items-center gap-2 text-ui-lg font-medium">
+              <span className="flex items-center gap-2 text-[13.5px] font-medium">
                 Brand assets
                 {paid ? null : <span className="platform-pro-badge">Pro</span>}
               </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
+              <span className="mt-0.5 block text-xs text-muted-foreground">
                 Your logos, colours and fonts, ready for every visual.
               </span>
             </span>
