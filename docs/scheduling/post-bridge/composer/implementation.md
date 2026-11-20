@@ -73,7 +73,7 @@ Recorded with the owner on 13 November 2026.
 
 ### Known gaps (Slice 5)
 
-- Shots does not learn when the person posts an app draft in TikTok, or whether TikTok discarded it, so a sent app draft stays "Sent to app" and its post is never imported into analytics.
+- Shots does not learn when the person posts an app draft in TikTok, or whether TikTok discarded it, so a sent app draft stays "Sent to app" and its post is never attributed to it. Once the person posts it publicly, Analyze lists it with the account's other public TikTok videos.
 - The activity event `post.sent_to_app` has no per-social-set notification setting; members choose it once for the workspace.
 - An app draft of unknown delivery (TikTok's answer was lost, or did not match an inbox receipt) can be reconciled only as live, which needs a TikTok video URL, or as not there and retried, which uploads it to the inbox again. TikTok holds at most five pending inbox drafts a day. Recording "it reached the app" needs the post's options on the web's post rows, which they do not carry yet.
 
