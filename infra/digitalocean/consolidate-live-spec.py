@@ -342,8 +342,9 @@ def configure_provider_media(spec, backend, secrets):
                    or parts.fragment or parts.hostname not in {item["domain"] for item in spec.get("domains", [])}):
         raise ValueError("PLATFORM_PROVIDER_MEDIA_ORIGIN must be an HTTPS origin on an existing app domain")
     rules = spec.setdefault("ingress", {}).setdefault("rules", [])
+    # DigitalOcean stores the prefix without its trailing slash.
     rules[:] = [rule for rule in rules if not (rule.get("component", {}).get("name") == BACKEND
-                and rule.get("match", {}).get("path", {}).get("prefix") == "/provider-media/")]
+                and rule.get("match", {}).get("path", {}).get("prefix", "").rstrip("/") == "/provider-media")]
     backend["envs"][:] = [item for item in backend["envs"] if item["key"] != "TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN"]
     if origin:
         set_env(backend["envs"], "TENANT_PLATFORM_PROVIDER_MEDIA_ORIGIN", origin.rstrip("/"))
