@@ -166,7 +166,7 @@ function TemplateDetail({
           <MagicWand01Icon size={16} />
           Use Template
         </Button>
-        <p className="mx-auto mt-3 max-w-sm text-center text-[11px] leading-4 text-muted-foreground">
+        <p className="mx-auto mt-3 max-w-sm text-center text-[0.6875rem] leading-4 text-muted-foreground">
           This replaces the current design and animation. Your uploaded media stays.
         </p>
       </div>

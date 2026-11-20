@@ -105,7 +105,7 @@ export function DeviceOptions({ target }: { target: FrameTarget }) {
               </span>
               <span
                 className={cn(
-                  'w-full truncate px-1 text-[10px] leading-tight',
+                  'w-full truncate px-1 text-[0.625rem] leading-tight',
                   selected ? 'font-medium text-foreground' : 'text-muted-foreground'
                 )}
               >

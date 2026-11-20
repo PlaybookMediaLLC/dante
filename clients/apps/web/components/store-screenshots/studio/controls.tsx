@@ -73,12 +73,12 @@ export function Section({
   return (
     <section aria-labelledby={id} className="space-y-3 border-b border-foreground/[0.07] px-4 py-4 last:border-b-0">
       <div className="flex min-h-6 items-center justify-between gap-2">
-        <h3 id={id} className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <h3 id={id} className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           {title}
         </h3>
         {actions ? <div className="flex items-center gap-1">{actions}</div> : null}
       </div>
-      {description ? <p className="-mt-1 text-[11px] leading-relaxed text-muted-foreground">{description}</p> : null}
+      {description ? <p className="-mt-1 text-[0.6875rem] leading-relaxed text-muted-foreground">{description}</p> : null}
       {children}
     </section>
   )
@@ -161,18 +161,18 @@ export function NumberField({
         }}
         className="h-full w-full min-w-0 bg-transparent px-2 text-xs tabular-nums text-foreground outline-none"
       />
-      {unit ? <span className="pr-2 text-[10px] text-muted-foreground">{unit}</span> : null}
+      {unit ? <span className="pr-2 text-[0.625rem] text-muted-foreground">{unit}</span> : null}
     </div>
   )
   if (compact) return input
   return (
     <div className="min-w-0 space-y-1">
-      <Label htmlFor={id} className="block text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="block text-[0.6875rem] text-muted-foreground">
         {label}
       </Label>
       {input}
       {hint ? (
-        <p id={`${id}-hint`} className="text-[10px] leading-snug text-muted-foreground">
+        <p id={`${id}-hint`} className="text-[0.625rem] leading-snug text-muted-foreground">
           {hint}
         </p>
       ) : null}
@@ -207,7 +207,7 @@ export function SliderField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-muted-foreground">{label}</span>
+        <span className="text-[0.6875rem] text-muted-foreground">{label}</span>
         <div className="w-[84px]">
           <NumberField label={label} value={value} unit={unit} min={min} max={max} step={step} precision={precision} onChange={onChange} compact />
         </div>
@@ -221,7 +221,7 @@ export function SliderField({
         onValueChange={([next]) => onChange(next)}
         onValueCommit={() => onCommit?.()}
       />
-      {hint ? <p className="text-[10px] leading-snug text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className="text-[0.625rem] leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   )
 }
@@ -232,7 +232,7 @@ export function ContrastBadge({ ratio, required }: { ratio: number; required: nu
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium tabular-nums',
+        'inline-flex items-center rounded px-1.5 py-0.5 text-[0.625rem] font-medium tabular-nums',
         pass ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
       )}
       title={`Contrast ${ratio.toFixed(1)}:1; this text needs ${required}:1 to stay readable at store preview size.`}
@@ -270,7 +270,7 @@ export function ColorField({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <Label htmlFor={id} className="text-[11px] text-muted-foreground">
+        <Label htmlFor={id} className="text-[0.6875rem] text-muted-foreground">
           {label}
         </Label>
         {contrast ? <ContrastBadge ratio={contrast.ratio} required={contrast.required} /> : null}
@@ -284,7 +284,7 @@ export function ColorField({
             onChange={(event) => onChange(event.target.value.toUpperCase())}
             className="size-5 shrink-0 cursor-pointer rounded border-0 bg-transparent p-0"
           />
-          <span className="truncate font-mono text-[11px] uppercase text-foreground">{value === null && allowAuto ? `Auto · ${shown}` : shown}</span>
+          <span className="truncate font-mono text-[0.6875rem] uppercase text-foreground">{value === null && allowAuto ? `Auto · ${shown}` : shown}</span>
         </div>
         {allowAuto ? (
           <Button variant="custom" size={null}
@@ -293,7 +293,7 @@ export function ColorField({
             onClick={() => onChange(value === null ? shown : null)}
             title="Automatic picks a readable color for the background behind this text"
             className={cn(
-              'h-8 rounded-md border px-2 text-[11px]',
+              'h-8 rounded-md border px-2 text-[0.6875rem]',
               value === null ? 'border-foreground/30 bg-foreground/[0.1] text-foreground' : 'border-foreground/10 text-muted-foreground hover:text-foreground'
             )}
           >
@@ -317,7 +317,7 @@ export function ColorField({
         </div>
       ) : null}
       {contrast && contrast.ratio < contrast.required && contrast.readable ? (
-        <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="text-[11px] font-medium text-foreground underline underline-offset-2">
+        <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="text-[0.6875rem] font-medium text-foreground underline underline-offset-2">
           Use a readable color automatically
         </Button>
       ) : null}
@@ -342,7 +342,7 @@ export function SelectField<T extends string>({
   const id = React.useId()
   return (
     <div className="min-w-0 space-y-1">
-      <Label htmlFor={id} className={cn('block text-[11px] text-muted-foreground', hideLabel && 'sr-only')}>
+      <Label htmlFor={id} className={cn('block text-[0.6875rem] text-muted-foreground', hideLabel && 'sr-only')}>
         {label}
       </Label>
       <Select value={String(value)} onValueChange={(nextValue) => onChange(nextValue as T)}>
@@ -378,7 +378,7 @@ export function ChoiceField<T extends string>({
 }): React.JSX.Element {
   return (
     <div className="space-y-1">
-      <span className="block text-[11px] text-muted-foreground">{label}</span>
+      <span className="block text-[0.6875rem] text-muted-foreground">{label}</span>
       <div role="radiogroup" aria-label={label} className="flex h-8 rounded-md border border-foreground/10 bg-foreground/[0.035] p-0.5">
         {options.map((option) => (
           <Button variant="custom" size={null}
@@ -390,7 +390,7 @@ export function ChoiceField<T extends string>({
             title={option.label}
             onClick={() => onChange(option.value)}
             className={cn(
-              'flex min-w-0 flex-1 items-center justify-center rounded-[5px] px-1.5 text-[11px]',
+              'flex min-w-0 flex-1 items-center justify-center rounded-[5px] px-1.5 text-[0.6875rem]',
               value === option.value ? 'bg-foreground/[0.12] text-foreground' : 'text-muted-foreground hover:text-foreground'
             )}
           >
@@ -417,11 +417,11 @@ export function ToggleField({
   const id = React.useId()
   return (
     <div className="space-y-0.5">
-      <Label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-3 text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="flex cursor-pointer items-center justify-between gap-3 text-[0.6875rem] text-muted-foreground">
         <span>{label}</span>
         <Checkbox id={id}  checked={checked} onCheckedChange={(checked) => onChange((checked === true))} className="size-4 accent-foreground" />
       </Label>
-      {hint ? <p className="text-[10px] leading-snug text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className="text-[0.625rem] leading-snug text-muted-foreground">{hint}</p> : null}
     </div>
   )
 }

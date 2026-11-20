@@ -379,7 +379,7 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
                     </SelectContent>
                   </Select>
                 ) : null}
-                {versionId ? <p className="self-center text-[11px] text-muted-foreground">{localizations.length ? `${localizations.length} languages on this version` : browsing ? 'Loading languages…' : ''}</p> : null}
+                {versionId ? <p className="self-center text-[0.6875rem] text-muted-foreground">{localizations.length ? `${localizations.length} languages on this version` : browsing ? 'Loading languages…' : ''}</p> : null}
               </div>
             ) : (
               <Label className="block text-xs">
@@ -417,7 +417,7 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
                 <Checkbox  checked={replace} onCheckedChange={(checked) => setReplace((checked === true))} className="mt-0.5" />
                 <span>
                   Replace the screenshots already there
-                  <span className="block text-[10px] text-muted-foreground">Otherwise new screenshots are added after the existing ones, up to the store limit.</span>
+                  <span className="block text-[0.625rem] text-muted-foreground">Otherwise new screenshots are added after the existing ones, up to the store limit.</span>
                 </span>
               </Label>
             </fieldset>
@@ -472,7 +472,7 @@ export function PublishDialog({ open, onOpenChange }: DialogProps): React.JSX.El
           </p>
         ) : null}
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[0.6875rem] text-muted-foreground">
             {plan.length} files · {provider === 'APP_STORE_CONNECT' ? 'nothing is submitted for review' : 'nothing goes live until you commit'}
           </p>
           <div className="flex gap-2">
@@ -557,7 +557,7 @@ function AddCredentialForm({ provider, onCancel, onAdded }: { provider: StorePro
           className="mt-1 block w-full text-xs"
         />
       </Label>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[0.625rem] text-muted-foreground">
         {fileName ? `${fileName} is read in your browser and sent once over HTTPS; the server checks it and stores it encrypted.` : 'The key is stored encrypted on the server and is never shown again.'}
       </p>
       {error ? (

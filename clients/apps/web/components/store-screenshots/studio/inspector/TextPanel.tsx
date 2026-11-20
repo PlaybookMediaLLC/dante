@@ -147,7 +147,7 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
       <Section
         title={TEXT_ROLE_LABELS[layer.role]}
         actions={
-          <Button variant="custom" size={null} type="button" onClick={() => api.getState().startTextEdit(owner, layer.id)} className="h-7 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().startTextEdit(owner, layer.id)} className="h-7 rounded-md border border-foreground/10 px-2 text-[0.6875rem] hover:bg-foreground/[0.05]">
             Edit on canvas
           </Button>
         }
@@ -162,7 +162,7 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
             className="w-full resize-y rounded-md border border-foreground/10 bg-foreground/[0.035] p-2 text-xs leading-relaxed outline-none focus:border-foreground/30"
           />
         ) : (
-          <p className="rounded-md border border-foreground/10 bg-foreground/[0.025] p-2 text-[11px] leading-relaxed text-muted-foreground">
+          <p className="rounded-md border border-foreground/10 bg-foreground/[0.025] p-2 text-[0.6875rem] leading-relaxed text-muted-foreground">
             “{plain}” has mixed formatting. Double-click it on the canvas to edit without losing the formatting.
           </p>
         )}
@@ -174,16 +174,16 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
         />
         {localized ? (
           <div className="space-y-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2">
-            <p className="text-[11px]">
+            <p className="text-[0.6875rem]">
               <span className="font-medium">{locale}:</span> {STATE_LABELS[shown.state]}
               {translation ? ` · ${translation.status}` : ''}
             </p>
-            <p className="text-[10px] text-muted-foreground">Source: “{layer.content.map((span) => span.text).join('')}”</p>
+            <p className="text-[0.625rem] text-muted-foreground">Source: “{layer.content.map((span) => span.text).join('')}”</p>
             {translation && translation.status !== 'approved' ? (
               <Button variant="custom" size={null}
                 type="button"
                 onClick={() => api.getState().dispatch({ type: 'text.setTranslationStatus', slideId: slide.id, layerId: layer.id, locale, status: 'approved' })}
-                className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background"
+                className="h-7 rounded-md bg-foreground px-2 text-[0.6875rem] text-background"
               >
                 Approve translation
               </Button>
@@ -192,7 +192,7 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
               <Button variant="custom" size={null}
                 type="button"
                 onClick={() => api.getState().dispatch({ type: 'text.setTranslationStatus', slideId: slide.id, layerId: layer.id, locale, status: 'approved' })}
-                className="ml-2 h-7 rounded-md border border-foreground/10 px-2 text-[11px]"
+                className="ml-2 h-7 rounded-md border border-foreground/10 px-2 text-[0.6875rem]"
               >
                 Still correct
               </Button>
@@ -203,7 +203,7 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
       <Section
         title="Typography"
         actions={
-          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.text', owner, layerIds: [layer.id], scope: 'style' })} className="h-7 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]" title="Return to the project style for this role">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.text', owner, layerIds: [layer.id], scope: 'style' })} className="h-7 rounded-md px-2 text-[0.6875rem] text-muted-foreground hover:bg-foreground/[0.05]" title="Return to the project style for this role">
             Reset style
           </Button>
         }
@@ -239,7 +239,7 @@ export function TextPanel({ owner, layer, node }: { owner: LayerOwner; layer: Te
             })
           }}
         />
-        <p className="text-[10px] leading-snug text-muted-foreground">
+        <p className="text-[0.625rem] leading-snug text-muted-foreground">
           Layout keeps text in the copy area above the device and reserves its space. Free text can go anywhere; overlaps are flagged in Checks.
         </p>
       </Section>

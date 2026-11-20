@@ -105,7 +105,7 @@ export function LayerStateSection({ owner, layer }: { owner: LayerOwner; layer: 
   return (
     <Section title="Layer">
       <div className="space-y-1">
-        <Label className="block text-[11px] text-muted-foreground" htmlFor={`name-${layer.id}`}>
+        <Label className="block text-[0.6875rem] text-muted-foreground" htmlFor={`name-${layer.id}`}>
           Name
         </Label>
         <Input
@@ -125,10 +125,10 @@ export function LayerStateSection({ owner, layer }: { owner: LayerOwner; layer: 
       </div>
       <SliderField label="Opacity" unit="%" value={Math.round(layer.opacity * 100)} min={0} max={100} onChange={(value) => patch([layer.id], { opacity: value / 100 }, 'opacity')} />
       <div className="flex gap-2">
-        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { hidden: !layer.hidden })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { hidden: !layer.hidden })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]">
           {layer.hidden ? 'Show layer' : 'Hide layer'}
         </Button>
-        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { locked: !layer.locked })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { locked: !layer.locked })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]">
           {layer.locked ? 'Unlock' : 'Lock'}
         </Button>
       </div>

@@ -60,7 +60,7 @@ export function FrameSection() {
 
   return (
     <div className="space-y-3">
-      <p className="px-0.5 text-[11px] text-muted-foreground" data-frame-scope="true">
+      <p className="px-0.5 text-[0.6875rem] text-muted-foreground" data-frame-scope="true">
         Frame for <span className="font-medium text-foreground">{scope}</span>
       </p>
       <SegmentedControl
@@ -74,7 +74,7 @@ export function FrameSection() {
         }))}
         value={choice}
       />
-      <p className="px-0.5 text-[11px] leading-snug text-muted-foreground">
+      <p className="px-0.5 text-[0.6875rem] leading-snug text-muted-foreground">
         {mixed ? 'These screens use different frames; a choice here applies to all of them.' : current.description}
       </p>
       {choice !== target.choice ? (
@@ -93,7 +93,7 @@ export function FrameSection() {
         ) : screens.length === 0 ? (
           <StyleSection />
         ) : (
-          <p className="rounded-md bg-foreground/[0.04] px-2.5 py-2 text-[11px] leading-snug text-muted-foreground">
+          <p className="rounded-md bg-foreground/[0.04] px-2.5 py-2 text-[0.6875rem] leading-snug text-muted-foreground">
             No frame: the screenshot shows on its own with rounded corners and a soft shadow.
           </p>
         )}

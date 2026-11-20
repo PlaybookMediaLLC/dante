@@ -492,7 +492,7 @@ export function AnimationControls() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10"
+            className="h-6 px-2 text-[0.625rem] text-destructive hover:text-destructive hover:bg-destructive/10"
             onClick={clearAnimationClips}
           >
             <Delete02Icon size={12} className="mr-1" />
@@ -538,7 +538,7 @@ export function AnimationControls() {
                       </div>
                     </div>
 
-                    <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-background/80 border border-foreground/10 rounded-md text-[9px] font-medium text-muted-foreground">
+                    <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-background/80 border border-foreground/10 rounded-md text-[0.5625rem] font-medium text-muted-foreground">
                       {(preset.duration / 1000).toFixed(1)}s
                     </div>
 
@@ -550,7 +550,7 @@ export function AnimationControls() {
                     >
                       <span
                         className={cn(
-                          'px-2 py-0.5 rounded-md text-[10px] font-medium border',
+                          'px-2 py-0.5 rounded-md text-[0.625rem] font-medium border',
                           isApplied
                             ? 'bg-card text-foreground border-foreground/20'
                             : 'bg-background/90 text-muted-foreground border-foreground/10'

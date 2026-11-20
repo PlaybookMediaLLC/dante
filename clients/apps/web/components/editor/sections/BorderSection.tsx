@@ -82,7 +82,7 @@ export function BorderSection() {
                 </div>
                 <span
                   className={cn(
-                    'text-[10px] leading-tight transition-colors',
+                    'text-[0.625rem] leading-tight transition-colors',
                     isSelected ? 'text-foreground font-medium' : 'text-muted-foreground group-hover:text-foreground/70',
                   )}
                 >

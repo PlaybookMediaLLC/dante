@@ -44,7 +44,7 @@ export function ElementsSection() {
       <div className="grid grid-cols-2 gap-1.5">
         {INSERTABLE.map(({ hint, icon, type }) => (
           <Button variant="custom" size={null}
-            className="flex flex-col items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 py-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:bg-foreground/[0.06] hover:text-foreground"
+            className="flex flex-col items-center gap-1.5 rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 py-2.5 text-[0.6875rem] font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:bg-foreground/[0.06] hover:text-foreground"
             key={type}
             onClick={() => insertElement(type)}
             title={hint}

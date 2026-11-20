@@ -296,20 +296,20 @@ export function DraftPostLinks({ draftId }: { draftId: string }) {
   }, [draftId])
   if (error)
     return (
-      <p className="px-4 pb-2 text-[11px] text-red-700 dark:text-red-300" role="alert">
+      <p className="px-4 pb-2 text-[0.6875rem] text-red-700 dark:text-red-300" role="alert">
         {error}
       </p>
     )
   if (!posts)
     return (
-      <p className="px-4 pb-2 text-[11px] text-muted-foreground" role="status">
+      <p className="px-4 pb-2 text-[0.6875rem] text-muted-foreground" role="status">
         Reading its posts…
       </p>
     )
   const live = posts.filter((post) => post.url)
   if (!live.length)
     return (
-      <p className="px-4 pb-2 text-[11px] text-muted-foreground">
+      <p className="px-4 pb-2 text-[0.6875rem] text-muted-foreground">
         No link yet: the platform has not reported one.
       </p>
     )
@@ -318,7 +318,7 @@ export function DraftPostLinks({ draftId }: { draftId: string }) {
       {live.map((post) => (
         <li key={post.id}>
           <a
-            className="text-[11px] text-sky-700 underline dark:text-sky-300"
+            className="text-[0.6875rem] text-sky-700 underline dark:text-sky-300"
             href={post.url ?? '#'}
             rel="noreferrer"
             target="_blank"
@@ -381,7 +381,7 @@ export function RetryAllFailed({ draftIds }: { draftIds: string[] }) {
   if (!draftIds.length) return null
   return (
     <Button
-      className="h-6 px-2 text-[11px]"
+      className="h-6 px-2 text-[0.6875rem]"
       disabled={busy}
       onClick={() => void run()}
       size={null}
@@ -405,12 +405,12 @@ export function QueueWarnings({
     <ul className="mx-3 mt-2 grid gap-1" data-testid="queue-warnings">
       {warnings.map((warning) => (
         <li
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/[0.05] px-2 py-1.5 text-[11px] text-amber-800 dark:text-amber-200"
+          className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/[0.05] px-2 py-1.5 text-[0.6875rem] text-amber-800 dark:text-amber-200"
           key={warning.text}
         >
           <span className="flex-1">{warning.text}</span>
           <Button
-            className="h-6 px-2 text-[11px]"
+            className="h-6 px-2 text-[0.6875rem]"
             onClick={() => onSelect(warning.ids)}
             size={null}
             variant="ghost"

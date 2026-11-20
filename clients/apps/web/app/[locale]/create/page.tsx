@@ -54,13 +54,13 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
                     {
                       title: 'Tweet image',
                       description: 'Style a social post as a visual.',
-                      href: '/tweet',
+                      href: '/create/tweet',
                       scope: 'Tweet editor',
                     },
                     {
                       title: 'Image tools',
                       description: 'Resize, crop, compress or convert an image.',
-                      href: '/tools',
+                      href: '/create/tools',
                       scope: 'Focused utilities',
                     },
                   ]
@@ -127,7 +127,7 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
           // The front page of the editors: start from a finished look as well as a blank.
           <section aria-labelledby="create-templates" className="grid gap-3 pt-2">
             <div className="flex items-end justify-between gap-3">
-              <h2 id="create-templates" className="text-[13px] text-muted-foreground">
+              <h2 id="create-templates" className="text-[0.8125rem] text-muted-foreground">
                 Start from a template
               </h2>
               <SidebarLink

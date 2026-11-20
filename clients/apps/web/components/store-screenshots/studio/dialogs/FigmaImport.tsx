@@ -109,7 +109,7 @@ export function FigmaImport({ onFiles }: { onFiles: (files: File[]) => void }): 
                 className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 outline-none"
               />
             </Label>
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[0.625rem] text-muted-foreground">
               The token is used for this import only and is not saved.
             </p>
             <Button
@@ -144,7 +144,7 @@ export function FigmaImport({ onFiles }: { onFiles: (files: File[]) => void }): 
                           }
                         />
                         <span className="min-w-0 flex-1 truncate">{frame.name}</span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[0.625rem] text-muted-foreground">
                           {frame.page} · {Math.round(frame.width)} × {Math.round(frame.height)}
                         </span>
                       </Label>

@@ -194,7 +194,7 @@ function CaptionRow({ item }: { item: CaptionItem }) {
         value={draft}
       />
       {draft.trim() === '' ? (
-        <p className="text-[11px] text-destructive">A caption needs some text.</p>
+        <p className="text-[0.6875rem] text-destructive">A caption needs some text.</p>
       ) : null}
       <SecondsField
         label="Start"

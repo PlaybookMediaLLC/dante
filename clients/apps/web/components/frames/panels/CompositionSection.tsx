@@ -70,7 +70,7 @@ export function CompositionSection() {
   return (
     <SectionWrapper title="Composition" defaultOpen>
       <div className="space-y-3">
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[0.6875rem] leading-snug text-muted-foreground">
           {scene
             ? `${count} screens in this composition (maximum ${MAX_SCREENS}). Select one on the canvas to frame it on its own.`
             : 'Show several screenshots, or code, side by side in one design.'}
@@ -155,7 +155,7 @@ export function CompositionSection() {
                       }
                     />
                   </span>
-                  <span className="px-0.5 text-[10px] leading-tight text-muted-foreground">
+                  <span className="px-0.5 text-[0.625rem] leading-tight text-muted-foreground">
                     {COMPOSITION_LAYOUTS[layout].name}
                   </span>
                 </Button>

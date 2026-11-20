@@ -38,10 +38,10 @@ export function BulkPanel(): React.JSX.Element {
   return (
     <>
       <Section title={`${count} slides selected`} description="Controls show the first selected slide. Changes apply to every selected slide and undo as one step.">
-        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('applyStyle')} className="h-8 w-full rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]">
           Copy style from the active slide…
         </Button>
-        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('brandKits')} className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" onClick={() => actions.openDialog('brandKits')} className="h-8 w-full rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]">
           Apply a brand kit…
         </Button>
       </Section>
@@ -127,7 +127,7 @@ export function BulkPanel(): React.JSX.Element {
         <Button variant="custom" size={null}
           type="button"
           onClick={() => api.getState().dispatch({ type: 'slides.patchDevices', slideIds: selected, transform: { offsetX: 0, offsetY: 0, scale: 1, rotation: 0, tiltX: 0, tiltY: 0 } })}
-          className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
+          className="h-8 w-full rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]"
         >
           Reset device positions on {count} slides
         </Button>

@@ -274,7 +274,7 @@ export function ColorPanel({ color, onChange, alpha: withAlpha = true, swatches,
 
   const channel = (index: 0 | 1 | 2, label: string, name: string) => (
     <div className="flex min-w-0 flex-col items-center gap-0.5">
-      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-[0.625rem] font-medium text-muted-foreground">{label}</span>
       <Input
         type="number"
         min={0}
@@ -356,7 +356,7 @@ export function ColorPanel({ color, onChange, alpha: withAlpha = true, swatches,
         {channel(2, 'B', 'Blue')}
         {withAlpha ? (
           <div className="flex min-w-0 flex-col items-center gap-0.5">
-            <span className="text-[10px] font-medium text-muted-foreground">A</span>
+            <span className="text-[0.625rem] font-medium text-muted-foreground">A</span>
             <Input
               type="number"
               min={0}
@@ -508,7 +508,7 @@ export function ColorPicker({ color, onChange, className, id, label }: ColorPick
               style={{ backgroundColor: color }}
             />
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground">{parsed ? currentHex : color}</span>
+          <span className="text-[0.625rem] font-medium text-muted-foreground">{parsed ? currentHex : color}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent

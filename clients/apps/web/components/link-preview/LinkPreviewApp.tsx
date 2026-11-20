@@ -760,7 +760,7 @@ export function LinkPreviewApp() {
                         <TabsTrigger key={value} value={value} className={TAB_TRIGGER}>
                           {TAB_LABELS[value]}
                           {value === TAB.overview && flagged > 0 && (
-                            <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-[10px] text-amber-300">
+                            <span className="ml-1.5 rounded-full bg-amber-500/15 px-1.5 text-[0.625rem] text-amber-300">
                               {flagged}
                             </span>
                           )}

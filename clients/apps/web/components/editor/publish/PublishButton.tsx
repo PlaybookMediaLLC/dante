@@ -143,7 +143,7 @@ export function PublishButton({
         <Button
           aria-label="Publish"
           className={cn(
-            'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-[13px] font-medium text-muted-foreground',
+            'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-[0.8125rem] font-medium text-muted-foreground',
             'transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground disabled:pointer-events-none disabled:opacity-35',
             'data-[state=open]:bg-foreground/[0.08] data-[state=open]:text-foreground',
             compact ? 'px-2' : 'px-2.5'
@@ -190,7 +190,7 @@ export function PublishButton({
             </RadioGroup>
           </fieldset>
         ) : null}
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           Publish opens over the design and the export joins the post when it is ready. Your design
           stays as it is.
         </p>

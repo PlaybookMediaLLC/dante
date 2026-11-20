@@ -176,7 +176,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
         <Button
           variant="custom"
           size={null}
-          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+          className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-[0.8125rem] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
           onClick={() => setNameDialog('create')}
           type="button"
         >
@@ -203,7 +203,7 @@ export function ProjectMenu({ compact = false }: { compact?: boolean }) {
             variant="custom"
             size={null}
             aria-label={`Project ${project.name || ''}: ${statusLabel}`}
-            className="inline-flex h-8 min-w-0 max-w-[260px] cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
+            className="inline-flex h-8 min-w-0 max-w-[260px] cursor-pointer items-center gap-2 rounded-lg px-2.5 text-[0.8125rem] font-medium text-foreground transition-colors hover:bg-foreground/[0.06] data-[state=open]:bg-foreground/[0.08]"
             type="button"
           >
             <span

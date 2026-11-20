@@ -129,7 +129,7 @@ export function CampaignList({ campaigns }: { campaigns: CampaignListItem[] }) {
                       title={campaign.productName ?? 'Campaign'}
                     >
                       <span className="block px-4 py-5">
-                        <span className="line-clamp-2 block text-[17px] leading-snug text-white">
+                        <span className="line-clamp-2 block text-[1.0625rem] leading-snug text-white">
                           {campaign.name}
                         </span>
                         <span className="mt-2 block truncate text-xs text-[#858585]">

@@ -50,7 +50,7 @@ function FormatImage({ document, name }: { document: DesignDocument; name: strin
 
 function Placeholder({ name }: { name: string }) {
   return (
-    <div className="grid h-full w-full place-items-center bg-muted/40 text-[10px] text-muted-foreground">
+    <div className="grid h-full w-full place-items-center bg-muted/40 text-[0.625rem] text-muted-foreground">
       {name}
     </div>
   )
@@ -107,7 +107,7 @@ export const StorySetFormatPreview = memo(
                       </span>
                     )}
                   </div>
-                  <figcaption className="page-spread-number mt-2 whitespace-nowrap @[500px]:text-[11px]">
+                  <figcaption className="page-spread-number mt-2 whitespace-nowrap @[500px]:text-[0.6875rem]">
                     {name}
                     <span className="hidden @[500px]:inline">
                       {' '}

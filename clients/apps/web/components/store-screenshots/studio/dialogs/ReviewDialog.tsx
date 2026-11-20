@@ -191,7 +191,7 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                       {review.name}
                       {review.versionLabel ? <span className="text-muted-foreground"> · {review.versionLabel}</span> : null}
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[0.6875rem] text-muted-foreground">
                       {review.slides.length} slides · {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
                       {review.projectRevision !== document.revision ? ' · the project has changed since' : ''}
                       {review.revokedAt ? ' · link turned off' : ''} · {open} open {open === 1 ? 'comment' : 'comments'}
@@ -220,7 +220,7 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                   ) : null}
                 </header>
                 {review.url ? (
-                  <Input readOnly value={review.url} aria-label={`Review link for ${review.name}`} onFocus={(event) => event.currentTarget.select()} className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 font-mono text-[11px]" />
+                  <Input readOnly value={review.url} aria-label={`Review link for ${review.name}`} onFocus={(event) => event.currentTarget.select()} className="h-8 w-full rounded-md border border-foreground/10 bg-foreground/[0.03] px-2 font-mono text-[0.6875rem]" />
                 ) : null}
                 {review.comments.length ? (
                   <ul className="space-y-1.5" aria-label={`Comments on ${review.name}`}>
@@ -234,13 +234,13 @@ export function ReviewDialog({ open, onOpenChange }: DialogProps): React.JSX.Ele
                               {slideIndex >= 0 ? `Slide ${slideIndex + 1}` : 'Deleted slide'} · {slideName}
                               {comment.x !== null && comment.y !== null ? ` · pinned at ${Math.round(comment.x)}%, ${Math.round(comment.y)}%` : ''}
                             </Button>
-                            <Label className="flex shrink-0 items-center gap-1 text-[11px]">
+                            <Label className="flex shrink-0 items-center gap-1 text-[0.6875rem]">
                               <Checkbox  checked={Boolean(comment.resolvedAt)} onCheckedChange={(checked) => void resolve(review.id, comment.id, (checked === true))} />
                               Resolved
                             </Label>
                           </div>
                           <p className="mt-1 whitespace-pre-wrap">{comment.body}</p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">
+                          <p className="mt-1 text-[0.625rem] text-muted-foreground">
                             {comment.authorName} · {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                           </p>
                         </li>

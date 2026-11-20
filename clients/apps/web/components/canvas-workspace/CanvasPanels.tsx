@@ -104,7 +104,7 @@ export function LeftPanel(props: PanelProps & { only?: 'artboards' }) {
     >
       <TabsList
         aria-label="Canvas tools"
-        className="m-2 grid w-auto grid-cols-3 rounded-full bg-foreground/[0.05] p-0.5 [&>button]:rounded-full [&>button]:border-transparent [&>button]:text-[13px]"
+        className="m-2 grid w-auto grid-cols-3 rounded-full bg-foreground/[0.05] p-0.5 [&>button]:rounded-full [&>button]:border-transparent [&>button]:text-[0.8125rem]"
       >
         <TabsTrigger value="insert">Insert</TabsTrigger>
         <TabsTrigger value="artboards">Artboards</TabsTrigger>
@@ -219,7 +219,7 @@ function InsertPanel({
             else toast.error('Use a size from 16 to 8192 pixels.')
           }}
         >
-          <Label className="grid gap-1 text-[11px] text-muted-foreground">
+          <Label className="grid gap-1 text-[0.6875rem] text-muted-foreground">
             W
             <Input
               aria-label="Custom width"
@@ -229,7 +229,7 @@ function InsertPanel({
               className="h-8 w-20"
             />
           </Label>
-          <Label className="grid gap-1 text-[11px] text-muted-foreground">
+          <Label className="grid gap-1 text-[0.6875rem] text-muted-foreground">
             H
             <Input
               aria-label="Custom height"
@@ -258,7 +258,7 @@ function InsertPanel({
               className="rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/[0.05] disabled:opacity-50"
             >
               <span className="block">{CANVAS_RECIPES[recipe].name}</span>
-              <span className="block text-[11px] text-muted-foreground">
+              <span className="block text-[0.6875rem] text-muted-foreground">
                 {CANVAS_RECIPES[recipe].artboards}
               </span>
             </Button>
@@ -272,7 +272,7 @@ function InsertPanel({
             className="rounded-md px-2 py-1.5 text-left text-sm hover:bg-foreground/[0.05] disabled:opacity-50"
           >
             <span className="block">App Store screenshots</span>
-            <span className="block text-[11px] text-muted-foreground">
+            <span className="block text-[0.6875rem] text-muted-foreground">
               A store screenshot group · every store size and language
             </span>
           </Button>
@@ -303,7 +303,7 @@ function InsertPanel({
         ) : null}
         {BLOCK_GROUPS.map((group) => (
           <div key={group.title} className="space-y-1">
-            <h3 className="pt-1 text-[11px] text-muted-foreground">{group.title}</h3>
+            <h3 className="pt-1 text-[0.6875rem] text-muted-foreground">{group.title}</h3>
             <div className="flex flex-wrap gap-1">
               {group.blocks.map((item) => (
                 <Button
@@ -343,7 +343,7 @@ function ScreenshotButtons({ disabled }: { disabled: boolean }) {
   }
   return (
     <div className="space-y-1">
-      <h3 className="pt-1 text-[11px] text-muted-foreground">Images</h3>
+      <h3 className="pt-1 text-[0.6875rem] text-muted-foreground">Images</h3>
       <div className="flex flex-wrap gap-1">
         <Button
           size="sm"
@@ -423,9 +423,9 @@ function ArtboardList({ state, actions, canEdit }: PanelProps) {
             >
               <span className="min-w-0 flex-1 truncate">{artboard.name}</span>
               {artboard.id === activeId ? (
-                <span className="text-[10px] text-sky-600">Editing</span>
+                <span className="text-[0.625rem] text-sky-600">Editing</span>
               ) : null}
-              <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+              <span className="shrink-0 text-[0.6875rem] tabular-nums text-muted-foreground">
                 {size.width}×{size.height}
               </span>
             </Button>
@@ -461,7 +461,7 @@ export function RightPanel(props: PanelProps) {
         <div className="flex items-center gap-2 border-b px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="truncate text-ui-lg font-medium">{active.name}</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[0.6875rem] text-muted-foreground">
               {artboardSize(active).width} × {artboardSize(active).height} · editing
             </p>
           </div>
@@ -827,7 +827,7 @@ function ArtboardInspector(props: PanelProps & { artboard: Artboard }) {
             Resize
           </Button>
         </form>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           Resizing lays the composition out again for the new shape.
         </p>
       </section>

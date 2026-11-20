@@ -533,7 +533,7 @@ export function RecipeGallery({ onPick }: { onPick: (recipe: CanvasRecipe) => vo
                   <span className="mt-1 block text-xs text-muted-foreground">
                     {CANVAS_RECIPES[recipe].description}
                   </span>
-                  <span className="mt-auto block pt-2 text-[11px] text-muted-foreground">
+                  <span className="mt-auto block pt-2 text-[0.6875rem] text-muted-foreground">
                     {CANVAS_RECIPES[recipe].artboards}
                   </span>
                 </Button>

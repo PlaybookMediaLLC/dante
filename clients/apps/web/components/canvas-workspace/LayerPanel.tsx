@@ -50,7 +50,7 @@ export function LayerSelectionPanel({
         <h2 className="text-ui-lg font-medium">
           {component ? component.name : isGroup ? group!.name : `${layers.length} layers`}
         </h2>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           {component
             ? `Component instance · ${overridden ? `${overridden} overridden layer${overridden === 1 ? '' : 's'}` : 'matches the main component'}`
             : isGroup

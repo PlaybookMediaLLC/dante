@@ -189,7 +189,7 @@ function CalloutFields({ element, update }: { element: ElementOf<'callout'>; upd
   const { props } = element
   return (
     <>
-      <p className="text-[11px] leading-snug text-muted-foreground">
+      <p className="text-[0.6875rem] leading-snug text-muted-foreground">
         Drag the dashed box on the screenshot to choose what to magnify.
       </p>
       <Slider

@@ -90,7 +90,7 @@ function KeyframesSection({ target }: { target: MotionTarget | null }) {
   }
   return (
     <SectionWrapper title="Keyframes">
-      <p className="text-[11px] leading-snug text-muted-foreground">
+      <p className="text-[0.6875rem] leading-snug text-muted-foreground">
         Values at the playhead ({formatSeconds(playhead)}). Changing one keys it there; ◆ adds or
         removes a keyframe.
       </p>

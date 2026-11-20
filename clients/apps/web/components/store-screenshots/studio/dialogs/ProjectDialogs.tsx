@@ -115,13 +115,13 @@ export function ProjectsDialog({
                     ) : (
                       <p className="truncate text-ui-lg font-medium">
                         {project.name}
-                        {project.id === currentProjectId ? <span className="ml-1 text-[10px] text-muted-foreground">(open)</span> : null}
+                        {project.id === currentProjectId ? <span className="ml-1 text-[0.625rem] text-muted-foreground">(open)</span> : null}
                       </p>
                     )}
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-[0.6875rem] text-muted-foreground">
                       {project.slideCount} slides · {formatDistanceToNow(project.updatedAt, { addSuffix: true })}
                     </p>
-                    <div className="flex gap-1 text-[11px]">
+                    <div className="flex gap-1 text-[0.6875rem]">
                       <Button variant="custom" size={null} type="button" className="rounded px-1.5 py-0.5 hover:bg-foreground/[0.06]" onClick={() => setRenaming(project.id)}>
                         Rename
                       </Button>
@@ -228,7 +228,7 @@ export function VersionsDialog({
                 ) : null}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-ui-lg font-medium">{version.name}</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-[0.6875rem] text-muted-foreground">
                     {version.slideCount} slides · {formatDistanceToNow(version.createdAt, { addSuffix: true })}
                   </p>
                 </div>

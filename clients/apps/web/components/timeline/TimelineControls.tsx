@@ -114,10 +114,10 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
         </Button>
 
         <div className="flex min-w-[66px] items-center tabular-nums">
-          <span className="text-[11px] font-medium text-foreground">
+          <span className="text-[0.6875rem] font-medium text-foreground">
             {formatTimeDisplay(playhead)}
           </span>
-          <span className="ml-1 text-[11px] text-muted-foreground">
+          <span className="ml-1 text-[0.6875rem] text-muted-foreground">
             / {formatTimeDisplay(duration)}
           </span>
         </div>
@@ -125,7 +125,7 @@ export function TimelineControls({ onAddAnimation, onClose }: TimelineControlsPr
 
       <div className="flex min-w-0 items-center justify-end gap-1.5">
         <div className="flex items-center gap-2">
-          <span className="whitespace-nowrap text-[10px] font-medium text-muted-foreground">
+          <span className="whitespace-nowrap text-[0.625rem] font-medium text-muted-foreground">
             Duration {durationLabel}s
           </span>
           <Slider

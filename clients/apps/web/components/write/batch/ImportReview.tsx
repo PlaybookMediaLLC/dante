@@ -121,7 +121,7 @@ export function FileThumb({
           src={url}
         />
         {badge && facts ? (
-          <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[10px] text-white tabular-nums">
+          <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[0.625rem] text-white tabular-nums">
             {facts.ms ? `${clock(facts.ms)} · ` : ''}
             {facts.shape}
           </span>
@@ -216,7 +216,7 @@ export function ImportReview({
                       </p>
                     )}
                     {row.input.media.length > 1 ? (
-                      <span className="absolute top-1.5 right-1.5 rounded bg-black/70 px-1.5 text-[10px] text-white tabular-nums">
+                      <span className="absolute top-1.5 right-1.5 rounded bg-black/70 px-1.5 text-[0.625rem] text-white tabular-nums">
                         +{row.input.media.length - 1}
                       </span>
                     ) : null}

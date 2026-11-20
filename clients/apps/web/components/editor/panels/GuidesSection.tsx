@@ -68,7 +68,7 @@ export function GuidesSection() {
             </SelectContent>
           </Select>
         </Label>
-        {zoneNote ? <p className="text-[11px] leading-snug text-muted-foreground">{zoneNote} Approximate; platforms change their layouts.</p> : null}
+        {zoneNote ? <p className="text-[0.6875rem] leading-snug text-muted-foreground">{zoneNote} Approximate; platforms change their layouts.</p> : null}
         <ToggleField
           checked={guides.guidesInExport}
           label="Include guides in exports"

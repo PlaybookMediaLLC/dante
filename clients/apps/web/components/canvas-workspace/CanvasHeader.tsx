@@ -79,7 +79,7 @@ export function CanvasHeader({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 min-w-0 max-w-[min(30vw,280px)] shrink gap-1.5 rounded-full px-3 text-[13px] font-medium"
+          className="h-8 min-w-0 max-w-[min(30vw,280px)] shrink gap-1.5 rounded-full px-3 text-[0.8125rem] font-medium"
           disabled={!canEdit}
           onClick={() => setRenaming(true)}
           title="Rename canvas"
@@ -92,7 +92,7 @@ export function CanvasHeader({
           data-testid="canvas-save-status"
           title={`Revision ${state.revision}`}
           className={cn(
-            'me-1 shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px]',
+            'me-1 shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[0.71875rem]',
             (state.status === 'saved' || state.status === 'unsaved' || state.status === 'saving') &&
               'text-muted-foreground',
             (state.status === 'offline' ||
@@ -151,7 +151,7 @@ export function CanvasHeader({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-1.5 rounded-full px-3 text-[13px] font-normal"
+              className="h-8 gap-1.5 rounded-full px-3 text-[0.8125rem] font-normal"
               onClick={() => onDialog('brand')}
             >
               <PaletteIcon className="size-4" aria-hidden="true" />
@@ -160,7 +160,7 @@ export function CanvasHeader({
           ) : null}
           {canEdit && canHandOff ? (
             <Button
-              className="h-8 shrink-0 gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-normal"
+              className="h-8 shrink-0 gap-1.5 whitespace-nowrap rounded-full px-3 text-[0.8125rem] font-normal"
               variant="ghost"
               size="sm"
               onClick={() => onDialog('campaign')}
@@ -171,7 +171,7 @@ export function CanvasHeader({
           ) : null}
           <Button
             size="sm"
-            className="h-8 gap-1.5 rounded-full px-3.5 text-[13px]"
+            className="h-8 gap-1.5 rounded-full px-3.5 text-[0.8125rem]"
             onClick={() => onDialog('export')}
           >
             <ExportIcon className="size-4" aria-hidden="true" />

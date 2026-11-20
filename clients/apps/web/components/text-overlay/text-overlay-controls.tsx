@@ -155,7 +155,7 @@ export const TextLayerList = () => {
           {textOverlays.length > 1 && (
             <Button variant="custom" size={null}
               onClick={clearTextOverlays}
-              className="text-[10px] text-muted-foreground hover:text-destructive transition-colors px-2.5 py-1"
+              className="text-[0.625rem] text-muted-foreground hover:text-destructive transition-colors px-2.5 py-1"
             >
               Clear all
             </Button>
@@ -194,7 +194,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Text content */}
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Content</Label>
+            <Label className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Content</Label>
             <Textarea
               aria-label="Text content"
               ref={editInputRef}
@@ -209,7 +209,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Color */}
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Color</Label>
+            <Label className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Color</Label>
             <div className="flex items-center gap-1.5">
               {QUICK_COLORS.map((color) => (
                 <Button variant="custom" size={null}
@@ -241,7 +241,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Typography */}
           <div className="space-y-2">
-            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Typography</Label>
+            <Label className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Typography</Label>
 
             {/* Font family */}
             <FontPicker
@@ -303,7 +303,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
           />
 
           <div className="space-y-2">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Position on canvas</p>
+            <p className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Position on canvas</p>
             <div className="flex gap-2">
               <Button variant="custom" size={null}
                 type="button"
@@ -343,14 +343,14 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
 
           {/* Orientation */}
           <div className="space-y-1.5">
-            <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Orientation</Label>
+            <Label className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Orientation</Label>
             <div className="flex items-center gap-1 p-0.5 rounded-lg bg-muted/50 border border-border/20">
               {(['horizontal', 'vertical'] as const).map((dir) => (
                 <Button variant="custom" size={null}
                   key={dir}
                   onClick={() => updateTextOverlay(selectedOverlay.id, { orientation: dir })}
                   className={cn(
-                    'flex-1 h-7 rounded-md text-[11px] font-medium transition-all capitalize',
+                    'flex-1 h-7 rounded-md text-[0.6875rem] font-medium transition-all capitalize',
                     selectedOverlay.orientation === dir
                       ? 'bg-background text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
@@ -365,7 +365,7 @@ export const TextProperties = ({ autoFocus = false }: { autoFocus?: boolean }) =
           {/* Text Shadow */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Shadow</Label>
+              <Label className="text-[0.625rem] font-medium text-muted-foreground uppercase tracking-wider">Shadow</Label>
               <Button variant="custom" size={null}
                 aria-label="Text shadow"
                 aria-pressed={selectedOverlay.textShadow.enabled}

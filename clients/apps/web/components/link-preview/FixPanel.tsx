@@ -137,10 +137,10 @@ function AiCopy({
               key={variant.title}
               className="flex flex-col gap-2 rounded-xl bg-white/[0.03] p-4 ring-1 ring-white/[0.08]"
             >
-              <p className="text-[11px] uppercase tracking-wide text-sky-300">{variant.angle}</p>
+              <p className="text-[0.6875rem] uppercase tracking-wide text-sky-300">{variant.angle}</p>
               <p className="text-ui-lg font-medium text-foreground">{variant.title}</p>
               <p className="flex-1 text-sm text-muted-foreground">{variant.description}</p>
-              <p className="text-[11px] tabular-nums text-muted-foreground">
+              <p className="text-[0.6875rem] tabular-nums text-muted-foreground">
                 {characterCount(variant.title)} / 60 · {characterCount(variant.description)} / 160
               </p>
               <Button type="button" size="sm" variant="secondary" onClick={() => onPick(variant)}>

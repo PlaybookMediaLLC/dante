@@ -343,7 +343,7 @@ function SectionEditor({
           <Textarea
             aria-describedby={`${id}-${field.key}-help${errors.length > 0 ? ` ${id}-errors` : ''}`}
             aria-invalid={errors.length > 0 || undefined}
-            className="mt-1 min-h-24 w-full rounded-lg bg-foreground/[0.03] px-3 py-2 font-mono text-[13px] leading-6 text-foreground ring-1 ring-foreground/[0.08] outline-none [field-sizing:content] focus:ring-foreground/25 aria-invalid:ring-red-500/40"
+            className="mt-1 min-h-24 w-full rounded-lg bg-foreground/[0.03] px-3 py-2 font-mono text-[0.8125rem] leading-6 text-foreground ring-1 ring-foreground/[0.08] outline-none [field-sizing:content] focus:ring-foreground/25 aria-invalid:ring-red-500/40"
             disabled={saving}
             id={`${id}-${field.key}`}
             onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}

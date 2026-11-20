@@ -197,7 +197,7 @@ function Step({ children, number }: { children: React.ReactNode; number: number 
     <p className="flex items-center gap-2 text-sm font-medium">
       <span
         aria-hidden="true"
-        className="grid size-5 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background tabular-nums"
+        className="grid size-5 place-items-center rounded-full bg-foreground text-[0.6875rem] font-semibold text-background tabular-nums"
       >
         {number}
       </span>

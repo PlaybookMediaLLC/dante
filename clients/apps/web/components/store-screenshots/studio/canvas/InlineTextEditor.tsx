@@ -322,7 +322,7 @@ export function InlineTextEditor({
         aria-pressed={Boolean(marks.highlight)}
         title="Highlight pill"
         onClick={() => applyChange(marks.highlight ? { clear: ['highlight'] } : { set: { highlight: palette[2] ?? '#FDE68A' } })}
-        className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium hover:bg-foreground/[0.07]', marks.highlight && 'bg-foreground/[0.12]')}
+        className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[0.6875rem] font-medium hover:bg-foreground/[0.07]', marks.highlight && 'bg-foreground/[0.12]')}
       >
         Pill
       </Button>
@@ -334,7 +334,7 @@ export function InlineTextEditor({
         onClick={() =>
           applyChange(marks.gradient ? { clear: ['gradient'] } : { set: { gradient: { from: palette[2] ?? '#6D28D9', to: palette[3] ?? '#F43F5E' } } })
         }
-        className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[11px] font-semibold hover:bg-foreground/[0.07]', marks.gradient && 'bg-foreground/[0.12]')}
+        className={cn('flex h-8 items-center justify-center rounded-md px-2 text-[0.6875rem] font-semibold hover:bg-foreground/[0.07]', marks.gradient && 'bg-foreground/[0.12]')}
       >
         <span className="bg-gradient-to-r from-violet-500 to-rose-500 bg-clip-text text-transparent">Grad</span>
       </Button>
@@ -343,12 +343,12 @@ export function InlineTextEditor({
         aria-label="Clear formatting"
         title="Clear formatting"
         onClick={() => applyChange({ clear: ['bold', 'italic', 'color', 'highlight', 'gradient', 'decoration'] })}
-        className="flex h-8 items-center justify-center rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.07]"
+        className="flex h-8 items-center justify-center rounded-md px-2 text-[0.6875rem] text-muted-foreground hover:bg-foreground/[0.07]"
       >
         Clear
       </Button>
       <span aria-hidden="true" className="mx-1 h-5 w-px bg-foreground/10" />
-      <Button variant="custom" size={null} type="button" onClick={finish} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] font-medium text-background">
+      <Button variant="custom" size={null} type="button" onClick={finish} className="h-8 rounded-md bg-foreground px-2.5 text-[0.6875rem] font-medium text-background">
         Done
       </Button>
     </div>

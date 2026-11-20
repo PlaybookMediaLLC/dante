@@ -71,7 +71,7 @@ export function KeyboardShortcutsDialog({
                     <div className="flex items-center gap-1">
                       {shortcut.keys.map((key, j) => (
                         <React.Fragment key={j}>
-                          <kbd className="px-1.5 py-0.5 text-[10px] font-medium bg-muted border border-border rounded shadow-sm text-muted-foreground">
+                          <kbd className="px-1.5 py-0.5 text-[0.625rem] font-medium bg-muted border border-border rounded shadow-sm text-muted-foreground">
                             {key}
                           </kbd>
                           {j < shortcut.keys.length - 1 && (

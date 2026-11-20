@@ -774,12 +774,12 @@ function BoardOverlay({
                   </span>
                   <span className="truncate">{artboard.name}</span>
                   {active ? (
-                    <span className="shrink-0 rounded bg-sky-500 px-1 text-[10px] text-white">
+                    <span className="shrink-0 rounded bg-sky-500 px-1 text-[0.625rem] text-white">
                       Editing
                     </span>
                   ) : null}
                   {selected && box.width > 160 ? (
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                    <span className="shrink-0 text-[0.625rem] text-muted-foreground">
                       {Math.round(rect.width)} × {Math.round(rect.height)}
                     </span>
                   ) : null}

@@ -90,7 +90,7 @@ export function FontPicker({ onChange, value }: { onChange: (id: string) => void
           {choices.map((option, index) => (
             <li key={option.id}>
               {index === 0 || choices[index - 1]!.group !== option.group ? (
-                <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="px-2 pt-2 pb-1 text-[0.625rem] font-semibold uppercase tracking-wider text-muted-foreground">
                   {option.group}
                 </p>
               ) : null}

@@ -272,7 +272,7 @@ function MediaTile({
           <Icon aria-hidden className="size-7 text-muted-foreground" />
         )}
         {entry.durationMs ? (
-          <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[10px] text-white tabular-nums">
+          <span className="absolute right-1 bottom-1 rounded bg-black/70 px-1 text-[0.625rem] text-white tabular-nums">
             {clock(entry.durationMs)}
           </span>
         ) : null}
@@ -290,7 +290,7 @@ function MediaTile({
       </span>
       <span
         className={cn(
-          'text-[11px] leading-tight',
+          'text-[0.6875rem] leading-tight',
           problem ? 'text-destructive' : 'text-muted-foreground'
         )}
       >

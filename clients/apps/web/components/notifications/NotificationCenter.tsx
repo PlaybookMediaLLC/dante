@@ -135,7 +135,7 @@ export function NotificationCenter({
                 aria-hidden="true"
                 className={
                   collapsed
-                    ? 'absolute -right-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[9px] text-primary-foreground'
+                    ? 'absolute -right-1 -top-1 min-w-4 rounded-full bg-primary px-1 text-center text-[0.5625rem] text-primary-foreground'
                     : 'ml-auto rounded-full bg-primary px-1.5 text-xs text-primary-foreground'
                 }
               >

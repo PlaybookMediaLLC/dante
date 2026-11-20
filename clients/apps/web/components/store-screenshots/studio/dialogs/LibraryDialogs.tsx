@@ -241,7 +241,7 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
                       ))}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium">{kit.name}</span>
-                    {document.brandKitId === kit.id ? <span className="text-[10px] text-muted-foreground">in use</span> : null}
+                    {document.brandKitId === kit.id ? <span className="text-[0.625rem] text-muted-foreground">in use</span> : null}
                   </Button>
                 </li>
               ))}
@@ -285,11 +285,11 @@ export function BrandKitsDialog({ open, onOpenChange }: DialogProps): React.JSX.
                 <FontPicker label="Heading font" value={editing.headingFont} onChange={(headingFont) => setEditing({ ...editing, headingFont, fontSources: [...editing.fontSources, ...document.fonts.filter((font) => headingFont.includes(font.family))].slice(0, 8) })} />
                 <FontPicker label="Body font" value={editing.bodyFont} onChange={(bodyFont) => setEditing({ ...editing, bodyFont, fontSources: [...editing.fontSources, ...document.fonts.filter((font) => bodyFont.includes(font.family))].slice(0, 8) })} />
               </div>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-[0.6875rem] text-muted-foreground">
                 Heading: {fontNameFor(editing.headingFont)} · Body: {fontNameFor(editing.bodyFont)}
               </p>
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground">Default background</span>
+                <span className="text-[0.6875rem] text-muted-foreground">Default background</span>
                 <BackgroundField value={editing.background} onChange={(background) => background && background.kind !== 'image' && setEditing({ ...editing, background })} />
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">

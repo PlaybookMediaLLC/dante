@@ -112,7 +112,7 @@ export function PresenceSummary({
                 <span
                   key={peer.id}
                   title={peer.name}
-                  className="flex size-6 items-center justify-center rounded-full border-2 border-background text-[10px] font-semibold text-white"
+                  className="flex size-6 items-center justify-center rounded-full border-2 border-background text-[0.625rem] font-semibold text-white"
                   style={{ background: peer.color }}
                 >
                   {peer.name.slice(0, 1).toUpperCase()}
@@ -173,7 +173,7 @@ export function PeerMarkers({
             }}
           >
             <span
-              className="absolute -bottom-5 right-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium text-white"
+              className="absolute -bottom-5 right-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.625rem] font-medium text-white"
               style={{ background: peer.color, transform: `translateY(${stack * 18}px)` }}
             >
               {peer.name}

@@ -108,7 +108,7 @@ export function ProductContextPanel({
       {release ? (
         <div className="space-y-1 rounded-md border p-2">
           <p className="text-ui-lg font-medium">{release.title}</p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[0.6875rem] text-muted-foreground">
             Release · {release.status.toLowerCase()}
             {context.feature ? ` · ${context.feature}` : ''}
           </p>
@@ -121,7 +121,7 @@ export function ProductContextPanel({
           ) : null}
           {release.sourceUrls?.[0] ? (
             <a
-              className="block truncate text-[11px] underline"
+              className="block truncate text-[0.6875rem] underline"
               href={release.sourceUrls[0]}
               target="_blank"
               rel="noreferrer"
@@ -150,7 +150,7 @@ export function ProductContextPanel({
       {artboard?.origin ? <Lineage artboard={artboard} /> : null}
       {claims.length ? (
         <div className="space-y-1.5">
-          <h3 className="text-[11px] text-muted-foreground">Generated copy</h3>
+          <h3 className="text-[0.6875rem] text-muted-foreground">Generated copy</h3>
           <ul className="space-y-1.5">
             {claims.map((claim) => {
               const layer = textOf(claim.layerId)
@@ -160,22 +160,22 @@ export function ProductContextPanel({
                   <p className="line-clamp-2">{layer?.text ?? claim.generated}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-1">
                     <span
-                      className={cn('rounded px-1.5 py-0.5 text-[10px]', STATUS[claim.status].tone)}
+                      className={cn('rounded px-1.5 py-0.5 text-[0.625rem]', STATUS[claim.status].tone)}
                     >
                       {STATUS[claim.status].label}
                     </span>
                     {edited ? (
-                      <span className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px]">
+                      <span className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[0.625rem]">
                         Edited since generated
                       </span>
                     ) : null}
                     {!layer ? (
-                      <span className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[10px]">
+                      <span className="rounded bg-foreground/[0.06] px-1.5 py-0.5 text-[0.625rem]">
                         Layer removed
                       </span>
                     ) : null}
                     {claim.reference ? (
-                      <span className="truncate text-[10px] text-muted-foreground">
+                      <span className="truncate text-[0.625rem] text-muted-foreground">
                         from {claim.reference.label}
                       </span>
                     ) : null}
@@ -183,7 +183,7 @@ export function ProductContextPanel({
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-auto h-6 px-2 text-[11px]"
+                        className="ml-auto h-6 px-2 text-[0.6875rem]"
                         onClick={() =>
                           actions.run({
                             type: 'set-claim-status',
@@ -202,7 +202,7 @@ export function ProductContextPanel({
             })}
           </ul>
           {claims.some((claim) => claim.status === 'suggested') ? (
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[0.6875rem] text-muted-foreground">
               Suggested lines are template wording. Confirm or rewrite them before they ship.
             </p>
           ) : null}
@@ -285,7 +285,7 @@ function Lineage({ artboard }: { artboard: Artboard }) {
           : null
   return (
     <div
-      className="rounded-md bg-foreground/[0.03] p-2 text-[11px] text-muted-foreground"
+      className="rounded-md bg-foreground/[0.03] p-2 text-[0.6875rem] text-muted-foreground"
       data-testid="artboard-lineage"
     >
       <p>{text}</p>

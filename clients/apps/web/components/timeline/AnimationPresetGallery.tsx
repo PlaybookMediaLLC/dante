@@ -105,7 +105,7 @@ export function AnimationPresetGallery() {
             <span className="text-xs font-medium text-foreground">
               {animationClips.length} animation{animationClips.length > 1 ? 's' : ''} added
             </span>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
+            <p className="text-[0.625rem] text-muted-foreground mt-0.5">
               Click presets to add more, or drag clips in timeline
             </p>
           </div>
@@ -172,18 +172,18 @@ export function AnimationPresetGallery() {
                       </div>
                     </div>
 
-                    <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-background/80 border border-foreground/10 rounded-md text-[8px] text-muted-foreground">
+                    <div className="absolute bottom-1 right-1 px-1 py-0.5 bg-background/80 border border-foreground/10 rounded-md text-[0.5rem] text-muted-foreground">
                       {(preset.duration / 1000).toFixed(1)}s
                     </div>
 
                     {isApplied ? (
-                      <div className="absolute top-1 left-1 px-1 py-0.5 bg-card border border-foreground/20 rounded-md text-[7px] text-foreground font-medium">
+                      <div className="absolute top-1 left-1 px-1 py-0.5 bg-card border border-foreground/20 rounded-md text-[0.4375rem] text-foreground font-medium">
                         Added
                       </div>
                     ) : null}
                   </div>
 
-                  <span className="text-[9px] font-medium text-muted-foreground truncate w-full text-center">
+                  <span className="text-[0.5625rem] font-medium text-muted-foreground truncate w-full text-center">
                     {preset.name}
                   </span>
                 </Button>
@@ -206,7 +206,7 @@ export function AnimationPresetGallery() {
           Click any preset to add it to the timeline.
           You can add multiple animations and arrange them.
         </p>
-        <p className="text-[10px] text-muted-foreground/70">
+        <p className="text-[0.625rem] text-muted-foreground/70">
           Use the timeline at the bottom to resize and reorder clips.
         </p>
       </div>

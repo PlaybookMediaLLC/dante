@@ -156,7 +156,7 @@ export function AiBackgroundSection() {
             <Button variant="custom" size={null}
               aria-checked={source === value}
               className={cn(
-                'h-6 rounded-md border px-2 text-[10px] disabled:opacity-40',
+                'h-6 rounded-md border px-2 text-[0.625rem] disabled:opacity-40',
                 source === value
                   ? 'border-foreground/30 bg-foreground text-background'
                   : 'border-foreground/15 text-muted-foreground'
@@ -191,7 +191,7 @@ export function AiBackgroundSection() {
         >
           {pending ? 'Generating…' : results.length ? 'Generate another' : 'Generate background'}
         </Button>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[0.625rem] text-muted-foreground">
           Uses AI credits. Your screenshot is not sent; only the description and colours are.
         </p>
         {results.length ? (

@@ -173,7 +173,7 @@ export function AnnotateSection() {
                 onClick={() => handleToolClick(tool.id)}
                 title={`${tool.label}. Click, then draw on canvas`}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-1 py-2.5 rounded-md text-[11px] font-medium transition-all duration-150 border',
+                  'flex flex-col items-center justify-center gap-1 py-2.5 rounded-md text-[0.6875rem] font-medium transition-all duration-150 border',
                   isActive
                     ? 'bg-foreground/[0.1] text-foreground border-foreground/20'
                     : 'bg-foreground/[0.04] text-muted-foreground border-foreground/10 hover:bg-foreground/[0.06] hover:text-foreground'
@@ -297,7 +297,7 @@ export function AnnotateSection() {
                 className="space-y-2 py-1.5 px-2.5 rounded-md bg-foreground/[0.04] border border-foreground/10"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-muted-foreground shrink-0 w-8">#{index + 1}</span>
+                  <span className="text-[0.6875rem] text-muted-foreground shrink-0 w-8">#{index + 1}</span>
                   <SegmentedControl
                     size="sm"
                     ariaLabel={`Region ${index + 1} style`}
