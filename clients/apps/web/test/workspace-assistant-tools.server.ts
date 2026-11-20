@@ -183,31 +183,70 @@ function calendarPost(id: string, scheduledFor: string, status: string) {
   }
 }
 
-test('listScheduledPosts reads the coming week in time order, and offers each draft', async (t) => {
+test('listScheduledPosts reads the coming week, broken posts first, and offers each one', async (t) => {
+  const soon = (hours: number) => new Date(Date.now() + hours * 3_600_000).toISOString()
   const { asked } = mockFeatures(t, ['content:drafts'], 200, [
-    calendarPost('b', '2026-11-22T10:00:00Z', 'SCHEDULED'),
-    calendarPost('a', '2026-11-21T10:00:00Z', 'FAILED'),
+    { ...calendarPost('b', soon(26), 'SCHEDULED'), caption: '😀'.repeat(200) },
+    calendarPost('a', soon(2), 'SCHEDULED'),
+    calendarPost('c', soon(30), 'UNKNOWN_DELIVERY'),
+    { ...calendarPost('d', soon(5), 'SCHEDULED'), campaignId: 'camp_1', draftId: '' },
   ])
   const { state, tools } = setup('viewer')
   const result = await tools.listScheduledPosts.execute({ days: 7, window: 'next' }, options)
   assert.ok(result.ok)
+  assert.equal(result.total, 4)
+  // What needs a check leads; the rest follow in time order, as the calendar names them.
   assert.deepEqual(
-    result.posts.map((post) => [post.draft, post.status]),
+    result.posts.map((post) => [post.title, post.status]),
     [
-      ['Draft a', 'FAILED'],
-      ['Draft b', 'SCHEDULED'],
+      ['Draft c', 'Needs check'],
+      ['Draft a', 'Scheduled'],
+      ['Draft d', 'Scheduled'],
+      ['Draft b', 'Scheduled'],
     ]
   )
-  // The window starts now and spans seven days.
+  // A campaign's post opens on its campaign; a long caption is cut on whole characters.
+  assert.equal(result.posts[2]?.href, '/campaigns/camp_1')
+  assert.equal(result.posts[3]?.caption, '😀'.repeat(160))
+  // The window starts now and spans seven days ahead.
   const [from, to] = (asked.find((entry) => entry.startsWith('posts ')) ?? '').split(' ').slice(1)
+  assert.ok(Math.abs(Date.parse(from ?? '') - Date.now()) < 5_000)
   assert.equal(Date.parse(to ?? '') - Date.parse(from ?? ''), 7 * 86_400_000)
+  assert.ok(Math.abs(Date.parse(result.now) - Date.now()) < 5_000)
   // A teammate's post text is data: only addresses the lookup returned can be offered.
   for (const post of result.posts) assert.ok(state.known.has(post.href))
 })
 
-test('listScheduledPosts says so when the workspace has no posts', async (t) => {
-  mockFeatures(t, [])
+test('listScheduledPosts looks back newest first, with an overdue post leading', async (t) => {
+  const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
+  const { asked } = mockFeatures(t, ['content:drafts'], 200, [
+    calendarPost('old', ago(48), 'PUBLISHED'),
+    calendarPost('new', ago(1), 'PUBLISHED'),
+    calendarPost('late', ago(30), 'SCHEDULED'),
+  ])
+  const { tools } = setup('viewer')
+  const result = await tools.listScheduledPosts.execute({ days: 3, window: 'last' }, options)
+  assert.ok(result.ok)
+  assert.deepEqual(
+    result.posts.map((post) => [post.title, post.status]),
+    [
+      ['Draft late', 'Overdue'],
+      ['Draft new', 'Published'],
+      ['Draft old', 'Published'],
+    ]
+  )
+  const to = (asked.find((entry) => entry.startsWith('posts ')) ?? '').split(' ')[2]
+  assert.ok(Math.abs(Date.parse(to ?? '') - Date.now()) < 5_000)
+})
+
+test('listScheduledPosts says so, and reads nothing, when the workspace has no posts', async (t) => {
+  const { asked } = mockFeatures(t, [])
   const { tools } = setup('viewer')
   const result = await tools.listScheduledPosts.execute({ days: 7, window: 'last' }, options)
   assert.equal(result.ok, false)
+  assert.equal((result as { error?: string }).error, 'Posts are not on for this workspace.')
+  assert.equal(
+    asked.some((entry) => entry.startsWith('posts ')),
+    false
+  )
 })

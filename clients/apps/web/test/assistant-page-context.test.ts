@@ -87,6 +87,10 @@ test('the bar offers only asks the member can carry out', () => {
     []
   )
   assert.ok(free.some((ask) => /^Make\b/.test(ask)))
+  // Reading posts needs only posts: a viewer gets those asks, a workspace without posts does not.
+  const reads = (asks: string[]) => asks.filter((ask) => /scheduled|fail to publish/.test(ask))
+  assert.equal(reads(workspaceSuggestions('publish', { ...all, canEdit: false })).length, 2)
+  assert.deepEqual(reads(workspaceSuggestions('publish', { ...all, posts: false })), [])
   const postless = workspaceSuggestions('publish', { ...all, posts: false })
   assert.deepEqual(
     postless.filter((ask) => /^Draft\b/.test(ask)),

@@ -18,7 +18,7 @@ import { listCanvases } from '@/lib/tenant/canvases'
 import { listContentDraftPostsBetween, listContentDrafts } from '@/lib/tenant/content-drafts'
 import { listProjects } from '@/lib/tenant/projects'
 import { draftHref, draftName } from '@/lib/write/library'
-import { listedStatus } from '@/lib/content-drafts/post-status'
+import { listedStatus, postState } from '@/lib/content-drafts/post-status'
 import { palettePages, searchPages } from '@/components/platform-shell/palette-pages'
 
 /**
@@ -41,6 +41,9 @@ export type AssistantTurnState = {
   /** Posts written this turn, each offered to open as a draft. */
   posts: { text: string }[]
 }
+
+/** Post states the assistant leads with when asked what needs attention. */
+const ATTENTION_STATES = new Set(['Failed', 'Needs check', 'Overdue'])
 
 /** Most links one reply offers. */
 const MAX_LINKS = 4
@@ -69,6 +72,7 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   type Feature = 'campaign:workflow' | 'content:drafts' | 'workspace:paid'
   // One backend read per feature per turn, however many calls ask.
   const decisions = new Map<Feature, Promise<boolean>>()
+  /** Whether the workspace's plan includes `feature`; a backend failure still fails the call. */
   function allowed(feature: Feature): Promise<boolean> {
     const known = decisions.get(feature)
     if (known) return known
@@ -155,8 +159,9 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     description:
       "List the workspace's social posts in a window: what is scheduled or publishing next, " +
       "or what went out (or failed) lately, with each post's time, platform, status and " +
-      'the address of its draft. `window`: "next" (the coming `days`) or "last" (the past ' +
-      '`days`).',
+      'the address that opens it; posts needing attention (Failed, Needs check, Overdue) ' +
+      'come first. `window`: "next" (the coming `days`) or "last" (the past `days`). Times ' +
+      'are UTC; `now` is the current time.',
     effect: 'read',
     execute: async ({ days, window }) => {
       if (!contentDraftsEnabled() || !(await allowed('content:drafts')))
@@ -169,22 +174,34 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
         new Date(window === 'next' ? now + span : now)
       )
       const items = posts
-        .sort((a, b) =>
-          window === 'next'
-            ? a.scheduledFor.getTime() - b.scheduledFor.getTime()
-            : b.scheduledFor.getTime() - a.scheduledFor.getTime()
+        // As the calendar shows it: a late post is Overdue, an unknown outcome Needs check.
+        .map((post) => ({ post, state: postState(post.status, post.scheduledFor, now) }))
+        // What needs attention first, so the cap below never drops it; then by time.
+        .sort(
+          (a, b) =>
+            Number(ATTENTION_STATES.has(b.state)) - Number(ATTENTION_STATES.has(a.state)) ||
+            (window === 'next' ? 1 : -1) *
+              (a.post.scheduledFor.getTime() - b.post.scheduledFor.getTime())
         )
         .slice(0, 20)
-        .map((post) => ({
-          caption: post.caption.slice(0, 160),
-          draft: post.draftTitle ?? null,
-          href: draftHref(post.draftId, post.socialSetId),
+        .map(({ post, state: status }) => ({
+          caption: Array.from(post.caption).slice(0, 160).join(''),
+          // A campaign's post (no draft of its own) opens on its campaign, as in the calendar.
+          href: post.campaignId
+            ? `/campaigns/${encodeURIComponent(post.campaignId)}`
+            : draftHref(post.draftId, post.socialSetId),
           platform: post.platform,
-          status: post.status,
+          status,
+          title: post.draftTitle || null,
           when: post.scheduledFor.toISOString(),
         }))
       for (const item of items) state.known.add(item.href)
-      return { ok: true as const, posts: items, total: posts.length }
+      return {
+        now: new Date(now).toISOString(),
+        ok: true as const,
+        posts: items,
+        total: posts.length,
+      }
     },
     inputSchema: z.object({
       days: z.number().int().min(1).max(31).default(7),
@@ -245,8 +262,6 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     permission: 'workspace:read',
     timeoutMs: 5_000,
   })
-
-  /** Whether the workspace's plan includes `feature`; a backend failure still fails the call. */
 
   const draftPost = defineTool(run, {
     description:
