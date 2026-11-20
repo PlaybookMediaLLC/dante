@@ -143,6 +143,15 @@ test(
     await page.getByRole('button', { name: 'Open the assistant', exact: true }).click()
     const assistant = page.getByRole('region', { name: 'Assistant' })
     await expect(assistant.getByTitle('The assistant sees: Home')).toBeVisible()
+    // An empty bar offers one-click asks; asking to make something offers a button that starts it.
+    await assistant.getByRole('button', { name: 'Start a product launch canvas' }).click()
+    await expect(
+      assistant.getByRole('link', { name: /Start a Product launch canvas/ })
+    ).toHaveAttribute('href', '/canvas/new?recipe=product-launch')
+    await expect(assistant.getByRole('group', { name: 'Suggestions' })).toHaveCount(0)
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await expect(assistant.getByRole('group', { name: 'Suggestions' })).toBeVisible()
+
     const sent = page.waitForRequest('**/api/ai/assistant')
     await assistant.getByRole('textbox', { name: 'Ask the assistant' }).fill('What did I work on?')
     await page.keyboard.press('Enter')
@@ -151,6 +160,13 @@ test(
     await expect(assistant.getByText(/^You are on Home\./)).toBeVisible({ timeout: 60_000 })
     const link = assistant.getByRole('link', { name: /Open Assistant launch hero/ })
     await expect(link).toHaveAttribute('href', `/editor?project=${projectId}`)
+
+    // Hidden, the bar comes back with ⌘J (Ctrl+J), the conversation intact.
+    await assistant.getByRole('button', { name: 'Hide the assistant' }).click()
+    await expect(assistant).toHaveCount(0)
+    await page.keyboard.press('ControlOrMeta+j')
+    await expect(assistant.getByRole('textbox', { name: 'Ask the assistant' })).toBeFocused()
+    await expect(assistant.getByText(/^You are on Home\./)).toBeVisible()
 
     // On a canvas the artboard copilot answers instead, with the bar open on the board.
     const canvas = await trpcMutation(page, 'canvas.create', {

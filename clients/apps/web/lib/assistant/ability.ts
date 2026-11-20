@@ -3,6 +3,9 @@ import type { PageContext } from './page-context'
 /** Characters one message to the assistant may have. */
 export const ASSISTANT_ASK_MAX = 2_000
 
+/** Most suggested asks the bar shows. */
+export const ASSISTANT_SUGGESTIONS_MAX = 4
+
 /**
  * The assistant bar's plug-in point. A page registers what the assistant can
  * do there as an ability (`useAssistantAbility`); the bar answers with the
@@ -34,6 +37,11 @@ export type AssistantAbility = {
   /** What the assistant acts on, shown beside the input ("Artboard 2 · Hero"). */
   label: string
   placeholder: string
+  /**
+   * Asks worth one click here, shown while the conversation is empty, so the
+   * first value is a click away. Only asks this ability can carry out.
+   */
+  suggestions?: readonly string[]
   /** The highest registered priority answers; the workspace assistant is 0. */
   priority: number
   /** Open the bar on arrival, as where this ability is the page's main tool. */

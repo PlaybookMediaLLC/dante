@@ -122,6 +122,8 @@ export function useAssistantAbility(ability: AssistantAbility | null) {
   const placeholder = ability?.placeholder ?? ''
   const priority = ability?.priority ?? 0
   const prominent = ability?.prominent ?? false
+  // A string, so a fresh array with the same asks does not re-register.
+  const suggestions = JSON.stringify(ability?.suggestions ?? [])
   useEffect(() => {
     if (!setAbility || !id) return
     setAbility(key, {
@@ -130,13 +132,14 @@ export function useAssistantAbility(ability: AssistantAbility | null) {
       placeholder,
       priority,
       prominent,
+      suggestions: JSON.parse(suggestions) as string[],
       run: (run: AbilityRun) => {
         if (!latest.current) throw new Error('This is no longer available here.')
         return latest.current.run(run)
       },
     })
     return () => setAbility(key, null)
-  }, [setAbility, key, id, label, placeholder, priority, prominent])
+  }, [setAbility, key, id, label, placeholder, priority, prominent, suggestions])
 }
 
 /**

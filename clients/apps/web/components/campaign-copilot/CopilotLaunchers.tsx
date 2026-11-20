@@ -183,6 +183,11 @@ export function AskShotsButton({
           label: 'Campaign agent',
           placeholder: 'Ask the campaign agent about this campaign',
           priority: 10,
+          suggestions: [
+            'What is left before this campaign ships?',
+            'Tighten the launch copy',
+            'Make a product shot for each channel',
+          ],
           run: async ({ ask, push }) => {
             const id = await conversation()
             await client.conversation.send.mutate({ content: ask, conversationId: id })

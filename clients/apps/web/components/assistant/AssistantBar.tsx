@@ -13,6 +13,7 @@ import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useAiAvailable } from './useAiAvailable'
 import {
   ASSISTANT_ASK_MAX,
+  ASSISTANT_SUGGESTIONS_MAX,
   type AssistantAbility,
   type AssistantEntry,
 } from '@/lib/assistant/ability'
@@ -47,6 +48,10 @@ const useConversation = create<{
 }))
 
 const setOpen = (open: boolean) => useConversation.setState({ open })
+
+/** Open the bar with the cursor in it. */
+const openWithFocus = () =>
+  useConversation.setState((state) => ({ open: true, focus: state.focus + 1 }))
 
 const push = (entry: AssistantEntry) =>
   useConversation.setState((state) => ({ entries: [...state.entries, entry] }))
@@ -88,10 +93,11 @@ export function AssistantBar() {
     return () => observer.disconnect()
   }, [path])
 
+  const area = platformArea(path)
   const registered = [...(registry?.abilities.values() ?? [])]
   const ability: AssistantAbility = registered.reduce<AssistantAbility>(
     (best, item) => (item.priority > best.priority ? item : best),
-    workspaceAbility(title)
+    workspaceAbility(title, area)
   )
 
   // A different ability starts its own conversation (a running one finishes first), with
@@ -113,6 +119,20 @@ export function AssistantBar() {
     if (focus) input.current?.focus()
   }, [focus, open])
 
+  // ⌘J (Ctrl+J) opens the bar from anywhere; a closer Ask AI, as in the post composer, wins.
+  const shown = Boolean(registry?.slot && available)
+  useEffect(() => {
+    if (!shown) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.key.toLowerCase() !== 'j') return
+      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
+      event.preventDefault()
+      openWithFocus()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [shown])
+
   if (!registry || !available || !registry.slot) return null
 
   // Within the contract's limits, so a long name or fact never fails the turn.
@@ -120,7 +140,7 @@ export function AssistantBar() {
   const page = (): PageContext => {
     const parts = [...registry.parts.values()]
     return {
-      area: clip(platformArea(path) ?? path.split('/')[1] ?? 'home', 40),
+      area: clip(area ?? path.split('/')[1] ?? 'home', 40),
       entities: parts
         .flatMap((part) => part.entities ?? [])
         .slice(0, 8)
@@ -138,9 +158,8 @@ export function AssistantBar() {
     }
   }
 
-  const submit = async (event: FormEvent) => {
-    event.preventDefault()
-    const ask = text.trim().slice(0, ASSISTANT_ASK_MAX)
+  const send = async (value: string) => {
+    const ask = value.trim().slice(0, ASSISTANT_ASK_MAX)
     if (!ask || running) return
     setText('')
     if (conversationAbility !== ability.id) startOver(ability.id)
@@ -168,6 +187,13 @@ export function AssistantBar() {
       useConversation.setState({ controller: null })
     }
   }
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    void send(text)
+  }
+  const suggestions = entries.length
+    ? []
+    : (ability.suggestions ?? []).slice(0, ASSISTANT_SUGGESTIONS_MAX)
 
   const bar = open ? (
     <section aria-label="Assistant" className="assistant" data-board-control>
@@ -228,7 +254,24 @@ export function AssistantBar() {
           </ol>
         </div>
       ) : null}
-      <form onSubmit={(event) => void submit(event)} className="assistant-bar">
+      {suggestions.length ? (
+        <div role="group" aria-label="Suggestions" className="assistant-suggestions">
+          {suggestions.map((suggestion) => (
+            <Button
+              key={suggestion}
+              type="button"
+              variant="custom"
+              size={null}
+              className="assistant-suggestion"
+              disabled={running}
+              onClick={() => void send(suggestion)}
+            >
+              {suggestion}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+      <form onSubmit={submit} className="assistant-bar">
         <AssistantMark className="-mx-px shrink-0" size={22} />
         <span className="assistant-context" title={`The assistant sees: ${ability.label}`}>
           {ability.label}
@@ -308,14 +351,14 @@ export function AssistantLauncher({
       size={null}
       aria-label="Open the assistant"
       aria-expanded={open}
-      title="Ask AI about this page or your workspace"
+      title="Ask AI about this page or your workspace (⌘J)"
       className={cn(
         'flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
         collapsed && 'mx-auto size-10 justify-center px-0'
       )}
       onClick={() => {
         onNavigate?.()
-        useConversation.setState((state) => ({ open: true, focus: state.focus + 1 }))
+        openWithFocus()
       }}
     >
       <AssistantMark className="-mx-px shrink-0" size={22} />

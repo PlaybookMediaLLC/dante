@@ -103,6 +103,11 @@ export function useCanvasCopilot({
           placeholder: `Ask AI to change artboard ${number}`,
           priority: 10,
           prominent: true,
+          suggestions: [
+            'Make the headline punchier',
+            'Try a bolder background',
+            'Give the screenshot a soft shadow',
+          ],
           run: async ({ ask, memory, push, signal }) => {
             const id = target.id
             if (editor.current.activeId !== id || !editor.current.ready) {

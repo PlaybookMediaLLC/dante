@@ -876,8 +876,17 @@ function scriptCopySuggestions(text: string, system: string) {
  * then answer naming the page it was asked from, so a test can see the page
  * context arrived and the tools ran.
  */
-function scriptAssistant(system: string, results: ToolResult[]): LanguageModelV4Content[] {
+function scriptAssistant(system: string, text: string, results: ToolResult[]): LanguageModelV4Content[] {
   const page = system.match(/^Page: (.+?) \(/m)?.[1] ?? 'this page'
+  // A request to make something starts it: a canvas when it names one, else a visual.
+  const ask = text.split('\n\n').at(-1)?.trim() ?? ''
+  if (/^(make|start|create)\b/i.test(ask)) {
+    if (!results.some((result) => result.toolName === 'startWork')) {
+      const input = /canvas/i.test(ask) ? { kind: 'canvas', recipe: 'product-launch' } : { ask, kind: 'visual' }
+      return toolCalls([{ input, toolName: 'startWork' }])
+    }
+    return [{ text: 'Your new work is ready to start: use the button below.', type: 'text' }]
+  }
   const work = results.find((result) => result.toolName === 'listRecentWork')
   if (!work) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])
   const items = (work.output as { items?: Array<{ href: string; name: string }> } | null)?.items ?? []
@@ -954,7 +963,7 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
         return respond(scriptConversation(options, names, calls, results))
       }
       if (names.includes('offerLink') && names.includes('listRecentWork')) {
-        return respond(scriptAssistant(systemText(options), results))
+        return respond(scriptAssistant(systemText(options), text, results))
       }
       if (names.includes('requestApproval')) {
         const next = scriptApproval(text, names, calls)

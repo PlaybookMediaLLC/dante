@@ -52,13 +52,16 @@ export function describePage(page: PageContext): string {
   return `<page_context>\n${parts.join('\n')}\n</page_context>`
 }
 
+/** Longest address the assistant offers: room for a new visual's prefilled request. */
+export const INTERNAL_HREF_MAX = 2_048
+
 /**
  * An address inside this app the assistant may offer, or null. Only a path:
  * no scheme, host, protocol-relative `//`, or backslash trick.
  */
 export function internalHref(value: string): string | null {
   const href = value.trim()
-  if (href.length > 300 || !href.startsWith('/') || href.startsWith('//')) return null
+  if (href.length > INTERNAL_HREF_MAX || !href.startsWith('/') || href.startsWith('//')) return null
   if (/[\\\s]/.test(href) || /^\/[^/?#]*:/.test(href)) return null
   return href
 }

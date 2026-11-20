@@ -3,12 +3,46 @@
 import { MAX_ASSISTANT_MESSAGES, workspaceAssistantResponseSchema } from '@/lib/api/contracts/ai'
 import type { AbilityRun, AssistantAbility } from '@/lib/assistant/ability'
 import { internalHref } from '@/lib/assistant/page-context'
+import type { PlatformArea } from '@/lib/platform/navigation'
 
 /**
  * The ability every page has: the workspace assistant, answering from the
- * page the person is on with read-only lookups and links to open.
+ * page the person is on with lookups, links to open, and buttons that start
+ * new work already filled in.
  */
 const WORKSPACE_ABILITY_ID = 'workspace'
+
+/** One-click asks per area, each one the assistant's tools can answer. */
+const SUGGESTIONS: Partial<Record<PlatformArea, readonly string[]>> = {
+  home: [
+    'What did we work on most recently?',
+    'Make a launch visual for our newest feature',
+    'Start a product launch canvas',
+  ],
+  create: [
+    'Make a dark hero shot for a new feature',
+    'Which canvas fits a release announcement?',
+    'Start a feature walkthrough canvas',
+  ],
+  campaigns: [
+    'Which campaigns are still drafts?',
+    'What do you know about our product?',
+    'Where do I start a new campaign?',
+  ],
+  publish: [
+    'Which posts are scheduled?',
+    'Open my latest post draft',
+    'Where do I connect a social account?',
+  ],
+  library: [
+    'Find my latest canvas',
+    'Which screenshots changed most recently?',
+    'Make a launch visual for our newest feature',
+  ],
+  automate: ['Where do I connect GitHub?', 'What can I automate when a release ships?'],
+  settings: ['Where do I change brand colours?', 'Where do I invite a teammate?'],
+}
+const DEFAULT_SUGGESTIONS = ['What can you help with here?', 'Find my latest work']
 
 /**
  * The newest `room` messages, starting at one of the person's, so a tool call
@@ -50,12 +84,16 @@ async function askWorkspace({ ask, memory, page, push, signal }: AbilityRun) {
 }
 
 /** The workspace assistant, labelled with the page it is asked from. */
-export function workspaceAbility(pageTitle: string): AssistantAbility {
+export function workspaceAbility(
+  pageTitle: string,
+  area: PlatformArea | undefined
+): AssistantAbility {
   return {
     id: WORKSPACE_ABILITY_ID,
     label: pageTitle || 'Workspace',
-    placeholder: 'Ask about this page or your workspace',
+    placeholder: 'Ask, find, or start something new',
     priority: 0,
     run: askWorkspace,
+    suggestions: (area && SUGGESTIONS[area]) || DEFAULT_SUGGESTIONS,
   }
 }

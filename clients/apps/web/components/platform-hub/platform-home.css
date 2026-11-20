@@ -353,7 +353,8 @@
 }
 .home-starters {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 224px), 1fr));
+  /* auto-fit: the five starters always share one row, as wide as the cards below at full width. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 168px), 1fr));
   gap: 28px 24px;
 }
 .home-starter {
@@ -913,6 +914,45 @@
   background-color: transparent;
   box-shadow: none;
   font-size: 14px;
+}
+/* One-click asks over an empty bar: quiet pills that lift on hover. */
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.assistant-slot[data-placement='end'] .assistant-suggestions {
+  justify-content: flex-end;
+}
+.assistant-suggestion {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
+  border-radius: 999px;
+  background: var(--background);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+  color: color-mix(in srgb, var(--foreground) 80%, transparent);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+.assistant-suggestion:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  color: var(--foreground);
+}
+.assistant-suggestion:active:not(:disabled) {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-suggestion {
+    transition: none;
+  }
 }
 /* At the foot's end, beside controls the page keeps at its start (the canvas's zoom bar). */
 .assistant-slot[data-placement='end'] .assistant {

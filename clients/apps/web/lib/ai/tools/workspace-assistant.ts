@@ -2,10 +2,12 @@ import 'server-only'
 
 import { z } from 'zod'
 import { internalHref } from '@/lib/assistant/page-context'
+import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
 import { defineTool, type ToolRun } from '@/lib/ai/tools/executor'
 import { marketingTools } from '@/lib/ai/tools/marketing'
 import { marketingServices } from '@/lib/ai/tools/marketing-services'
 import { accessAllows } from '@/lib/auth/permissions'
+import { CANVAS_RECIPES, canvasRecipeSchema } from '@/lib/canvas/recipes'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
 import { PLATFORM_DESTINATIONS } from '@/lib/platform/navigation'
 import { listCampaigns } from '@/lib/tenant/campaigns'
@@ -18,11 +20,13 @@ import { palettePages, searchPages } from '@/components/platform-shell/palette-p
 
 /**
  * The workspace assistant's tools: read-only looks at the workspace (its
- * work, campaigns, product and brand, and the app's pages) and `offerLink`,
- * which puts a button to a page under the reply. Every tool goes through the
- * RFC 027 executor, so permissions, call caps and timeouts hold and each call
- * is audited. Nothing here changes the workspace; abilities that do change
- * something run where that thing is open (the canvas, the editor).
+ * work, campaigns, product and brand, and the app's pages), `offerLink`,
+ * which puts a button to a page under the reply, and `startWork`, a button
+ * that opens a new visual or canvas already set up from the request. Every
+ * tool goes through the RFC 027 executor, so permissions, call caps and
+ * timeouts hold and each call is audited. Nothing here changes the
+ * workspace: new work is made only when the person clicks, and abilities
+ * that edit something run where that thing is open (the canvas, the editor).
  */
 
 /** What one turn's tools share. */
@@ -160,6 +164,41 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     timeoutMs: 5_000,
   })
 
+  const startWork = defineTool(run, {
+    description:
+      'Put a button under your reply that starts new work, set up from the request; nothing is ' +
+      'made until the person clicks it. kind "visual" opens a new screenshot with the editor ' +
+      'assistant holding `ask` (the visual to make, in the person\'s words). kind "canvas" ' +
+      'opens a new multi-artboard canvas from a recipe: ' +
+      Object.entries(CANVAS_RECIPES)
+        .map(([id, recipe]) => `${id} (${recipe.name}: ${recipe.description})`)
+        .join('; ') +
+      '.',
+    effect: 'read',
+    execute: (input) => {
+      if (state.links.length >= MAX_LINKS)
+        return { error: 'Four buttons is the most.', ok: false as const }
+      const href =
+        input.kind === 'visual'
+          ? `/editor?${new URLSearchParams({ start: 'new', [EDITOR_ASK_PARAM]: input.ask })}`
+          : `/canvas/new?${new URLSearchParams({ recipe: input.recipe })}`
+      const label =
+        input.kind === 'visual'
+          ? 'Start this visual'
+          : `Start a ${CANVAS_RECIPES[input.recipe].name} canvas`
+      if (!state.links.some((link) => link.href === href)) state.links.push({ href, label })
+      return { offered: true, ok: true as const }
+    },
+    inputSchema: z.discriminatedUnion('kind', [
+      z.object({ ask: z.string().trim().min(1).max(EDITOR_ASK_MAX), kind: z.literal('visual') }),
+      z.object({ kind: z.literal('canvas'), recipe: canvasRecipeSchema }),
+    ]),
+    maxCallsPerRun: 3,
+    name: 'startWork',
+    permission: 'artifact:edit',
+    timeoutMs: 2_000,
+  })
+
   const offerLink = defineTool(run, {
     description:
       'Offer the person a button that opens a page of this app, under your reply. Only an ' +
@@ -193,5 +232,6 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
     listProductSurfaces,
     listRecentWork,
     offerLink,
+    startWork,
   }
 }

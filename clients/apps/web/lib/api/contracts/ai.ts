@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { defineContract } from '@/lib/api/contract'
 import { contentDraftIdSchema } from '@/lib/api/contracts/content-draft-list'
 import { draftChannelSchema } from '@/lib/write/document'
-import { pageContextSchema } from '@/lib/assistant/page-context'
+import { INTERNAL_HREF_MAX, pageContextSchema } from '@/lib/assistant/page-context'
 
 /** Most messages one copilot request may carry. */
 export const MAX_EDITOR_MESSAGES = 80
@@ -62,7 +62,7 @@ export const workspaceAssistantRequestSchema = z.object({
 
 /** A place in the app the assistant offers to open. */
 export const assistantLinkSchema = z.object({
-  href: z.string().max(300),
+  href: z.string().max(INTERNAL_HREF_MAX),
   label: z.string().max(120),
 })
 
