@@ -85,6 +85,9 @@ test('zooming keeps the workspace point under the pointer fixed and respects lim
   assert.equal(steppedZoom(1, 1), 1.5)
   assert.equal(steppedZoom(1, -1), 0.75)
   assert.equal(steppedZoom(0.6, -1), 0.5)
+  // A fitted 24.9% reads as 25%: the next step in is 50%, the next out 10%.
+  assert.equal(steppedZoom(0.249, 1), 0.5)
+  assert.equal(steppedZoom(0.2504, -1), 0.1)
 })
 
 test('fit shows a rectangle centred with padding, never closer than the cap', () => {
@@ -149,6 +152,22 @@ test('artboards align, distribute and tidy without changing their sizes', () => 
       { id: 'c', x: 0, y: 110 },
     ],
     'a and b share a row (they overlap vertically); rows are as tall as their tallest artboard'
+  )
+  // A deck grid (arrangeAsDeck): five 16:9 slides in one row become four, then one.
+  const slides = ['s1', 's2', 's3', 's4', 's5'].map((id, index) => ({
+    id,
+    rect: { x: index * 1720, y: 0, width: 1600, height: 900 },
+  }))
+  assert.deepEqual(
+    tidyRects(slides, { columns: 4, gap: 360 }).map(({ x, y }) => [x, y]),
+    [
+      [0, 0],
+      [1960, 0],
+      [3920, 0],
+      [5880, 0],
+      [0, 1260],
+    ],
+    'four a row in reading order, the fifth starting the next row one slide and gap down'
   )
 })
 

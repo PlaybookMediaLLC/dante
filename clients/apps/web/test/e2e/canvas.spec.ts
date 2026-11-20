@@ -12,6 +12,7 @@ import {
   getActiveOrganizationId,
   getE2EUrl,
   grantWorkspacePlan,
+  openCanvasTools,
   type Page,
   requestJson,
   signUpViaApi,
@@ -80,6 +81,7 @@ async function clickEmptyBoard(page: Page) {
 }
 
 async function selectArtboard(page: Page, name: string) {
+  await openCanvasTools(page)
   await page.getByRole('tab', { name: 'Artboards' }).click()
   await page
     .getByRole('list', { name: 'Artboards' })
@@ -100,6 +102,7 @@ async function openArtboard(page: Page, name: string) {
       { timeout: 120_000 }
     )
     .toBe('1')
+  await openCanvasTools(page)
   await page.getByRole('tab', { name: 'Insert' }).click()
 }
 
@@ -174,6 +177,7 @@ test('A: a manual product announcement survives reload and exports what was comp
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   const canvasId = canvasIdOf(page)
   await previewsReady(page)
+  await openCanvasTools(page)
   await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
   await saved(page)
   expect((await stored(page, canvasId)).document.artboards).toHaveLength(2)
@@ -475,6 +479,7 @@ test('D: an interrupted save is recovered and a conflicting edit is kept as a co
   await expect(page.getByTestId('canvas-save-status')).toHaveText('Offline · kept on this device', {
     timeout: 30_000,
   })
+  await openCanvasTools(page)
   await page.getByRole('tab', { name: 'Insert' }).click()
   await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
   await expect

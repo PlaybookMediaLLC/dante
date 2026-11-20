@@ -616,12 +616,26 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	}
 	listedCampaigns, err := repo.ListCampaigns(ctx, actor)
 	if err != nil || len(listedCampaigns) != 1 || listedCampaigns[0].ID != createdCampaign.ID ||
-		listedCampaigns[0].Release == nil {
+		listedCampaigns[0].Release == nil || listedCampaigns[0].Release.ID != createdRelease.Release.ID || listedCampaigns[0].Release.Title == "" {
 		t.Fatalf("campaign list=%+v err=%v", listedCampaigns, err)
 	}
 	if _, err := repo.GetCampaign(ctx, Actor{OrganizationID: otherOrgID, UserID: userID, SessionID: actor.SessionID},
 		createdCampaign.ID); !errors.Is(err, publishing.ErrForbidden) {
 		t.Fatalf("cross-tenant campaign read succeeded: %v", err)
+	}
+	// Linked assets load in one query, still scoped: another workspace's asset is left out.
+	for _, owner := range []string{orgID, otherOrgID} {
+		assetID := "campaign_media_" + owner
+		if _, err := db.SQL.ExecContext(ctx, `INSERT INTO asset (id,"organizationId","objectKey","mediaType",bytes,status,"createdAt","updatedAt") VALUES ($1,$2,$1,'image/png',100,'UPLOADED',now(),now())`, assetID, owner); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.SQL.ExecContext(ctx, `INSERT INTO campaign_asset (id,"organizationId","campaignId","assetId",kind) VALUES ($1,$2,$3,$4,'capture')`, "link_"+assetID, orgID, createdCampaign.ID, assetID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	withAssets, err := repo.GetCampaign(ctx, actor, createdCampaign.ID)
+	if err != nil || len(withAssets.Assets) != 1 || withAssets.Assets[0].Asset.ID != "campaign_media_"+orgID {
+		t.Fatalf("campaign assets=%+v err=%v", withAssets.Assets, err)
 	}
 	if _, err := repo.TransitionCampaign(ctx, actor, createdCampaign.ID, "APPROVED"); !errors.Is(err, publishing.ErrConflict) {
 		t.Fatalf("invalid campaign transition accepted: %v", err)
@@ -724,6 +738,17 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil || len(listedDesigns) != 1 || listedDesigns[0].RenderedAsset == nil || listedDesigns[0].RenderedAsset.ID != designAssetID {
 		t.Fatalf("campaign designs=%+v err=%v", listedDesigns, err)
 	}
+	// Rendered assets load in one query, still scoped: a foreign render is left out.
+	setRender := func(assetID string) {
+		if _, err := db.SQL.ExecContext(ctx, `UPDATE design SET "renderedAssetId"=$1 WHERE id=$2`, assetID, createdDesign.ID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	setRender(foreignDesignAssetID)
+	if foreign, err := repo.ListCampaignDesigns(ctx, actor, createdCampaign.ID); err != nil || len(foreign) != 1 || foreign[0].RenderedAsset != nil {
+		t.Fatalf("foreign render listed=%+v err=%v", foreign, err)
+	}
+	setRender(designAssetID)
 	creativeTemplate, err := repo.CreateCreativeTemplate(ctx, actor, CreateCreativeTemplateInput{
 		Name: "Launch layout", Definition: map[string]any{"title": "Launch"},
 	})
@@ -867,15 +892,22 @@ func TestConfigurationUsesOneTenantScopedEntDatabase(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	foundRecovery := false
+	foundRecovery, others := false, 0
 	for _, item := range pendingWorkspaces {
+		// Deletions are read for every workspace at once; only the pending one is marked.
+		if item.ID != workspace.ID {
+			others++
+			if item.IsScheduledForDeletion || item.WorkspaceDeletion != nil {
+				t.Fatalf("deletion attached to the wrong workspace: %+v", item)
+			}
+		}
 		if item.ID == workspace.ID && item.IsScheduledForDeletion && item.WorkspaceDeletion != nil &&
 			item.WorkspaceDeletion.RequestedByUserID == userID &&
 			item.WorkspaceDeletion.ScheduledFor.Sub(deletion.ScheduledFor).Abs() < time.Millisecond {
 			foundRecovery = true
 		}
 	}
-	if !foundRecovery {
+	if !foundRecovery || others == 0 {
 		t.Fatalf("owner cannot recover pending workspace: %+v", pendingWorkspaces)
 	}
 	if _, err := repo.GetActiveAccess(ctx, workspaceActor); !errors.Is(err, publishing.ErrForbidden) {

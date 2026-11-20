@@ -127,22 +127,35 @@ test('the library searches, duplicates, and deletes, and other workspaces see no
   const projectId = (created.body as { id: string }).id
 
   await app.open('/projects')
+  // The sidebar's Recents lists the same projects, so the library's own links are read from the page.
+  const library = page.getByRole('main')
   await page.getByRole('searchbox', { name: 'Search projects' }).fill('pricing')
-  await expect(page.getByRole('link', { exact: true, name: 'Pricing banner' })).toBeVisible()
-  await expect(page.getByRole('link', { exact: true, name: 'Changelog card' })).toHaveCount(0)
+  await expect(library.getByRole('link', { exact: true, name: 'Pricing banner' })).toBeVisible()
+  await expect(library.getByRole('link', { exact: true, name: 'Changelog card' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Actions for Pricing banner' }).click()
   await page.getByRole('menuitem', { name: 'Duplicate' }).click()
-  await expect(page.getByRole('link', { exact: true, name: 'Pricing banner copy' })).toBeVisible()
+  await expect(
+    library.getByRole('link', { exact: true, name: 'Pricing banner copy' })
+  ).toBeVisible()
+
+  // The copy reaches the sidebar's Recents too, so its removal below is proven there.
+  const recents = page.getByRole('region', { name: 'Recents' })
+  await expect(
+    recents.getByRole('link', { exact: true, name: 'Pricing banner copy' })
+  ).toBeVisible()
 
   await page.getByRole('button', { name: 'Actions for Pricing banner copy' }).click()
   await page.getByRole('menuitem', { name: 'Delete…' }).click()
   const confirm = page.getByRole('alertdialog', { name: 'Delete “Pricing banner copy”?' })
   await confirm.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('link', { exact: true, name: 'Pricing banner copy' })).toBeVisible()
+  await expect(
+    library.getByRole('link', { exact: true, name: 'Pricing banner copy' })
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Actions for Pricing banner copy' }).click()
   await page.getByRole('menuitem', { name: 'Delete…' }).click()
   await confirm.getByRole('button', { name: 'Delete project' }).click()
+  // Gone from the library and from the sidebar's Recents.
   await expect(page.getByRole('link', { exact: true, name: 'Pricing banner copy' })).toHaveCount(0)
 
   const otherContext = await browser.newContext()

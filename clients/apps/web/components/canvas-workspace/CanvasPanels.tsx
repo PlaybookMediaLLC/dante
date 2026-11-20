@@ -102,7 +102,10 @@ export function LeftPanel(props: PanelProps & { only?: 'artboards' }) {
       }}
       className="flex h-full flex-col gap-0"
     >
-      <TabsList aria-label="Canvas tools" className="m-2 grid grid-cols-3">
+      <TabsList
+        aria-label="Canvas tools"
+        className="m-2 grid w-auto grid-cols-3 rounded-full bg-foreground/[0.05] p-0.5 [&>button]:rounded-full [&>button]:border-transparent [&>button]:text-[13px]"
+      >
         <TabsTrigger value="insert">Insert</TabsTrigger>
         <TabsTrigger value="artboards">Artboards</TabsTrigger>
         <TabsTrigger

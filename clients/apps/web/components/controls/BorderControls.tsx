@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useImageStore, type ImageBorder } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
@@ -103,7 +104,12 @@ const framePreviews: Record<FrameType, React.ReactNode> = {
 }
 
 export function BorderControls() {
-  const { imageBorder, setImageBorder } = useImageStore()
+  const { imageBorder, setImageBorder } = useImageStore(
+    useShallow((state) => ({
+      imageBorder: state.imageBorder,
+      setImageBorder: state.setImageBorder,
+    }))
+  )
 
   const handleSelect = (value: FrameType) => {
     const next: Partial<ImageBorder> = {

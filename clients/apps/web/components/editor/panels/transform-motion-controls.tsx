@@ -22,7 +22,7 @@ import { useDrag } from '@use-gesture/react';
 import { aspectRatios } from '@/lib/constants/aspect-ratios';
 
 function useCanvasAspectRatio(): string {
-  const { selectedAspectRatio } = useImageStore();
+  const selectedAspectRatio = useImageStore((state) => state.selectedAspectRatio);
   const ar = aspectRatios.find((a) => a.id === selectedAspectRatio);
   if (!ar) return '4 / 3';
   return `${ar.width} / ${ar.height}`;
@@ -48,7 +48,19 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
     imageShadow,
     imageScale,
     canvasDimensions,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      uploadedImageUrl: state.uploadedImageUrl,
+      perspective3D: state.perspective3D,
+      setPerspective3D: state.setPerspective3D,
+      backgroundConfig: state.backgroundConfig,
+      backgroundBorderRadius: state.backgroundBorderRadius,
+      borderRadius: state.borderRadius,
+      imageShadow: state.imageShadow,
+      imageScale: state.imageScale,
+      canvasDimensions: state.canvasDimensions,
+    }))
+  );
   const composition = useImageStore((state) => state.editorMode === 'device' && state.mockups.length > 0);
   const previewDocument = useEditorDocument(150);
   const screenshot = useImageStore(useShallow(selectScreenshot));
@@ -272,7 +284,12 @@ function TransformPreview({ mode }: { mode: ControlMode }) {
 
 /** Part of the inspector's 3D or Motion tab. */
 export function PerspectiveSliders() {
-  const { perspective3D, setPerspective3D } = useImageStore();
+  const { perspective3D, setPerspective3D } = useImageStore(
+    useShallow((state) => ({
+      perspective3D: state.perspective3D,
+      setPerspective3D: state.setPerspective3D,
+    }))
+  );
 
   return (
     <SectionWrapper title="Fine Tune" defaultOpen={false}>
@@ -334,7 +351,15 @@ function ZoomSlider() {
     imageOverlays,
     updateImageOverlay,
     selectedOverlayId,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      imageScale: state.imageScale,
+      setImageScale: state.setImageScale,
+      imageOverlays: state.imageOverlays,
+      updateImageOverlay: state.updateImageOverlay,
+      selectedOverlayId: state.selectedOverlayId,
+    }))
+  );
 
   const selectedOverlay = selectedOverlayId
     ? imageOverlays.find((o) => o.id === selectedOverlayId)
@@ -428,7 +453,16 @@ export function AnimationControls() {
     setShowTimeline,
     setTimelineDuration,
     timeline,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      animationClips: state.animationClips,
+      addAnimationClip: state.addAnimationClip,
+      clearAnimationClips: state.clearAnimationClips,
+      setShowTimeline: state.setShowTimeline,
+      setTimelineDuration: state.setTimelineDuration,
+      timeline: state.timeline,
+    }))
+  );
 
   const cssAspectRatio = useCanvasAspectRatio();
   const editorDocument = useEditorDocument();

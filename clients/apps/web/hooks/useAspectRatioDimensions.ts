@@ -6,7 +6,7 @@ export function useAspectRatioDimensions(options?: {
   maxWidth?: number;
   maxHeight?: number;
 }) {
-  const { selectedAspectRatio } = useImageStore();
+  const selectedAspectRatio = useImageStore((state) => state.selectedAspectRatio);
   
   const dimensions = useMemo(() => {
     const preset = getAspectRatioPreset(selectedAspectRatio);

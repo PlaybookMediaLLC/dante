@@ -30,6 +30,7 @@ type S3Store struct {
 	client         *s3.Client
 	signer         *s3.PresignClient
 	deliverySigner *s3.PresignClient
+	delivery       *deliveryGateway
 }
 
 func NewS3Store(endpoint, browserEndpoint, region, bucket, accessKey, secretKey string) (*S3Store, error) {
@@ -69,6 +70,11 @@ func NewS3StoreFromEnvironment() (*S3Store, error) {
 	store, err := NewS3Store(os.Getenv("R2_ENDPOINT"), os.Getenv("R2_BROWSER_ENDPOINT"),
 		os.Getenv("R2_REGION"), os.Getenv("R2_BUCKET_NAME"),
 		os.Getenv("R2_ACCESS_KEY_ID"), os.Getenv("R2_SECRET_ACCESS_KEY"))
+	if err == nil && os.Getenv("PLATFORM_PROVIDER_MEDIA_ORIGIN") != "" {
+		if err := store.configureDelivery(os.Getenv("PUBLISHING_SERVICE_TOKEN"), os.Getenv("PLATFORM_PROVIDER_MEDIA_ORIGIN")); err != nil {
+			return nil, err
+		}
+	}
 	if err != nil || os.Getenv("R2_DELIVERY_ENDPOINT") == "" {
 		return store, err
 	}
@@ -223,6 +229,9 @@ func (s *S3Store) SignDownloadFor(ctx context.Context, key string, expires time.
 // SignDelivery is called only when a scheduled post is due. Providers can
 // fetch this private object for the next 24 hours without a stored public URL.
 func (s *S3Store) SignDelivery(ctx context.Context, key string) (string, error) {
+	if s.delivery != nil {
+		return s.delivery.sign(key, time.Now().Add(deliveryLifetime))
+	}
 	request, err := s.deliverySigner.PresignGetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket), Key: aws.String(key),
 	}, s3.WithPresignExpires(24*time.Hour))

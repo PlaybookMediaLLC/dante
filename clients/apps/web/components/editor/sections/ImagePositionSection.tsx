@@ -55,7 +55,7 @@ function PositionIcon({ x, y }: { x: number; y: number }) {
 }
 
 export function ImagePositionSection() {
-  const { canvasDimensions } = useImageStore();
+  const canvasDimensions = useImageStore((state) => state.canvasDimensions);
   const anchor = useImageStore((state) => state.imagePlacement.anchor);
   const screenshot = useImageStore(useShallow(selectScreenshot));
   const setScreenshot = useImageStore((state) => state.setImagePlacement);

@@ -11,6 +11,7 @@ import {
   getActiveOrganizationId,
   getE2EUrl,
   grantWorkspacePlan,
+  openCanvasTools,
   type Page,
   requestJson,
   signUpViaApi,
@@ -64,6 +65,7 @@ async function openArtboard(page: Page, name: string) {
   for (let step = 0; step < 4 && (await page.getByTestId('canvas-active-editor').count()); step++)
     await page.keyboard.press('Escape')
   await expect(page.getByTestId('canvas-active-editor')).toHaveCount(0)
+  await openCanvasTools(page)
   await page.getByRole('tab', { name: 'Artboards' }).click()
   await page
     .getByRole('list', { name: 'Artboards' })
@@ -79,6 +81,7 @@ async function openArtboard(page: Page, name: string) {
       { timeout: 120_000 }
     )
     .toBe('1')
+  await openCanvasTools(page)
   await page.getByRole('tab', { name: 'Insert' }).click()
 }
 
@@ -193,6 +196,7 @@ test('F: layers group, move and take typed text; components keep overrides acros
   // Place it on a second artboard and override its headline there.
   await page.keyboard.press('Escape')
   await page.keyboard.press('Escape')
+  await openCanvasTools(page)
   await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
   await saved(page)
   await openArtboard(page, '1:1')
@@ -301,6 +305,7 @@ test('G: members see who else is on a canvas and which artboard each is editing'
 
     // The peer's saved work reaches this tab.
     await peer.keyboard.press('Escape')
+    await openCanvasTools(peer)
     await peer.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
     await saved(peer)
     await expect(page.locator('[data-artboard-id]')).toHaveCount(2, { timeout: 30_000 })
@@ -320,6 +325,7 @@ test('H: App Store screenshot groups sit on the canvas, edit in the store editor
   await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await saved(page)
+  await openCanvasTools(page)
   await page.getByRole('button', { name: /^App Store screenshots/ }).click()
   await page.getByRole('button', { name: 'New store screenshot group' }).click()
   await expect(page.getByRole('dialog', { name: 'Add App Store screenshots' })).toBeHidden({
@@ -497,6 +503,7 @@ test('J: a canvas exports a PDF whose pages keep real text and vector shapes', a
   await app.open('/canvas/new?blank=1')
   await expect(page).toHaveURL(/\/canvas\/c[a-z0-9]{24}$/, { timeout: 180_000 })
   await saved(page)
+  await openCanvasTools(page)
   await page.getByRole('button', { name: '1:1 · 1080 × 1080' }).click()
   await saved(page)
   await openArtboard(page, '1:1')

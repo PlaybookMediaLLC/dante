@@ -5,6 +5,7 @@ import { AskShotsButton } from '@/components/campaign-copilot/CopilotLaunchers'
 import { CampaignLocalTime } from '@/components/campaigns/CampaignLocalTime'
 import { CampaignStatusPill } from '@/components/campaigns/CampaignStatusPill'
 import { CampaignSubnav } from '@/components/launch/CampaignSubnav'
+import { AssistantPageContext } from '@/components/assistant/AssistantProvider'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page, Pill } from '@/components/platform-ui'
 import { backendSDK } from '@/lib/backend/sdk'
@@ -84,6 +85,10 @@ export default async function CampaignLayout({ children, params }: CampaignLayou
             This campaign is archived and read-only. Restore it from Overview to make changes.
           </p>
         ) : null}
+        <AssistantPageContext
+          entities={[{ id: campaign.id, name: campaign.name, type: 'campaign' }]}
+          facts={[`Campaign status: ${campaign.status}.`]}
+        />
         <CampaignSubnav campaignId={campaign.id} />
         {children}
       </Page>

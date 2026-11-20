@@ -38,15 +38,17 @@ test('warm project navigation reuses its list and rename invalidates it', async 
     if (Object.values(inputs).some((input) => input.json?.limit === 24)) listRequests++
   })
   await app.open('/projects')
+  // The sidebar's Recents lists the same project, so the library's own link is read from the page.
+  const library = page.getByRole('main')
   await expect(
-    page.getByRole('link', { name: 'Cache navigation project', exact: true })
+    library.getByRole('link', { name: 'Cache navigation project', exact: true })
   ).toBeVisible()
   expect(listRequests).toBe(1)
   await page.locator('a[href="/workflows/overview"]').first().click()
   await expect(page.getByRole('heading', { name: 'Automate', exact: true })).toBeVisible()
   await page.locator('a[href="/library"]').first().click()
   await expect(
-    page.getByRole('link', { name: 'Cache navigation project', exact: true })
+    library.getByRole('link', { name: 'Cache navigation project', exact: true })
   ).toBeVisible()
   expect(listRequests).toBe(1)
   await page
@@ -56,7 +58,7 @@ test('warm project navigation reuses its list and rename invalidates it', async 
   await page.getByLabel('Project name').fill('Renamed cached project')
   await page.getByRole('button', { name: 'Rename', exact: true }).click()
   await expect(
-    page.getByRole('link', { name: 'Renamed cached project', exact: true })
+    library.getByRole('link', { name: 'Renamed cached project', exact: true })
   ).toBeVisible()
   expect(listRequests).toBe(2)
 

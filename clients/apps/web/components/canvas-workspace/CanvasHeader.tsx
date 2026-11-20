@@ -4,11 +4,24 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
+import { RECENT_WORK_KEY } from '@/components/platform-hub/work'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { CanvasSession, CanvasSessionState } from '@/lib/canvas/session'
 import { useCanvasUi } from '@/lib/canvas/ui-store'
 import { cn } from '@/lib/utils'
+import { ArrowUUpLeftIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpLeft'
+import { ArrowUUpRightIcon } from '@phosphor-icons/react/dist/ssr/ArrowUUpRight'
+import { ClockCounterClockwiseIcon } from '@phosphor-icons/react/dist/ssr/ClockCounterClockwise'
+import { ExportIcon } from '@phosphor-icons/react/dist/ssr/Export'
+import { MegaphoneIcon } from '@phosphor-icons/react/dist/ssr/Megaphone'
+import { PaletteIcon } from '@phosphor-icons/react/dist/ssr/Palette'
+import { SidebarSimpleIcon } from '@phosphor-icons/react/dist/ssr/SidebarSimple'
+import { SlidersHorizontalIcon } from '@phosphor-icons/react/dist/ssr/SlidersHorizontal'
+import { SquaresFourIcon } from '@phosphor-icons/react/dist/ssr/SquaresFour'
+import { StackIcon } from '@phosphor-icons/react/dist/ssr/Stack'
+import { XIcon } from '@phosphor-icons/react/dist/ssr/X'
 import { RenameDialog } from './CanvasLibrary'
 import type { CanvasActions } from './use-canvas-actions'
 import type { CanvasDialog } from './CanvasDialogs'
@@ -45,6 +58,7 @@ export function CanvasHeader({
   const [renaming, setRenaming] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const router = useRouter()
+  const queryClient = useQueryClient()
   const leftOpen = useCanvasUi((ui) => ui.leftOpen)
   const rightOpen = useCanvasUi((ui) => ui.rightOpen)
   const togglePanel = useCanvasUi((ui) => ui.togglePanel)
@@ -56,133 +70,149 @@ export function CanvasHeader({
       document.title = previous
     }
   }, [name])
+  const pill =
+    'flex min-w-0 items-center gap-0.5 rounded-full border border-black/[0.06] bg-background p-1 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_6px_20px_-8px_rgba(0,0,0,0.12)] dark:border-white/10'
   return (
-    <header className="flex min-h-14 shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2 lg:flex-nowrap">
-      <Link
-        href="/canvas"
-        aria-label="Back to Canvas"
-        className="shrink-0 rounded px-1 text-sm text-muted-foreground hover:text-foreground"
-        aria-busy={leaving}
-        onNavigate={(event) => {
-          event.preventDefault()
-          if (leaving) return
-          setLeaving(true)
-          void (async () => {
-            try {
-              actions.exitEdit()
-              if (canEdit && !(await session.save())) {
-                toast.error(
-                  'The canvas could not be saved. Resolve the save problem before leaving.'
-                )
-                return
-              }
-              router.push('/canvas')
-            } catch (failure) {
-              toast.error(failure instanceof Error ? failure.message : 'Could not save the canvas.')
-            } finally {
-              setLeaving(false)
-            }
-          })()
-        }}
-      >
-        ← Canvas
-      </Link>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="min-w-0 max-w-[40vw] shrink truncate font-semibold lg:flex-1"
-        disabled={!canEdit}
-        onClick={() => setRenaming(true)}
-        title="Rename canvas"
-      >
-        <h1 className="truncate">{name}</h1>
-      </Button>
-      <span
-        role="status"
-        data-testid="canvas-save-status"
-        title={`Revision ${state.revision}`}
-        className={cn(
-          'shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs',
-          state.status === 'saved' && 'text-muted-foreground',
-          (state.status === 'unsaved' || state.status === 'saving') &&
-            'bg-foreground/[0.05] text-muted-foreground',
-          (state.status === 'offline' || state.status === 'conflict' || state.status === 'error') &&
-            'bg-amber-500/15 text-amber-700 dark:text-amber-300'
-        )}
-      >
-        {status}
-      </span>
-      {presence}
-      <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1">
+    // Floating pills on the board's own grey, like a slides tool, instead of a bar.
+    <header className="flex shrink-0 flex-wrap items-center gap-2 px-3 pt-3 pb-1 lg:flex-nowrap">
+      <div className={pill}>
         <Button
           variant="ghost"
           size="sm"
-          aria-pressed={leftOpen}
-          className="hidden md:inline-flex"
-          onClick={() => togglePanel('left')}
+          className="h-8 min-w-0 max-w-[min(30vw,280px)] shrink gap-1.5 rounded-full px-3 text-[13px] font-medium"
+          disabled={!canEdit}
+          onClick={() => setRenaming(true)}
+          title="Rename canvas"
         >
-          Artboards & tools
+          <StackIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <h1 className="truncate">{name}</h1>
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-pressed={rightOpen}
-          className="hidden md:inline-flex"
-          onClick={() => togglePanel('right')}
+        <span
+          role="status"
+          data-testid="canvas-save-status"
+          title={`Revision ${state.revision}`}
+          className={cn(
+            'me-1 shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[11.5px]',
+            (state.status === 'saved' || state.status === 'unsaved' || state.status === 'saving') &&
+              'text-muted-foreground',
+            (state.status === 'offline' ||
+              state.status === 'conflict' ||
+              state.status === 'error') &&
+              'bg-amber-500/15 text-amber-700 dark:text-amber-300'
+          )}
         >
-          Properties
-        </Button>
+          {status}
+        </span>
+      </div>
+      <div className={pill}>
+        {/* Narrow screens open the panels as sheets from the board's own bar instead. */}
+        <span className="hidden items-center gap-0.5 lg:flex">
+          <Tool label="Artboards & tools" pressed={leftOpen} onClick={() => togglePanel('left')}>
+            <SidebarSimpleIcon className="size-4" />
+          </Tool>
+          <Tool label="Properties" pressed={rightOpen} onClick={() => togglePanel('right')}>
+            <SlidersHorizontalIcon className="size-4" />
+          </Tool>
+          <span className="mx-0.5 h-4 w-px bg-border" aria-hidden="true" />
+        </span>
         {canEdit ? (
           <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!state.canUndo}
-                  onClick={() => actions.undo()}
-                >
-                  Undo
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>⌘Z</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!state.canRedo}
-                  onClick={() => actions.redo()}
-                >
-                  Redo
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>⇧⌘Z</TooltipContent>
-            </Tooltip>
+            <Tool
+              label="Undo"
+              shortcut="⌘Z"
+              disabled={!state.canUndo}
+              onClick={() => actions.undo()}
+            >
+              <ArrowUUpLeftIcon className="size-4" />
+            </Tool>
+            <Tool
+              label="Redo"
+              shortcut="⇧⌘Z"
+              disabled={!state.canRedo}
+              onClick={() => actions.redo()}
+            >
+              <ArrowUUpRightIcon className="size-4" />
+            </Tool>
           </>
         ) : null}
-        <Button variant="outline" size="sm" onClick={() => onDialog('history')}>
-          History
-        </Button>
-        {canEdit ? (
-          <Button variant="outline" size="sm" onClick={() => onDialog('brand')}>
-            Brand
-          </Button>
+        {canEdit && state.document.artboards.length > 1 ? (
+          <Tool label="Arrange as a grid" onClick={() => actions.arrangeAsDeck()}>
+            <SquaresFourIcon className="size-4" />
+          </Tool>
         ) : null}
-        {canEdit && canHandOff ? (
+        <Tool label="History" onClick={() => onDialog('history')}>
+          <ClockCounterClockwiseIcon className="size-4" />
+        </Tool>
+      </div>
+      {presence}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className={pill}>
+          {canEdit ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 rounded-full px-3 text-[13px] font-normal"
+              onClick={() => onDialog('brand')}
+            >
+              <PaletteIcon className="size-4" aria-hidden="true" />
+              Brand
+            </Button>
+          ) : null}
+          {canEdit && canHandOff ? (
+            <Button
+              className="h-8 shrink-0 gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-normal"
+              variant="ghost"
+              size="sm"
+              onClick={() => onDialog('campaign')}
+            >
+              <MegaphoneIcon className="size-4" aria-hidden="true" />
+              Campaign
+            </Button>
+          ) : null}
           <Button
-            className="shrink-0 whitespace-nowrap"
-            variant="outline"
             size="sm"
-            onClick={() => onDialog('campaign')}
+            className="h-8 gap-1.5 rounded-full px-3.5 text-[13px]"
+            onClick={() => onDialog('export')}
           >
-            Campaign
+            <ExportIcon className="size-4" aria-hidden="true" />
+            Export
           </Button>
-        ) : null}
-        <Button size="sm" onClick={() => onDialog('export')}>
-          Export
-        </Button>
+        </div>
+        <Link
+          href="/canvas"
+          aria-label="Back to Canvas"
+          title="Back to Canvas"
+          className={cn(
+            pill,
+            'size-10 shrink-0 justify-center p-0 text-foreground/80 hover:text-foreground'
+          )}
+          aria-busy={leaving}
+          onNavigate={(event) => {
+            event.preventDefault()
+            if (leaving) return
+            setLeaving(true)
+            void (async () => {
+              try {
+                actions.exitEdit()
+                if (canEdit && !(await session.save())) {
+                  toast.error(
+                    'The canvas could not be saved. Resolve the save problem before leaving.'
+                  )
+                  return
+                }
+                router.push('/canvas')
+              } catch (failure) {
+                toast.error(
+                  failure instanceof Error ? failure.message : 'Could not save the canvas.'
+                )
+              } finally {
+                setLeaving(false)
+              }
+            })()
+          }}
+        >
+          <XIcon className="size-4" aria-hidden="true" />
+        </Link>
       </div>
       {renaming ? (
         <RenameDialog
@@ -195,10 +225,47 @@ export function CanvasHeader({
             })
             setName(record.name)
             session.record.name = record.name
+            void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
             setRenaming(false)
           }}
         />
       ) : null}
     </header>
+  )
+}
+
+/** An icon button in a toolbar pill; its label is its name and its tooltip. */
+function Tool({
+  label,
+  shortcut,
+  pressed,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string
+  shortcut?: string
+  pressed?: boolean
+  disabled?: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={label}
+          aria-pressed={pressed}
+          disabled={disabled}
+          className="size-8 rounded-full p-0 text-foreground/75 hover:text-foreground aria-pressed:bg-foreground/[0.07] aria-pressed:text-foreground"
+          onClick={onClick}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{shortcut ? `${label} ${shortcut}` : label}</TooltipContent>
+    </Tooltip>
   )
 }

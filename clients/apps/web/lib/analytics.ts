@@ -2,11 +2,40 @@
  * Analytics utility — PostHog only
  *
  * PostHog is initialized in instrumentation-client.ts with defaults: '2026-01-30'.
- * Import posthog from 'posthog-js' anywhere to capture custom events.
  * Pageviews, clicks, and interactions are captured automatically.
  */
 
-import posthog from 'posthog-js';
+import type { PostHog } from 'posthog-js';
+import { readConsent } from '@/lib/consent';
+
+let posthog: PostHog | null = null;
+
+/**
+ * PostHog, downloaded only once a visitor accepts analytics
+ * (instrumentation-client.ts), so it stays out of every page's bundle.
+ */
+export async function loadPostHog(): Promise<PostHog> {
+  posthog ??= (await import('posthog-js')).default;
+  return posthog;
+}
+
+/**
+ * Use PostHog now, or once it has loaded for a visitor who accepted analytics.
+ * Without consent or a key it does nothing, as an uninitialized PostHog would.
+ */
+function withPostHog(apply: (instance: PostHog) => void, failure: string): void {
+  const run = (instance: PostHog) => {
+    if (!readConsent()?.analytics) return;
+    try {
+      apply(instance);
+    } catch (error) {
+      console.warn(failure, error);
+    }
+  };
+  if (posthog) return run(posthog);
+  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY || !readConsent()?.analytics) return;
+  loadPostHog().then(run, (error: unknown) => console.warn(failure, error));
+}
 
 // =============================================================================
 // Core Tracking Functions
@@ -37,11 +66,7 @@ export function trackEvent(
     return;
   }
 
-  try {
-    posthog.capture(eventName, eventData);
-  } catch (error) {
-    console.warn('[PostHog] Failed:', error);
-  }
+  withPostHog((instance) => instance.capture(eventName, eventData), '[PostHog] Failed:');
 }
 
 /**
@@ -51,22 +76,14 @@ export function identifyUser(
   userId: string,
   properties?: Record<string, string | number | boolean>
 ): void {
-  try {
-    posthog.identify(userId, properties);
-  } catch (error) {
-    console.warn('[PostHog] Identify failed:', error);
-  }
+  withPostHog((instance) => instance.identify(userId, properties), '[PostHog] Identify failed:');
 }
 
 /**
  * Reset user identity (call on logout)
  */
 export function resetUser(): void {
-  try {
-    posthog.reset();
-  } catch (error) {
-    console.warn('[PostHog] Reset failed:', error);
-  }
+  withPostHog((instance) => instance.reset(), '[PostHog] Reset failed:');
 }
 
 // =============================================================================

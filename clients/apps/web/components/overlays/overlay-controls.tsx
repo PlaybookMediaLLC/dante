@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { TrashIcon as Delete02Icon } from '@phosphor-icons/react/dist/ssr/Trash'
 import { EyeIcon as ViewIcon } from '@phosphor-icons/react/dist/ssr/Eye'
 import { EyeSlashIcon as ViewOffSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash'
@@ -20,7 +21,16 @@ export function OverlayControls() {
     clearImageOverlays,
     selectedOverlayId,
     setSelectedOverlayId,
-  } = useImageStore()
+  } = useImageStore(
+    useShallow((state) => ({
+      imageOverlays: state.imageOverlays,
+      updateImageOverlay: state.updateImageOverlay,
+      removeImageOverlay: state.removeImageOverlay,
+      clearImageOverlays: state.clearImageOverlays,
+      selectedOverlayId: state.selectedOverlayId,
+      setSelectedOverlayId: state.setSelectedOverlayId,
+    }))
+  )
 
   const selectedOverlay = imageOverlays.find(
     (overlay) => overlay.id === selectedOverlayId

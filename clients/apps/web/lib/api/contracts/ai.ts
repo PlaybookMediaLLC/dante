@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { defineContract } from '@/lib/api/contract'
 import { contentDraftIdSchema } from '@/lib/api/contracts/content-draft-list'
 import { draftChannelSchema } from '@/lib/write/document'
+import { INTERNAL_HREF_MAX, pageContextSchema } from '@/lib/assistant/page-context'
 
 /** Most messages one copilot request may carry. */
 export const MAX_EDITOR_MESSAGES = 80
@@ -42,6 +43,57 @@ export const editorCopilotContract = defineContract({
   output: editorCopilotResponseSchema,
   path: '/api/ai/editor',
   summary: 'Run one step of the editor copilot',
+})
+
+/** Most messages one workspace assistant request may carry. */
+export const MAX_ASSISTANT_MESSAGES = 40
+
+/**
+ * One turn of the workspace assistant: the conversation so far, ending with
+ * the person's message, and the page they are on.
+ */
+export const workspaceAssistantRequestSchema = z.object({
+  messages: z
+    .array(z.looseObject({ role: editorMessageRoleSchema }))
+    .min(1)
+    .max(MAX_ASSISTANT_MESSAGES),
+  page: pageContextSchema,
+})
+
+/** A place in the app the assistant offers to open. */
+export const assistantLinkSchema = z.object({
+  href: z.string().max(INTERNAL_HREF_MAX),
+  label: z.string().max(120),
+})
+
+/** Characters of one post the assistant drafts. */
+export const ASSISTANT_POST_MAX = 3_000
+/** Posts one reply may draft. */
+export const ASSISTANT_POSTS_MAX = 2
+
+/** A post the assistant wrote, offered to open as a draft. */
+export const assistantPostSchema = z.object({ text: z.string().min(1).max(ASSISTANT_POST_MAX) })
+
+/**
+ * The assistant's reply, the places it offers, the posts it wrote, and the turn's AI SDK
+ * messages, which the browser keeps and sends with its next turn.
+ */
+export const workspaceAssistantResponseSchema = z.object({
+  links: z.array(assistantLinkSchema),
+  messages: z.array(z.looseObject({ role: editorResponseRoleSchema })),
+  // Defaulted, so a browser newer than the server mid-deploy still reads the reply.
+  posts: z.array(assistantPostSchema).max(ASSISTANT_POSTS_MAX).default([]),
+  text: z.string(),
+})
+
+/** `POST /api/ai/assistant` */
+export const workspaceAssistantContract = defineContract({
+  body: workspaceAssistantRequestSchema,
+  method: 'POST',
+  name: 'ai.assistant',
+  output: workspaceAssistantResponseSchema,
+  path: '/api/ai/assistant',
+  summary: 'Answer one turn of the workspace assistant with the page it is asked from',
 })
 
 /** Most messages one document-editor AI request may carry. */

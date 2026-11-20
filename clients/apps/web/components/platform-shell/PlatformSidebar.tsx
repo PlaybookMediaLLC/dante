@@ -54,6 +54,8 @@ import { Button } from '@/components/ui/button'
 import { NavRow, type NavIcon } from './NavRow'
 import { ProductTourMenu } from './ProductTour'
 import { SidebarLink } from './SidebarLink'
+import { SidebarRecents } from './SidebarRecents'
+import { AssistantLauncher } from '@/components/assistant/AssistantBar'
 import { SettingsNav } from '@/components/settings/SettingsNav'
 import { RememberVisits } from './PageVisits'
 import { ThemeToggle } from './ThemeToggle'
@@ -241,7 +243,15 @@ function Navigation({
           deniedPermissions={deniedPermissions}
           role={role}
         />
+        <AssistantLauncher collapsed={collapsed} onNavigate={onNavigate} />
         {navGroup(AREAS_GROUP)}
+        {collapsed ? null : (
+          <SidebarRecents
+            draftsEnabled={draftsEnabled}
+            onNavigate={onNavigate}
+            paidPlan={paidPlan}
+          />
+        )}
       </div>
       <div className="shrink-0">{navGroup(WORKSPACE_GROUP)}</div>
     </nav>

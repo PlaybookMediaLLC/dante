@@ -1,4 +1,7 @@
-import { expect, type Page, test } from './framework'
+import { draftEditor, expect, type Page, test, trpcMutation, trpcQuery } from './framework'
+import { canvasDocumentSchema } from '@/lib/canvas/document'
+import { blankArtboard } from '@/lib/canvas/recipes'
+import { newCreativeSetId } from '@/lib/creative-sets/document'
 import sharp from 'sharp'
 
 test.use({ workspaceOptions: { plan: 'pro' } })
@@ -122,5 +125,122 @@ test(
     // Regenerating keeps the earlier result to go back to.
     await page.getByRole('button', { name: 'Generate another' }).click()
     await expect(results.getByRole('button')).toHaveCount(2, { timeout: 90_000 })
+  }
+)
+
+test(
+  'the assistant bar answers from the page it is on, offers the work it found, and hands the canvas to its copilot',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    const created = await trpcMutation(page, 'project.create', {
+      name: 'Assistant launch hero',
+      document: { version: 2, image: { src: null } },
+    })
+    expect(created.status).toBe(200)
+    const projectId = (created.body as { id: string }).id
+
+    await app.open('/home')
+    await page.getByRole('button', { name: 'Open the assistant', exact: true }).click()
+    const assistant = page.getByRole('region', { name: 'Assistant' })
+    await expect(assistant.getByTitle('The assistant sees: Home')).toBeVisible()
+    // An empty bar offers one-click asks; asking to make something offers a button that starts it.
+    await assistant.getByRole('button', { name: 'Start a product launch canvas' }).click()
+    await expect(
+      assistant.getByRole('link', { name: /Start a Product launch canvas/ })
+    ).toHaveAttribute('href', '/canvas/new?recipe=product-launch')
+    await expect(assistant.getByRole('group', { name: 'Suggestions' })).toHaveCount(0)
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await expect(assistant.getByRole('group', { name: 'Suggestions' })).toBeVisible()
+
+    const sent = page.waitForRequest('**/api/ai/assistant')
+    await assistant.getByRole('textbox', { name: 'Ask the assistant' }).fill('What did I work on?')
+    await page.keyboard.press('Enter')
+    // The page went with the question; the scripted model answers from it.
+    expect((await sent).postDataJSON().page).toMatchObject({ area: 'home', path: '/home' })
+    await expect(assistant.getByText(/^You are on Home\./)).toBeVisible({ timeout: 60_000 })
+    const link = assistant.getByRole('link', { name: /Open Assistant launch hero/ })
+    await expect(link).toHaveAttribute('href', `/editor?project=${projectId}`)
+
+    // Hidden, the bar comes back with ⌘J (Ctrl+J), the conversation intact.
+    await assistant.getByRole('button', { name: 'Hide the assistant' }).click()
+    await expect(assistant).toHaveCount(0)
+    await page.keyboard.press('ControlOrMeta+j')
+    await expect(assistant.getByRole('textbox', { name: 'Ask the assistant' })).toBeFocused()
+    await expect(assistant.getByText(/^You are on Home\./)).toBeVisible()
+
+    // Asked to change existing work, it finds it and offers it open with the change ready.
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await assistant
+      .getByRole('textbox', { name: 'Ask the assistant' })
+      .fill('Change the headline to Launch day')
+    await page.keyboard.press('Enter')
+    await expect(assistant.getByRole('link', { name: /Edit with AI/ })).toHaveAttribute(
+      'href',
+      `/editor?project=${projectId}&ask=Change+the+headline+to+Launch+day`,
+      { timeout: 60_000 }
+    )
+
+    // Asked for a post, it writes one, and one click opens it as a draft in the post editor.
+    await assistant.getByRole('button', { name: 'New chat' }).click()
+    await assistant.getByRole('button', { name: 'Draft a post about our latest release' }).click()
+    await expect(assistant.getByText(/^We just shipped something new\./)).toBeVisible({
+      timeout: 60_000,
+    })
+    await assistant.getByRole('button', { name: 'Open as a draft' }).click()
+    await expect(page).toHaveURL(/\/publish\/[^/?]+$/, { timeout: 60_000 })
+    await expect(draftEditor(page)).toContainText('We just shipped something new.', {
+      timeout: 60_000,
+    })
+
+    // On a canvas the artboard copilot answers instead, with the bar open on the board.
+    const initial = canvasDocumentSchema.parse({
+      version: 1,
+      kind: 'canvas',
+      artboards: [
+        blankArtboard('wide-16x9', { x: 0, y: 0 }),
+        blankArtboard('wide-16x9', { x: 2400, y: 0 }),
+      ],
+    })
+    const canvas = await trpcMutation(page, 'canvas.create', {
+      id: newCreativeSetId(),
+      name: 'Assistant canvas',
+      document: initial,
+    })
+    expect(canvas.status).toBe(200)
+    // Opened with a request (an Edit with AI button), the canvas's bar holds it ready to send.
+    await app.open(`/canvas/${(canvas.body as { id: string }).id}?ask=Make+the+headline+bold`)
+    const board = page.getByRole('region', { name: 'Assistant' })
+    await expect(board.getByTitle(/^The assistant sees: Artboard 1 · /)).toBeVisible({
+      timeout: 60_000,
+    })
+    await expect(board.getByRole('textbox', { name: 'Ask the assistant' })).toHaveValue(
+      'Make the headline bold'
+    )
+    await expect.poll(() => new URL(page.url()).searchParams.has('ask')).toBe(false)
+
+    // A request about every artboard runs on each in turn.
+    await board
+      .getByRole('textbox', { name: 'Ask the assistant' })
+      .fill('Make the headline bold on every artboard')
+    await page.keyboard.press('Enter')
+    await expect(board.getByText('Artboard 2 of 2…')).toBeVisible({ timeout: 90_000 })
+    await expect(board.getByText('Done: 2 artboards.')).toBeVisible({ timeout: 90_000 })
+    // Each artboard's own design changed and was saved, not the first one's twice.
+    const canvasId = (canvas.body as { id: string }).id
+    await expect
+      .poll(
+        async () => {
+          const stored = await trpcQuery(page, 'canvas.get', { canvasId })
+          const artboards = (stored.body as { document?: { artboards?: { document: unknown }[] } })
+            .document?.artboards
+          return (artboards ?? []).map(
+            (artboard, index) =>
+              JSON.stringify(artboard.document) !==
+              JSON.stringify(initial.artboards[index]?.document)
+          )
+        },
+        { timeout: 30_000 }
+      )
+      .toEqual([true, true])
   }
 )

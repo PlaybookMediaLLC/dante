@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { Slider } from '@/components/ui/slider';
 
 export function BackgroundEffects() {
@@ -10,7 +11,14 @@ export function BackgroundEffects() {
     backgroundNoise,
     setBackgroundBlur,
     setBackgroundNoise,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      backgroundBlur: state.backgroundBlur,
+      backgroundNoise: state.backgroundNoise,
+      setBackgroundBlur: state.setBackgroundBlur,
+      setBackgroundNoise: state.setBackgroundNoise,
+    }))
+  );
 
   return (
     <div className="space-y-3">

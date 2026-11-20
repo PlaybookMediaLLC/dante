@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils'
  * empty state. Fork-owned so upstream editor files stay untouched.
  */
 
-// full: 1120px of content inside the 40px gutters.
-const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', full: 'md:max-w-[1200px]' } as const
+// full: 1400px of content inside the 40px gutters.
+const PAGE_WIDTH = { md: 'max-w-3xl', sm: 'max-w-2xl', full: 'md:max-w-[1480px]' } as const
 
 /**
  * A page with Polar's dashboard header: the title in medium 22px type on one

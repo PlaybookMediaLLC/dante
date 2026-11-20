@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useImageStore, type ShadowPreset } from '@/lib/store';
+import { useShallow } from 'zustand/react/shallow';
 import { SectionWrapper } from './SectionWrapper';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,12 @@ function ShadowPreview({ shadow }: { shadow: string }) {
 }
 
 export function ShadowSection() {
-  const { shadowPreset, setShadowPreset } = useImageStore();
+  const { shadowPreset, setShadowPreset } = useImageStore(
+    useShallow((state) => ({
+      shadowPreset: state.shadowPreset,
+      setShadowPreset: state.setShadowPreset,
+    }))
+  );
 
   return (
     <SectionWrapper title="Shadow" defaultOpen={true}>

@@ -20,7 +20,7 @@ export function WebsiteScreenshotInput() {
   const [deviceType, setDeviceType] = React.useState<DeviceType>('desktop')
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const { setBrowserUrl } = useImageStore()
+  const setBrowserUrl = useImageStore((state) => state.setBrowserUrl)
 
   const normalizeUrl = (urlString: string): string => {
     let normalized = urlString.trim()

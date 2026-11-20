@@ -96,7 +96,9 @@ const variantsRequestSchema = z.object({
 export async function runEditorTool(
   call: PendingToolCall,
   onChange: (summary: string) => void,
-  onShowVariants?: (request: VariantsRequest) => void
+  onShowVariants?: (request: VariantsRequest) => void,
+  /** False where the editor's history is not this design's, as on a canvas artboard. */
+  canUndo = true
 ): Promise<ToolResultPart['output']> {
   switch (call.toolName) {
     case 'showVariants': {
@@ -137,11 +139,90 @@ export async function runEditorTool(
       return snapshotParts(JSON.stringify({ applied: true, summary: parsed.data.summary }))
     }
     case 'undoLastChange':
+      if (!canUndo)
+        return {
+          type: 'error-text',
+          value: 'Undo is not available to the copilot here. Tell the person to press ⌘Z.',
+        }
       useImageStore.temporal.getState().undo()
       onChange('Undid the last change')
       return snapshotParts(JSON.stringify({ undone: true }))
     default:
       return { type: 'error-text', value: `Unknown tool ${call.toolName}.` }
+  }
+}
+
+/**
+ * One copilot request, start to finish: the model's steps on the server, each
+ * editing tool run here against the live editor, until the model is done.
+ * Replies, changes and failures go to `push`; the conversation lives in
+ * `memory`, so the next request continues it. `signal` stops the run between
+ * steps, as when the design it edits closes. Shared by the editor's panel and
+ * the assistant bar's canvas ability.
+ */
+export async function runEditorCopilot({
+  canUndo = true,
+  memory,
+  onShowVariants,
+  push,
+  selection,
+  signal,
+  text,
+}: {
+  /** False where the editor's history is not this design's, as on a canvas artboard. */
+  canUndo?: boolean
+  memory: { current: ModelMessage[] }
+  onShowVariants?: (request: VariantsRequest) => void
+  push: (entry: Exclude<CopilotEntry, { kind: 'user' }>) => void
+  selection: string | null
+  signal?: AbortSignal
+  text: string
+}): Promise<void> {
+  memory.current = [...memory.current, { content: text, role: 'user' }]
+  try {
+    for (let trip = 0; trip < MAX_ROUND_TRIPS; trip += 1) {
+      signal?.throwIfAborted()
+      const response = await fetch('/api/ai/editor', {
+        body: JSON.stringify({ messages: memory.current, selection }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+        signal,
+      })
+      const step = (await response.json()) as StepResponse
+      if (!response.ok) throw new Error(step.error ?? 'The copilot is unavailable.')
+      memory.current = [...memory.current, ...step.messages]
+      if (step.text) push({ kind: 'assistant', text: step.text })
+      if (step.done) break
+      const results: ToolResultPart[] = []
+      for (const call of step.pendingToolCalls) {
+        signal?.throwIfAborted()
+        results.push({
+          output: await runEditorTool(
+            call,
+            (summary) => push({ kind: 'change', summary }),
+            onShowVariants,
+            canUndo
+          ),
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          type: 'tool-result',
+        })
+      }
+      memory.current = [...memory.current, { content: results, role: 'tool' }]
+    }
+  } catch (error) {
+    // A stopped run can leave a tool call without its result; the next request starts clean.
+    if (signal?.aborted) memory.current = []
+    push({
+      kind: 'error',
+      text: signal?.aborted
+        ? signal.reason instanceof Error
+          ? signal.reason.message
+          : 'Stopped.'
+        : error instanceof Error
+          ? error.message
+          : 'Something went wrong.',
+    })
   }
 }
 
@@ -160,39 +241,8 @@ export function useEditorCopilot(onShowVariants?: (request: VariantsRequest) => 
       if (!text.trim() || isRunning) return
       setIsRunning(true)
       push({ kind: 'user', text })
-      messages.current = [...messages.current, { content: text, role: 'user' }]
       try {
-        for (let trip = 0; trip < MAX_ROUND_TRIPS; trip += 1) {
-          const response = await fetch('/api/ai/editor', {
-            body: JSON.stringify({ messages: messages.current, selection }),
-            headers: { 'content-type': 'application/json' },
-            method: 'POST',
-          })
-          const step = (await response.json()) as StepResponse
-          if (!response.ok) throw new Error(step.error ?? 'The copilot is unavailable.')
-          messages.current = [...messages.current, ...step.messages]
-          if (step.text) push({ kind: 'assistant', text: step.text })
-          if (step.done) break
-          const results: ToolResultPart[] = []
-          for (const call of step.pendingToolCalls) {
-            results.push({
-              output: await runEditorTool(
-                call,
-                (summary) => push({ kind: 'change', summary }),
-                onShowVariants
-              ),
-              toolCallId: call.toolCallId,
-              toolName: call.toolName,
-              type: 'tool-result',
-            })
-          }
-          messages.current = [...messages.current, { content: results, role: 'tool' }]
-        }
-      } catch (error) {
-        push({
-          kind: 'error',
-          text: error instanceof Error ? error.message : 'Something went wrong.',
-        })
+        await runEditorCopilot({ memory: messages, onShowVariants, push, selection, text })
       } finally {
         setIsRunning(false)
       }

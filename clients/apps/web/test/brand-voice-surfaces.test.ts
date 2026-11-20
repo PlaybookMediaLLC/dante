@@ -59,6 +59,8 @@ const UNVOICED_SURFACES: Record<string, string> = {
     'A translation keeps the source copy, which already has the voice.',
   'lib/ai/launch/spec.ts': 'The spec records facts from sources; copy is written from it.',
   'lib/ai/launch/critique.ts': 'A review scores a render; it writes no copy.',
+  'lib/ai/assistant/turn.ts':
+    'The workspace assistant answers the person in the app; it writes no public copy.',
 }
 
 function sourceFiles(dir: string): string[] {

@@ -132,7 +132,24 @@ export function EditorHeader() {
     toggleRulers,
     toggleGrid,
     setRulerInterval,
-  } = useImageStore()
+  } = useImageStore(
+    useShallow((state) => ({
+      selectedAspectRatio: state.selectedAspectRatio,
+      customDimensions: state.customDimensions,
+      uploadedImageUrl: state.uploadedImageUrl,
+      editorMode: state.editorMode,
+      mockups: state.mockups,
+      resetCanvasSettings: state.resetCanvasSettings,
+      showTemplates: state.showTemplates,
+      setShowTemplates: state.setShowTemplates,
+      showRulers: state.showRulers,
+      showGrid: state.showGrid,
+      rulerInterval: state.rulerInterval,
+      toggleRulers: state.toggleRulers,
+      toggleGrid: state.toggleGrid,
+      setRulerInterval: state.setRulerInterval,
+    }))
+  )
   const [aspectRatioOpen, setAspectRatioOpen] = React.useState(false)
   const [exportOpen, setExportOpen] = React.useState(false)
   const [exportSlideshowOpen, setExportSlideshowOpen] = React.useState(false)

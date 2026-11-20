@@ -10,8 +10,7 @@ import { Group, Page, Pill, type PillTone, Row, Section } from '@/components/pla
 import { Disclosure, DisclosureContent, DisclosureTrigger } from '@/components/ui/disclosure'
 import { MediaThumb } from '@/components/write/composer/media-thumb'
 import { releaseStatusSchema } from '@/lib/api/contracts/releases'
-import { requireActiveOrganizationPermission } from '@/lib/auth/access'
-import { requirePaidPageAccess } from '@/lib/auth/page-access'
+import { requirePaidPageAccess, sessionTenant } from '@/lib/auth/page-access'
 import { accessAllows } from '@/lib/auth/permissions'
 import { getActiveBrand } from '@/lib/launch/store'
 import { editorHref } from '@/lib/platform/editor-handoff'
@@ -46,19 +45,21 @@ export default async function ReleasePage({
   if (!z.uuid().safeParse(releaseId).success) notFound()
   const access = await requirePaidPageAccess(requestHeaders, locale, `/releases/${releaseId}`)
   if (!access.organization || !accessAllows(access, 'artifact:read')) notFound()
-  const tenant = await requireActiveOrganizationPermission(requestHeaders, 'artifact:read')
-  const release = await getRelease(tenant, releaseId)
-  if (!release) notFound()
-  const screenshots = release.screenshotAssetIds ?? []
+  const tenant = sessionTenant(access, access.organization.id, requestHeaders)
   // Each screenshot opens in the editor with the workspace's active brand kit,
   // and its post starts from the release summary (PrepareScreenshotPost).
   // A kit that cannot be read leaves the links working, and the page says so.
-  const brand = screenshots.length
-    ? await getActiveBrand(tenant).then(
-        ({ kitId }) => ({ kitId }),
-        () => null
-      )
-    : { kitId: null }
+  // Read beside the release rather than after it, which saves a round trip.
+  const [release, activeBrand] = await Promise.all([
+    getRelease(tenant, releaseId),
+    getActiveBrand(tenant).then(
+      ({ kitId }) => ({ kitId }),
+      () => null
+    ),
+  ])
+  if (!release) notFound()
+  const screenshots = release.screenshotAssetIds ?? []
+  const brand = screenshots.length ? activeBrand : { kitId: null }
   const editScreenshot = (assetId: string) =>
     editorHref({ assetId, brandKitId: brand?.kitId ?? undefined }, { releaseId: release.id })
   const status = STATUS[release.status]

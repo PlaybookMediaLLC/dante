@@ -153,9 +153,17 @@ export async function completeSocialOAuth(
     return new Response('Provider not found.', { status: 404 })
   const params = new URL(request.url).searchParams
   if (params.has('error') || params.has('denied')) {
+    const linkedinScopeRefused =
+      (providerName === 'linkedin' || providerName === 'linkedin-page') &&
+      params.get('error') === 'unauthorized_scope_error'
     return new Response(
-      `${providerName} connection was not completed. Nothing was changed; start again when you are ready.`,
-      { status: 400 }
+      linkedinScopeRefused
+        ? 'LinkedIn has not approved the permissions requested by Shots. Nothing was changed. Contact Shots support to resolve app access before reconnecting.'
+        : `${providerName} connection was not completed. Nothing was changed; start again when you are ready.`,
+      {
+        headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' },
+        status: 400,
+      }
     )
   }
 

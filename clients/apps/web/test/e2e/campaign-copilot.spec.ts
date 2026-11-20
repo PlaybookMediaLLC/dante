@@ -69,3 +69,28 @@ test(
     await expect(reopened.getByText(/cannot approve posts/)).toBeVisible({ timeout: 60_000 })
   }
 )
+
+test(
+  "the assistant opens what you shipped in the campaigns list's box, from the list itself",
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    const profile = await trpcMutation(page, 'productSurface.create', {
+      featureTags: ['recurring invoices'],
+      name: 'Ledgerly',
+      description: 'Invoices that send themselves.',
+      url: `${MOCK}/product`,
+    })
+    expect(profile.status).toBe(200)
+
+    await app.open('/campaigns')
+    await page.getByRole('button', { name: 'Open the assistant', exact: true }).click()
+    const assistant = page.getByRole('region', { name: 'Assistant' })
+    await assistant.getByRole('button', { name: 'Start a campaign for our latest release' }).click()
+    // The same page, with the sentence written into "What did you ship?" and dropped from the address.
+    await assistant.getByRole('link', { name: /Start this campaign/ }).click({ timeout: 60_000 })
+    await expect(page.getByLabel('What did you ship?')).toHaveValue(
+      'Start a campaign for our latest release'
+    )
+    await expect.poll(() => new URL(page.url()).searchParams.has('ship')).toBe(false)
+  }
+)

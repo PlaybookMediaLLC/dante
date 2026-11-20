@@ -127,6 +127,18 @@ orchestrator also requires:
   `R2_DELIVERY_ENDPOINT` overrides only the origin used to sign provider media
   delivery URLs; it defaults to `R2_ENDPOINT`. Use it when internal storage
   access and the public HTTPS delivery origin differ.
+- `PLATFORM_PROVIDER_MEDIA_ORIGIN` optionally serves provider downloads from an
+  owned HTTPS origin such as `https://shots.playbookmedia.io`. It takes precedence
+  over `R2_DELIVERY_ENDPOINT` for delivery only. The public backend streams
+  `/provider-media/media.<ext>?token=...` directly from private storage, with
+  GET, HEAD and single byte-range support. The encrypted grant expires after
+  24 hours and derives its key from `PUBLISHING_SERVICE_TOKEN`; rotating that
+  token invalidates outstanding grants. Downloads have a ten-minute transfer
+  deadline. Keep both API and publishing worker configured with the same origin
+  and service token. DigitalOcean's consolidation script routes only this path
+  on an existing app domain; verify that domain or prefix in the TikTok app
+  before enabling hosted-media publishing. Never log the query string or cache
+  a grant response. Without this setting, the existing S3 signing path remains.
 - `SOCIAL_API_URL` and an allow-listed API key reference for social OAuth and
   destination verification. They are held by the product backend, not the web.
   Without `SOCIAL_API_URL` the product API connects channels in process

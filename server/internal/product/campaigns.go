@@ -182,16 +182,27 @@ func (c *Configuration) ListCampaigns(ctx context.Context, actor Actor) ([]Campa
 	if err != nil {
 		return nil, err
 	}
+	releaseIDs := []string{}
+	for _, row := range rows {
+		if row.ReleaseID != nil {
+			releaseIDs = append(releaseIDs, *row.ReleaseID)
+		}
+	}
+	releases, err := c.client.Release.Query().Where(release.IDIn(releaseIDs...), release.OrganizationID(actor.OrganizationID)).
+		Select(release.FieldID, release.FieldTitle).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	linked := make(map[string]*ent.Release, len(releases))
+	for _, row := range releases {
+		linked[row.ID] = row
+	}
 	items := make([]CampaignItem, 0, len(rows))
 	for _, row := range rows {
 		item := campaignItem(row)
 		if row.ReleaseID != nil {
-			linked, err := c.client.Release.Query().Where(release.ID(*row.ReleaseID), release.OrganizationID(actor.OrganizationID)).Only(ctx)
-			if err != nil && !ent.IsNotFound(err) {
-				return nil, err
-			}
-			if linked != nil {
-				item.Release = &CampaignReleaseLink{ID: linked.ID, Title: linked.Title}
+			if release := linked[*row.ReleaseID]; release != nil {
+				item.Release = &CampaignReleaseLink{ID: release.ID, Title: release.Title}
 			}
 		}
 		items = append(items, item)
@@ -274,11 +285,20 @@ func (c *Configuration) GetCampaign(ctx context.Context, actor Actor, id string)
 	if err != nil {
 		return nil, err
 	}
+	assetIDs := make([]string, 0, len(links))
 	for _, link := range links {
-		media, err := c.client.Asset.Query().Where(asset.ID(link.AssetID), asset.OrganizationID(actor.OrganizationID)).Only(ctx)
-		if err != nil && !ent.IsNotFound(err) {
-			return nil, err
-		}
+		assetIDs = append(assetIDs, link.AssetID)
+	}
+	assets, err := c.client.Asset.Query().Where(asset.IDIn(assetIDs...), asset.OrganizationID(actor.OrganizationID)).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mediaByID := make(map[string]*ent.Asset, len(assets))
+	for _, row := range assets {
+		mediaByID[row.ID] = row
+	}
+	for _, link := range links {
+		media := mediaByID[link.AssetID]
 		if media == nil {
 			continue
 		}

@@ -46,10 +46,10 @@ test(
     ])
       await expect(sidebar.getByRole('link', { name, exact: true })).toBeVisible()
     await expect(page.getByRole('main')).toHaveCount(1)
-    await expect(page.getByRole('link', { name: /Navigation proof/ })).toHaveAttribute(
-      'href',
-      `/editor?project=${id}`
-    )
+    // Home's own list; the sidebar's Recents names the same work.
+    await expect(
+      page.getByRole('main').getByRole('link', { name: /Navigation proof/ })
+    ).toHaveAttribute('href', `/editor?project=${id}`)
     const search = sidebar.getByRole('button', { name: 'Search and commands' })
     await search.focus()
     await page.keyboard.press('Control+k')

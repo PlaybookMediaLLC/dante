@@ -366,6 +366,8 @@ export async function listContentDraftPostsBetween(
   const { items } = await backendSDK(context).listContentDraftPostsBetween(from, to, socialSetId)
   return items.map((post) => ({
     ...readPost(post),
+    /** Set on a campaign's post, whose draftId is empty: it opens on its campaign. */
+    campaignId: post.campaignId ?? null,
     draftId: post.draftId,
     draftTitle: post.draftTitle,
     socialSetId: post.socialSetId,

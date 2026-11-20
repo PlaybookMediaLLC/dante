@@ -9,11 +9,14 @@ import {
 } from '@/components/ui/select'
 
 import { SpinnerGapIcon as LoaderCircle } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
+import { useAssistantAbility } from '@/components/assistant/AssistantProvider'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { CAMPAIGN_SHIP_MAX, CAMPAIGN_SHIP_PARAM } from '@/lib/campaigns/ship-ask'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
@@ -36,6 +39,18 @@ export function ShipInput({
 }) {
   const client = useTRPCClient()
   const [value, setValue] = useState('')
+  // The assistant opens this box with what was shipped already written (`?ship=`), also from
+  // this page itself; dropped once read, as the editor drops `?ask=`, so a reload asks nothing.
+  const ship = useSearchParams().get(CAMPAIGN_SHIP_PARAM)?.trim().slice(0, CAMPAIGN_SHIP_MAX) ?? ''
+  const shipped = useRef('')
+  useEffect(() => {
+    if (!ship || shipped.current === ship) return
+    shipped.current = ship
+    setValue(ship)
+    const url = new URL(window.location.href)
+    url.searchParams.delete(CAMPAIGN_SHIP_PARAM)
+    window.history.replaceState(null, '', url)
+  }, [ship])
   const [productSlug, setProductSlug] = useState(products[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -163,16 +178,46 @@ export function AskShotsButton({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
 
+  /** The campaign's latest conversation, or a new one about it. */
+  async function conversation(): Promise<string> {
+    if (conversationId) return conversationId
+    const { conversations } = await client.conversation.list.query({ campaignId })
+    const id =
+      conversations[0]?.id ??
+      (await client.conversation.create.mutate({ campaignId })).conversation.id
+    setConversationId(id)
+    return id
+  }
+
+  // The assistant bar on this campaign's pages asks the campaign agent; the panel shows its run.
+  useAssistantAbility(
+    aiEnabled
+      ? {
+          id: `campaign-agent:${campaignId}`,
+          label: 'Campaign agent',
+          placeholder: 'Ask the campaign agent about this campaign',
+          priority: 10,
+          suggestions: [
+            'What is left before this campaign ships?',
+            'Tighten the launch copy',
+            'Make a product shot for each channel',
+          ],
+          run: async ({ ask, push }) => {
+            const id = await conversation()
+            await client.conversation.send.mutate({ content: ask, conversationId: id })
+            setOpen(true)
+            push({ kind: 'note', text: 'Sent to the campaign agent. Its work shows in the panel.' })
+          },
+        }
+      : null
+  )
+
   async function openPanel() {
     setError(null)
     if (conversationId) return setOpen(true)
     setBusy(true)
     try {
-      const { conversations } = await client.conversation.list.query({ campaignId })
-      const id =
-        conversations[0]?.id ??
-        (await client.conversation.create.mutate({ campaignId })).conversation.id
-      setConversationId(id)
+      await conversation()
       setOpen(true)
     } catch (failure) {
       setError(errorMessage(failure))

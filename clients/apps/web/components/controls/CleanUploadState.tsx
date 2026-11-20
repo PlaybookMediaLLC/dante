@@ -10,6 +10,7 @@ import { MoonIcon as Moon } from '@phosphor-icons/react/dist/ssr/Moon'
 import { SunIcon as Sun } from '@phosphor-icons/react/dist/ssr/Sun'
 import { MAX_IMAGE_SIZE } from '@/lib/constants'
 import { useImageStore } from '@/lib/store'
+import { useShallow } from 'zustand/react/shallow'
 import { importImages } from '@/lib/editor/import-images'
 import { browserDisplayUrl } from '@/lib/browser-url'
 import { cn } from '@/lib/utils'
@@ -48,7 +49,13 @@ export function CleanUploadState() {
   const [colorScheme, setColorScheme] = React.useState<ColorScheme>('light')
   const [isCapturing, setIsCapturing] = React.useState(false)
 
-  const { setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore()
+  const { setBrowserUrl, backgroundConfig, addTextOverlay } = useImageStore(
+    useShallow((state) => ({
+      setBrowserUrl: state.setBrowserUrl,
+      backgroundConfig: state.backgroundConfig,
+      addTextOverlay: state.addTextOverlay,
+    }))
+  )
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   // Crossfade state

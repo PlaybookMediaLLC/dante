@@ -869,6 +869,58 @@ function scriptCopySuggestions(text: string, system: string) {
   }
 }
 
+// ------------------------------------------------ workspace assistant --
+
+/**
+ * The workspace assistant's turn: look up recent work, offer the newest item,
+ * then answer naming the page it was asked from, so a test can see the page
+ * context arrived and the tools ran.
+ */
+function scriptAssistant(system: string, text: string, results: ToolResult[]): LanguageModelV4Content[] {
+  const page = system.match(/^Page: (.+?) \(/m)?.[1] ?? 'this page'
+  // A request to make something starts it: a canvas when it names one, else a visual.
+  const ask = text.split('\n\n').at(-1)?.trim() ?? ''
+  // A change to existing work: find it, then offer it open with the change ready.
+  if (/^(change|edit|update)\b/i.test(ask)) {
+    const found = results.find((result) => result.toolName === 'listRecentWork')
+    if (!found) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])
+    const first = (found.output as { items?: Array<{ href: string; kind: string }> } | null)?.items?.find(
+      (item) => item.kind !== 'post'
+    )
+    if (first && !results.some((result) => result.toolName === 'startWork'))
+      return toolCalls([{ input: { ask, href: first.href, kind: 'edit' }, toolName: 'startWork' }])
+    return [{ text: first ? 'It opens with your change ready to send.' : 'I found nothing to edit.', type: 'text' }]
+  }
+  // A request to write a post drafts one.
+  if (/^(draft|write)\b/i.test(ask)) {
+    const drafted = results.find((result) => result.toolName === 'draftPost')
+    if (!drafted) return toolCalls([{ input: { text: 'We just shipped something new. Here is what changed and why it matters.' }, toolName: 'draftPost' }])
+    const ok = (drafted.output as { ok?: boolean } | null)?.ok === true
+    return [{ text: ok ? 'Here is a post to start from.' : 'I cannot draft posts here.', type: 'text' }]
+  }
+  if (/^(make|start|create)\b/i.test(ask)) {
+    const started = results.find((result) => result.toolName === 'startWork')
+    if (!started) {
+      const input = /canvas/i.test(ask)
+        ? { kind: 'canvas', recipe: 'product-launch' }
+        : /campaign/i.test(ask)
+          ? { kind: 'campaign', shipped: ask }
+          : { ask, kind: 'visual' }
+      return toolCalls([{ input, toolName: 'startWork' }])
+    }
+    const ok = (started.output as { ok?: boolean } | null)?.ok === true
+    return [{ text: ok ? 'Your new work is ready to start: use the button below.' : 'I cannot start that here.', type: 'text' }]
+  }
+  const work = results.find((result) => result.toolName === 'listRecentWork')
+  if (!work) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])
+  const items = (work.output as { items?: Array<{ href: string; name: string }> } | null)?.items ?? []
+  if (items[0] && !results.some((result) => result.toolName === 'offerLink')) {
+    return toolCalls([{ input: { href: items[0].href, label: `Open ${clip(items[0].name, 40)}` }, toolName: 'offerLink' }])
+  }
+  const count = `${items.length} recent item${items.length === 1 ? '' : 's'}`
+  return [{ text: `You are on ${page}. Your workspace has ${count}${items[0] ? `; the newest is ${items[0].name}` : ''}.`, type: 'text' }]
+}
+
 export function createScriptedModel(modelId: string): LanguageModelV4 {
   return new MockLanguageModelV4({
     doGenerate: async (options) => {
@@ -918,6 +970,12 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
           return respond(toolCalls([{ input: { count, instruction: '' }, toolName: 'showVariants' }]))
         }
       }
+      // The editor copilot asked for a change: one real, valid edit (more room), then done.
+      if (names.includes('applyChanges') && /\b(bold|bolder|punchier|spacing|room)\b/i.test(text.split('\n\n').at(-1) ?? '')) {
+        if (!results.some((result) => result.toolName === 'applyChanges'))
+          return respond(toolCalls([{ input: { changes: { canvas: { padding: 72 } }, summary: 'Gave the design more room' }, toolName: 'applyChanges' }]))
+        return respond([{ text: 'Done.', type: 'text' }])
+      }
       if (names.includes('proposeVariant')) {
         const done = results.filter((result) => result.toolName === 'proposeVariant').length
         const next = done === 0 ? scriptVariants(text, 0) : []
@@ -933,6 +991,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
       }
       if (names.includes('createCampaign')) {
         return respond(scriptConversation(options, names, calls, results))
+      }
+      if (names.includes('offerLink') && names.includes('listRecentWork')) {
+        return respond(scriptAssistant(systemText(options), text, results))
       }
       if (names.includes('requestApproval')) {
         const next = scriptApproval(text, names, calls)

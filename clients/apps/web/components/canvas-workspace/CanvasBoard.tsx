@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ContextMenu } from 'radix-ui'
 import { artboardRect, boundsOf, type Artboard, type WorkspaceRect } from '@/lib/canvas/document'
-import { hitTest, marqueeSelect, snapMove, snapToGrid, type SnapGuide } from '@/lib/canvas/layout'
+import {
+  hitTest,
+  marqueeSelect,
+  readingOrder,
+  snapMove,
+  snapToGrid,
+  type SnapGuide,
+} from '@/lib/canvas/layout'
 import {
   intersects,
   panBy,
@@ -421,7 +428,7 @@ export function CanvasBoard({
           aria-roledescription="infinite canvas"
           tabIndex={0}
           data-testid="canvas-board"
-          className="relative h-full w-full touch-none overflow-hidden bg-[#eceeed] outline-none dark:bg-[#141615]"
+          className="relative h-full w-full touch-none overflow-hidden bg-[#f4f4f4] outline-none dark:bg-[#141414]"
           style={{
             cursor,
             backgroundImage: grid.visible
@@ -526,7 +533,7 @@ export function CanvasBoard({
           {!artboards.length ? (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
               <p className="rounded-lg bg-background/80 px-4 py-2 text-sm text-muted-foreground">
-                Add an artboard from the Insert panel, or drop a screenshot here.
+                Add an artboard from Artboards & tools in the toolbar, or drop a screenshot here.
               </p>
             </div>
           ) : null}
@@ -700,6 +707,11 @@ function BoardOverlay({
   canEdit: boolean
   actions: CanvasActions
 }) {
+  // Numbered in reading order, the order exports use, like a deck's slides.
+  const numbers = useMemo(
+    () => new Map(readingOrder(items).map((item, index) => [item.id, index + 1])),
+    [items]
+  )
   return (
     <>
       {items.map(({ id, rect: base, artboard }) => {
@@ -757,6 +769,9 @@ function BoardOverlay({
                   style={{ left: box.x, top: box.y - 22, maxWidth: box.width }}
                   title={`${artboard.name} · ${Math.round(rect.width)} × ${Math.round(rect.height)}`}
                 >
+                  <span className="shrink-0 font-medium tabular-nums text-foreground/70">
+                    {numbers.get(id)}
+                  </span>
                   <span className="truncate">{artboard.name}</span>
                   {active ? (
                     <span className="shrink-0 rounded bg-sky-500 px-1 text-[10px] text-white">

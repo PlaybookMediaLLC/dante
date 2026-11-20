@@ -95,7 +95,7 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedAnnotationId,
     annotationDefaults,
     addAnnotation,
-    updateAnnotation: updateAnnotationShape,
+    updateAnnotationShape,
     removeAnnotation,
     setActiveAnnotationTool,
     // Blur
@@ -111,7 +111,47 @@ function CanvasRenderer({ image }: { image: HTMLImageElement }) {
     setSelectedOverlayId,
     isMainImageSelected,
     setIsMainImageSelected,
-  } = useImageStore();
+  } = useImageStore(
+    useShallow((state) => ({
+      backgroundConfig: state.backgroundConfig,
+      uploadedImageUrl: state.uploadedImageUrl,
+      backgroundBorderRadius: state.backgroundBorderRadius,
+      backgroundBlur: state.backgroundBlur,
+      backgroundNoise: state.backgroundNoise,
+      imageFilters: state.imageFilters,
+      textOverlays: state.textOverlays,
+      imageOverlays: state.imageOverlays,
+      mockups: state.mockups,
+      editorMode: state.editorMode,
+      imageBorder: state.imageBorder,
+      updateTextOverlay: state.updateTextOverlay,
+      updateImageOverlay: state.updateImageOverlay,
+      removeImageOverlay: state.removeImageOverlay,
+      addImageOverlay: state.addImageOverlay,
+      removeMockup: state.removeMockup,
+      annotations: state.annotations,
+      activeAnnotationTool: state.activeAnnotationTool,
+      selectedAnnotationId: state.selectedAnnotationId,
+      setSelectedAnnotationId: state.setSelectedAnnotationId,
+      annotationDefaults: state.annotationDefaults,
+      addAnnotation: state.addAnnotation,
+      updateAnnotationShape: state.updateAnnotation,
+      removeAnnotation: state.removeAnnotation,
+      setActiveAnnotationTool: state.setActiveAnnotationTool,
+      blurRegions: state.blurRegions,
+      addBlurRegion: state.addBlurRegion,
+      updateBlurRegion: state.updateBlurRegion,
+      removeBlurRegion: state.removeBlurRegion,
+      browserHeaderSize: state.browserHeaderSize,
+      showRulers: state.showRulers,
+      showGrid: state.showGrid,
+      rulerInterval: state.rulerInterval,
+      selectedOverlayId: state.selectedOverlayId,
+      setSelectedOverlayId: state.setSelectedOverlayId,
+      isMainImageSelected: state.isMainImageSelected,
+      setIsMainImageSelected: state.setIsMainImageSelected,
+    }))
+  );
 
   // Split overlays into front (default) and back (behind main image)
   const backOverlays = imageOverlays.filter((o) => o.layer === 'back');

@@ -445,14 +445,140 @@ func audit(ctx context.Context, tx *sql.Tx, p Principal, action, id string) erro
 var resourceTables = map[string]string{"frontend_source": "frontend_source", "frontend_activation": "frontend_activation", "campaign": "campaign", "release": "release", "source_change": "source_change", "source_app": "source_app", "deployment_event": "deployment_event", "asset": "asset", "creative_variant": "creative_variant", "release_spec": "release_spec", "campaign_plan": "campaign_plan", "launch_run": "launch_run", "content_draft": "content_draft", "store_review": "store_review", "product_surface": "product_surface", "scheduled_post": "scheduled_post", "project": "project", "release_automation_run": "release_automation_run"}
 
 func (s *Service) resource(ctx context.Context, org, user, kind, id string) (bool, map[string]any, error) {
+	role, err := s.resourceRole(ctx, org, user)
+	if err != nil || role == "" {
+		return false, nil, err
+	}
+	return s.resourceForRole(ctx, org, user, role, kind, id, nil)
+}
+
+// resourceRole is the recipient's role, or "" when they can see nothing in the workspace.
+func (s *Service) resourceRole(ctx context.Context, org, user string) (string, error) {
 	var role string
 	err := s.DB.QueryRowContext(ctx, `SELECT m.role FROM member m JOIN "user" u ON u.id=m."userId" WHERE m."organizationId"=$1 AND m."userId"=$2 AND COALESCE(u.banned,false)=false AND NOT EXISTS(SELECT 1 FROM workspace_deletion WHERE "organizationId"=$1 AND status<>'CANCELLED')`, org, user).Scan(&role)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil, nil
+		return "", nil
 	}
+	return role, err
+}
+
+// resourceReads answers a feed page's resource rows and social sets from a few
+// batched queries. A nil value, or anything it did not load, reads the database.
+type resourceReads struct {
+	rows map[string]map[string][]byte // table, then id: the row, absent when missing
+	sets map[string]*feedSet          // id: the set, nil when missing or deleted
+}
+
+type feedSet struct{ name, visibility, owner string }
+
+// loadResourceReads reads every table row and social set the items reference.
+func loadResourceReads(ctx context.Context, db *sql.DB, org string, items []Item) (*resourceReads, error) {
+	reads := &resourceReads{rows: map[string]map[string][]byte{}, sets: map[string]*feedSet{}}
+	ids := map[string][]string{}
+	for _, item := range items {
+		if table, ok := resourceTables[item.resourceType]; ok {
+			ids[table] = append(ids[table], item.resourceID)
+		}
+	}
+	setIDs := []string{}
+	for table, tableIDs := range ids {
+		reads.rows[table] = map[string][]byte{}
+		rows, err := db.QueryContext(ctx, `SELECT id, to_jsonb(r) - 'document' FROM `+table+` r WHERE id = ANY($1) AND "organizationId"=$2`, tableIDs, org)
+		if err != nil {
+			return nil, err
+		}
+		for rows.Next() {
+			var id string
+			var raw []byte
+			if err = rows.Scan(&id, &raw); err != nil {
+				rows.Close()
+				return nil, err
+			}
+			reads.rows[table][id] = raw
+			var row map[string]any
+			if json.Unmarshal(raw, &row) == nil && socialSetOf(row) != "" {
+				setIDs = append(setIDs, socialSetOf(row))
+			}
+		}
+		err = rows.Err()
+		rows.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, item := range items {
+		if item.sourceSocialSetID != "" {
+			setIDs = append(setIDs, item.sourceSocialSetID)
+		}
+	}
+	if len(setIDs) == 0 {
+		return reads, nil
+	}
+	for _, id := range setIDs {
+		reads.sets[id] = nil
+	}
+	rows, err := db.QueryContext(ctx, `SELECT id, name, visibility, COALESCE("ownerUserId",'') FROM social_set WHERE id = ANY($1) AND "organizationId"=$2 AND "deletedAt" IS NULL`, setIDs, org)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
+	defer rows.Close()
+	for rows.Next() {
+		var id string
+		var set feedSet
+		if err = rows.Scan(&id, &set.name, &set.visibility, &set.owner); err != nil {
+			return nil, err
+		}
+		reads.sets[id] = &set
+	}
+	return reads, rows.Err()
+}
+
+// row is a resource row as JSON, or found=false when it does not exist in org.
+func (r *resourceReads) row(ctx context.Context, db queryer, table, id, org string) ([]byte, bool, error) {
+	if r != nil {
+		if byID, ok := r.rows[table]; ok {
+			raw, found := byID[id]
+			return raw, found, nil
+		}
+	}
+	var raw []byte
+	// A project's document can be a megabyte, and no caller reads it.
+	err := db.QueryRowContext(ctx, `SELECT to_jsonb(r) - 'document' FROM `+table+` r WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, false, nil
+	}
+	return raw, err == nil, err
+}
+
+// privateSet is privateSocialSet, answered from the loaded sets when it can be.
+func (r *resourceReads) privateSet(ctx context.Context, db queryer, org, setID string) (bool, string, error) {
+	if r != nil && setID != "" {
+		if set, loaded := r.sets[setID]; loaded {
+			if set == nil {
+				return true, "", nil
+			}
+			return set.visibility == "PRIVATE", set.owner, nil
+		}
+	}
+	return privateSocialSet(ctx, db, org, setID)
+}
+
+// sourceSet is sourceSocialSet, answered from the loaded sets when it can be.
+func (r *resourceReads) sourceSet(ctx context.Context, db queryer, org, user, id string) (*SourceSocialSet, bool, error) {
+	if r != nil && id != "" {
+		if set, loaded := r.sets[id]; loaded {
+			if set == nil || set.visibility == "PRIVATE" && set.owner != user {
+				return nil, false, nil
+			}
+			return &SourceSocialSet{ID: id, Name: set.name}, true, nil
+		}
+	}
+	return sourceSocialSet(ctx, db, org, user, id)
+}
+
+// resourceForRole applies resource's rules for a role resourceRole already read.
+// reads may be nil; a feed page passes the rows and sets it loaded in batches.
+func (s *Service) resourceForRole(ctx context.Context, org, user, role, kind, id string, reads *resourceReads) (bool, map[string]any, error) {
 	if kind == "legacy_activity" {
 		return true, map[string]any{}, nil
 	}
@@ -471,7 +597,7 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 		if err != nil {
 			return false, nil, err
 		}
-		if private, setOwner, err := privateSocialSet(ctx, s.DB, org, setID); err != nil || private && setOwner != user {
+		if private, setOwner, err := reads.privateSet(ctx, s.DB, org, setID); err != nil || private && setOwner != user {
 			return false, nil, err
 		}
 		return role == "owner" || role == "admin" || owner.String == user, map[string]any{"createdByUserId": owner.String, "socialSetId": setID}, nil
@@ -483,12 +609,8 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 	if !ok {
 		return false, nil, nil
 	}
-	var raw []byte
-	err = s.DB.QueryRowContext(ctx, `SELECT to_jsonb(r) FROM `+table+` r WHERE id=$1 AND "organizationId"=$2`, id, org).Scan(&raw)
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil, nil
-	}
-	if err != nil {
+	raw, found, err := reads.row(ctx, s.DB, table, id, org)
+	if err != nil || !found {
 		return false, nil, err
 	}
 	var row map[string]any
@@ -499,7 +621,7 @@ func (s *Service) resource(ctx context.Context, org, user, kind, id string) (boo
 		return false, row, nil
 	}
 	// A private social set's drafts and posts are its owner's alone (RFC 024).
-	if private, owner, err := privateSocialSet(ctx, s.DB, org, socialSetOf(row)); err != nil {
+	if private, owner, err := reads.privateSet(ctx, s.DB, org, socialSetOf(row)); err != nil {
 		return false, nil, err
 	} else if private && owner != user {
 		return false, row, nil

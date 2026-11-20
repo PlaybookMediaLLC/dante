@@ -5,6 +5,8 @@ import { ArrowUpIcon as ArrowUp02Icon } from '@phosphor-icons/react/dist/ssr/Arr
 import { XIcon as Cancel01Icon } from '@phosphor-icons/react/dist/ssr/X'
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'next/navigation'
+import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { applyDesignChanges } from '@/lib/design/apply'
@@ -99,6 +101,23 @@ export function EditorAiPanel() {
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight })
   }, [entries])
+
+  // `?ask=` from Create's prompt bar opens the copilot with the request ready to send.
+  const params = useSearchParams()
+  const ask = params.get(EDITOR_ASK_PARAM)?.trim().slice(0, EDITOR_ASK_MAX) ?? ''
+  // ProjectLoader drops `start` once the new screenshot is ready; asking sooner would edit the old one.
+  const starting = params.has('start')
+  const asked = useRef('')
+  useEffect(() => {
+    if (!ask || starting || !status?.copilot || asked.current === ask) return
+    asked.current = ask
+    setInput(ask)
+    openCopilot(false)
+    // Dropped once read, as ProjectLoader drops `start`, so a reload does not ask again.
+    const url = new URL(window.location.href)
+    url.searchParams.delete(EDITOR_ASK_PARAM)
+    window.history.replaceState(null, '', url)
+  }, [ask, openCopilot, starting, status?.copilot])
 
   const reviewCache = useRef<{ key: string; suggestions: Suggestion[] } | null>(null)
   const review = useCallback(
