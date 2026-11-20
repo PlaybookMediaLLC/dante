@@ -9,7 +9,7 @@ export function StartPostAction({ children }: { children: ReactNode }) {
   const newPost = useNewPost()
   return (
     <Button
-      className="home-action group w-full text-start"
+      className="home-starter group w-full"
       onClick={newPost}
       size={null}
       type="button"

@@ -1,4 +1,4 @@
-import { expect, type Locator } from '@playwright/test'
+import { expect, type Locator, type Page } from '@playwright/test'
 import { contrastRatio } from '@/lib/launch/brand'
 
 /**
@@ -69,4 +69,15 @@ export async function openDisclosureFor(control: Locator): Promise<void> {
   await control
     .locator('xpath=ancestor::*[@data-slot="disclosure"][1]/*[@data-slot="disclosure-trigger"]')
     .click()
+}
+
+/**
+ * Open the canvas's Artboards & tools panel, as a person does from the
+ * toolbar: the board opens with it closed. Does nothing when it is open.
+ */
+export async function openCanvasTools(page: Page): Promise<void> {
+  const toggle = page.getByRole('button', { name: 'Artboards & tools', exact: true })
+  await expect(toggle).toBeVisible()
+  if ((await toggle.getAttribute('aria-pressed')) !== 'true') await toggle.click()
+  await expect(page.getByRole('tablist', { name: 'Canvas tools' })).toBeVisible()
 }

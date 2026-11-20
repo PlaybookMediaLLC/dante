@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useNearViewport } from '@/components/design/DocumentPreview'
 import { ImageTemplatePreview } from '@/components/templates/ImageTemplateGallery'
+import { PresetPreviewBackground } from '@/components/presets/PresetGallery'
 import { AnimatedTemplatePreview } from '@/components/templates/AnimatedTemplateGallery'
 import { RecipePreview } from '@/components/canvas-workspace/RecipePreview'
 import { StoreTemplatePreview } from '@/components/store-screenshots/StoreTemplatePreview'
@@ -33,52 +34,52 @@ function PreviewCard({
   description,
   href,
   action,
+  text = false,
+  backdrop,
   children,
 }: {
   name: string
   description: string
   href: string
   action: string
+  /** The preview is words, not a picture: the tile grows to fit them. */
+  text?: boolean
+  /** The template's own background, blurred behind the preview to fill a tall tile. */
+  backdrop?: ReactNode
   children: ReactNode
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className="studio-shot">
-      <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="studio-shot-media">
-        <div className="grid size-full place-items-center p-3">
-          {near ? (
-            <div className="w-full" aria-hidden="true">
-              {children}
-            </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">Preview loads as you scroll</span>
-          )}
+    <li className={text ? 'create-tile is-text' : 'create-tile'}>
+      {backdrop ? (
+        <div aria-hidden="true" className="create-tile-backdrop">
+          {backdrop}
         </div>
-        <span aria-hidden="true" className="studio-shot-overlay">
-          {description}
-        </span>
+      ) : null}
+      <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="create-tile-media">
+        {near ? (
+          <div aria-hidden="true">{children}</div>
+        ) : (
+          <span className="text-xs text-foreground/40">Preview loads as you scroll</span>
+        )}
       </div>
-      <div className="studio-shot-meta">
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium">{name}</h3>
-          <p className="truncate text-xs text-muted-foreground">{description}</p>
-        </div>
-        <SidebarLink
-          aria-label={`${action}: ${name}`}
-          href={href}
-          className="shrink-0 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-foreground/[0.04]"
-        >
-          {action}
-        </SidebarLink>
+      <div className="create-tile-label">
+        <h3>{name}</h3>
       </div>
+      <SidebarLink
+        aria-label={`${action}: ${name}`}
+        href={href}
+        title={description}
+        className="create-tile-link"
+      />
     </li>
   )
 }
 
-/** A short row of screenshot templates for Home, opening the same editor. */
-export function TemplateStrip({ count = 4 }: { count?: number }) {
+/** A wall of screenshot templates for Create's front page, opening the same editor. */
+export function TemplateStrip({ count = 10 }: { count?: number }) {
   return (
-    <ul className="studio-grid studio-strip">
+    <ul className="create-gallery is-row">
       {IMAGE_TEMPLATES.slice(0, count).map((template) => (
         <PreviewCard
           key={template.preset.id}
@@ -86,6 +87,7 @@ export function TemplateStrip({ count = 4 }: { count?: number }) {
           description={template.preset.description}
           href={newScreenshotFrom(template.preset.id)}
           action="Use template"
+          backdrop={<PresetPreviewBackground preset={template.preset} />}
         >
           <ImageTemplatePreview template={template} />
         </PreviewCard>
@@ -142,7 +144,7 @@ export default function TemplateCatalog() {
           </Button>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-[13px] text-muted-foreground">
         Use template opens a new screenshot or Canvas with that template applied. Animated, store
         and workflow templates are chosen again in their editor. Browsing never changes your saved
         work.
@@ -158,7 +160,7 @@ export default function TemplateCatalog() {
           category to retry.
         </p>
       ) : null}
-      <ul key={category} className="studio-grid">
+      <ul key={category} className="create-gallery">
         {category === 'Screenshots'
           ? IMAGE_TEMPLATES.map((template) => (
               <PreviewCard
@@ -167,6 +169,7 @@ export default function TemplateCatalog() {
                 description={template.preset.description}
                 href={newScreenshotFrom(template.preset.id)}
                 action="Use template"
+                backdrop={<PresetPreviewBackground preset={template.preset} />}
               >
                 <ImageTemplatePreview template={template} />
               </PreviewCard>
@@ -234,6 +237,7 @@ export default function TemplateCatalog() {
                 description={template.description}
                 href={`/workflows/new?template=${template.id}`}
                 action="Use template"
+                text
               >
                 <WorkflowTemplatePreview template={template} />
               </PreviewCard>

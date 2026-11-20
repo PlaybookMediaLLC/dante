@@ -21,8 +21,10 @@ export function useNativeArtboard(
   const bridge = useRef<NativeDocumentBridge | null>(null)
   const loaded = useRef<string | null>(null)
   const pending = useRef<Promise<void>>(Promise.resolve())
-  const [ready, setReady] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // Which artboard is loaded or failed, not just whether: on the render that switches
+  // artboards, the previous one's state must not read as the new one's.
+  const [readyId, setReadyId] = useState<string | null>(null)
+  const [failed, setFailed] = useState<{ id: string; message: string } | null>(null)
   const [reload, setReload] = useState(0)
 
   const activeJson = useCallback(() => {
@@ -48,7 +50,7 @@ export function useNativeArtboard(
 
   useEffect(() => {
     if (!enabled || !activeId) {
-      setReady(false)
+      setReadyId(null)
       return
     }
     if (!session.snapshot().document.artboards.some((item) => item.id === activeId)) return
@@ -57,17 +59,19 @@ export function useNativeArtboard(
     })
     bridge.current = instance
     loaded.current = activeJson()
-    setReady(false)
-    setError(null)
+    setReadyId(null)
+    setFailed(null)
     instance.open().then(
       () => {
-        if (bridge.current === instance) setReady(true)
+        if (bridge.current === instance) setReadyId(activeId)
       },
       (failure: unknown) => {
         if (bridge.current === instance)
-          setError(
-            failure instanceof Error ? failure.message : 'This artboard could not be opened.'
-          )
+          setFailed({
+            id: activeId,
+            message:
+              failure instanceof Error ? failure.message : 'This artboard could not be opened.',
+          })
       }
     )
     return () => {
@@ -81,5 +85,10 @@ export function useNativeArtboard(
     bridge.current?.flush()
   }, [])
 
-  return { ready: ready && Boolean(activeId), error, flush, sync }
+  return {
+    ready: Boolean(activeId) && readyId === activeId,
+    error: failed && failed.id === activeId ? failed.message : null,
+    flush,
+    sync,
+  }
 }

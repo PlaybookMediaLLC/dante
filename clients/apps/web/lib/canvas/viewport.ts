@@ -79,8 +79,11 @@ export function wheelZoomFactor(deltaY: number, deltaMode = 0): number {
 
 /** The next zoom stop in a direction, from the current level. */
 export function steppedZoom(zoom: number, direction: 1 | -1): number {
-  if (direction > 0) return ZOOM_STOPS.find((stop) => stop > zoom + 1e-6) ?? ZOOM_LIMITS.max
-  return [...ZOOM_STOPS].reverse().find((stop) => stop < zoom - 1e-6) ?? ZOOM_LIMITS.min
+  // A stop that reads as the same whole percent (24.9% → 25%) is no step at all.
+  const shown = Math.round(zoom * 100)
+  if (direction > 0)
+    return ZOOM_STOPS.find((stop) => Math.round(stop * 100) > shown) ?? ZOOM_LIMITS.max
+  return [...ZOOM_STOPS].reverse().find((stop) => Math.round(stop * 100) < shown) ?? ZOOM_LIMITS.min
 }
 
 /**

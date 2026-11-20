@@ -46,7 +46,7 @@ export function NavRow({
       aria-current={active ? (section ? 'true' : 'page') : undefined}
       aria-label={name}
       className={cn(
-        'flex h-8 items-center gap-2.5 px-2.5',
+        'flex h-9 items-center gap-2.5 px-2.5',
         collapsed && 'mx-auto size-9 justify-center px-0'
       )}
       href={href}

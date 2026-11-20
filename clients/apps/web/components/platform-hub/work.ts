@@ -126,6 +126,9 @@ export async function loadWork(
   }
 }
 
+/** Every workspace's recent work: invalidate it after a project or canvas changes. */
+export const RECENT_WORK_KEY = ['platform', 'recent-work'] as const
+
 /** Home's recent work, shared with search so opening search after Home reads nothing again. */
 export function recentWorkQuery(
   client: ReturnType<typeof useTRPCClient>,
@@ -134,7 +137,7 @@ export function recentWorkQuery(
   paidPlan: boolean
 ) {
   return {
-    queryKey: ['platform', 'recent-work', organizationId, draftsEnabled, paidPlan],
+    queryKey: [...RECENT_WORK_KEY, organizationId, draftsEnabled, paidPlan],
     staleTime: 30_000,
     queryFn: async ({ signal }: { signal: AbortSignal }) => {
       const work = await loadWork(client, { draftsEnabled, limit: 5, paidPlan, signal })

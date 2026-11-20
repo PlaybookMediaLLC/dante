@@ -4,6 +4,7 @@ import {
   chooseOption,
   expect,
   getE2EUrl,
+  openCanvasTools,
   type Page,
   test,
   trpcMutation,
@@ -45,6 +46,7 @@ async function stored(page: Page, canvasId: string) {
 
 async function openText(page: Page, words: string) {
   if (!(await page.getByTestId('canvas-active-editor').count())) {
+    await openCanvasTools(page)
     await page.getByRole('tab', { name: 'Artboards', exact: true }).click()
     await page
       .getByRole('list', { name: 'Artboards', exact: true })
@@ -123,6 +125,7 @@ test(
     )
     await app.open(`/canvas/${id}`)
     await expect(page.getByRole('dialog', { name: 'Recover unsaved work' })).toHaveCount(0)
+    await openCanvasTools(page)
     await page.getByRole('tab', { name: 'Artboards', exact: true }).click()
     await page
       .getByRole('list', { name: 'Artboards', exact: true })

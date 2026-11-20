@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { RECENT_WORK_KEY } from '@/components/platform-hub/work'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { CanvasIcon as StackIcon, GridIcon } from '@/components/platform-shell/icons'
 import { CanvasPages } from './CanvasPages'
@@ -188,6 +190,7 @@ export function CanvasLibrary({
   const Heading = embedded ? 'h2' : 'h1'
   usePrivateCreativeSurface()
   const client = useTRPCClient()
+  const queryClient = useQueryClient()
   const [items, setItems] = useState<Item[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const params = useSearchParams()
@@ -243,6 +246,7 @@ export function CanvasLibrary({
       await action()
       setError(null)
       setRefresh((value) => value + 1)
+      void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
     } catch (error) {
       setError(error instanceof Error ? error.message : 'That did not work.')
     } finally {
