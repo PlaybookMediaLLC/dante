@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.52.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.52.0...v2.52.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **analytics:** honor consent changes during deferred loading ([83c9649](https://github.com/PlaybookMediaLLC/shots/commit/83c964970339d940acf0ab3c4e58bf9a291c8106))
+* **analytics:** honor consent changes during deferred loading ([3771700](https://github.com/PlaybookMediaLLC/shots/commit/37717009335fb8c21a9d637e8d5dab9790538319))
+* **social:** remediate provider approval and hosted media delivery ([19c26ef](https://github.com/PlaybookMediaLLC/shots/commit/19c26efdea541a3c29d7915cb3a4aae375002f0d))
+* **social:** remediate provider approval and hosted media delivery ([f3f2e17](https://github.com/PlaybookMediaLLC/shots/commit/f3f2e176ff52c0c013668837cf560a2e774a520d))
+
+
+### Performance Improvements
+
+* cut backend round trips on every signed-in page ([c7b5844](https://github.com/PlaybookMediaLLC/shots/commit/c7b5844ae3fa7b63711ad350d588b87093954b82))
+* one backend call per session check, batched feed, quieter editor ([463ad49](https://github.com/PlaybookMediaLLC/shots/commit/463ad49214e367f274b0afe1631a10edac0f38f5))
+
 ## [2.52.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.51.0...v2.52.0) (2026-11-17)
 
 
