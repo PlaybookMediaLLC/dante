@@ -181,7 +181,7 @@ export function Filmstrip(): React.JSX.Element {
                     }}
                   >
                     <SlideThumbnail document={document} index={index} size={size} targetId={targetId} locale={locale} height={THUMB_HEIGHT} className="rounded-md" />
-                    <span className="absolute bottom-0.5 left-1 rounded bg-background/85 px-1 text-[9px] font-medium tabular-nums text-foreground">{index + 1}</span>
+                    <span className="absolute bottom-0.5 left-1 rounded bg-background/85 px-1 text-[0.5625rem] font-medium tabular-nums text-foreground">{index + 1}</span>
                     {membership ? (
                       <span
                         aria-hidden="true"
@@ -240,13 +240,13 @@ export function Filmstrip(): React.JSX.Element {
           +
         </Button>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1 text-[10px] text-muted-foreground">
+      <div className="flex shrink-0 flex-col items-end gap-1 text-[0.625rem] text-muted-foreground">
         <Button variant="outline" size="sm"
           type="button"
           disabled={slides.length + selectedSlideIds.length > MAX_PROJECT_SLIDES}
           onClick={() => api.getState().dispatch({ type: 'slides.duplicate', slideIds: selectedSlideIds })}
           aria-label={selectedSlideIds.length > 1 ? `Duplicate ${selectedSlideIds.length} slides` : 'Duplicate slide'}
-          className="h-7 px-2 text-[11px]"
+          className="h-7 px-2 text-[0.6875rem]"
         >
           Duplicate
         </Button>

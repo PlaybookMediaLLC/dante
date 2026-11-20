@@ -51,7 +51,7 @@ export function AdjustSection() {
   return (
     <SectionWrapper title="Adjust image" defaultOpen={false}>
       <div className="space-y-3">
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[0.6875rem] leading-snug text-muted-foreground">
           Applies to the screenshot and every device screen showing it.
         </p>
         <div className="grid grid-cols-2 gap-1.5">
@@ -78,7 +78,7 @@ export function AdjustSection() {
         </div>
         {(Object.keys(GROUP_LABELS) as (keyof typeof GROUP_LABELS)[]).map((group) => (
           <div className="space-y-2" key={group}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            <p className="text-[0.625rem] font-semibold uppercase tracking-widest text-muted-foreground">
               {GROUP_LABELS[group]}
             </p>
             {IMAGE_ADJUSTMENTS.filter((control) => control.group === group).map((control) => (

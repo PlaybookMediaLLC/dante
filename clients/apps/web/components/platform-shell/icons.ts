@@ -78,3 +78,9 @@ export { ArrowClockwiseIcon as RefreshIcon } from '@phosphor-icons/react/dist/ss
 export { MagnifyingGlassIcon as SearchIcon } from '@phosphor-icons/react/dist/ssr/MagnifyingGlass'
 export { BrowserIcon as WebIcon } from '@phosphor-icons/react/dist/ssr/Browser'
 export { SignpostIcon as TourIcon } from '@phosphor-icons/react/dist/ssr/Signpost'
+// Image tools (/create/tools).
+export { ArrowsInIcon as CompressIcon } from '@phosphor-icons/react/dist/ssr/ArrowsIn'
+export { ArrowsLeftRightIcon as ConvertIcon } from '@phosphor-icons/react/dist/ssr/ArrowsLeftRight'
+export { ArrowsOutIcon as ResizeIcon } from '@phosphor-icons/react/dist/ssr/ArrowsOut'
+export { CropIcon } from '@phosphor-icons/react/dist/ssr/Crop'
+export { EraserIcon } from '@phosphor-icons/react/dist/ssr/Eraser'

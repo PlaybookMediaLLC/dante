@@ -371,7 +371,7 @@ export function LayerSelection({
         >
           {label ? (
             <span
-              className="absolute -top-6 left-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[11px] font-medium text-white"
+              className="absolute -top-6 left-0 whitespace-nowrap rounded px-1.5 py-0.5 text-[0.6875rem] font-medium text-white"
               style={{ background: accent }}
             >
               {label}

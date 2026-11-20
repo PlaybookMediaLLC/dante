@@ -88,7 +88,7 @@ export function PresetLibrarySection() {
         session ? (
           <Button variant="custom" size={null}
             aria-label="Save design as preset"
-            className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[0.625rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={() => setSaving(true)}
             type="button"
           >
@@ -100,15 +100,15 @@ export function PresetLibrarySection() {
       title="My presets"
     >
       {!session ? (
-        <p className="px-2 text-[11px] text-muted-foreground">
+        <p className="px-2 text-[0.6875rem] text-muted-foreground">
           Sign in to save designs as presets for your workspace.
         </p>
       ) : error ? (
-        <p className="px-2 text-[11px] text-destructive" role="alert">
+        <p className="px-2 text-[0.6875rem] text-destructive" role="alert">
           {error}
         </p>
       ) : presets.length === 0 ? (
-        <p className="px-2 text-[11px] text-muted-foreground">
+        <p className="px-2 text-[0.6875rem] text-muted-foreground">
           {loading
             ? 'Loading presets…'
             : 'Save this design as a preset to reuse its layout, frame, background, text, and motion on other screenshots.'}
@@ -130,7 +130,7 @@ export function PresetLibrarySection() {
                 <div style={{ aspectRatio: aspect }}>
                   <PresetPreview document={document} preset={preset} />
                 </div>
-                <p className="truncate px-1.5 py-1 pr-6 text-[10px] font-medium text-muted-foreground group-hover:text-foreground">
+                <p className="truncate px-1.5 py-1 pr-6 text-[0.625rem] font-medium text-muted-foreground group-hover:text-foreground">
                   {preset.name}
                 </p>
               </Button>

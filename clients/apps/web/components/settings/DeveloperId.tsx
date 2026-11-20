@@ -14,7 +14,7 @@ export function DeveloperId({ id, label }: { id: string; label: string }) {
   return (
     <Button
       aria-label={`Copy ${label} ID ${id}`}
-      className="inline-flex items-center gap-1.5 rounded-md bg-foreground/[0.05] px-2 py-0.5 font-mono text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="inline-flex items-center gap-1.5 rounded-md bg-foreground/[0.05] px-2 py-0.5 font-mono text-[0.6875rem] text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       onClick={async () => {
         await navigator.clipboard.writeText(id)
         toast.success(`${label} ID copied.`)

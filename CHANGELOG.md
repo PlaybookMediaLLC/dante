@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.53.1](https://github.com/PlaybookMediaLLC/shots/compare/v2.53.0...v2.53.1) (2026-11-20)
+
+
+### Bug Fixes
+
+* **deploy:** replace the provider media route DigitalOcean stored ([749e2c7](https://github.com/PlaybookMediaLLC/shots/commit/749e2c7b7cbe75e27af084cac506838d6044c54e))
+* **deploy:** replace the provider media route DigitalOcean stored ([f3f2d9a](https://github.com/PlaybookMediaLLC/shots/commit/f3f2d9af9b8bcd88eb7a69718620de13c274c452))
+
 ## [2.53.0](https://github.com/PlaybookMediaLLC/shots/compare/v2.52.1...v2.53.0) (2026-11-20)
 
 

@@ -387,7 +387,7 @@ export function ExportPanel({ embed, onBusyChange, onExported, onOpenBatch }: Ex
           </div>
           <p className="text-xs text-muted-foreground">{info.description}</p>
           {info.limitation ? (
-            <p className="rounded-md bg-foreground/[0.04] p-2 text-[11px] leading-snug text-muted-foreground">
+            <p className="rounded-md bg-foreground/[0.04] p-2 text-[0.6875rem] leading-snug text-muted-foreground">
               {info.limitation}
             </p>
           ) : null}
@@ -494,7 +494,7 @@ export function ExportPanel({ embed, onBusyChange, onExported, onOpenBatch }: Ex
           )
         ) : null}
         {animated && !hasAnimation ? (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-[0.6875rem] text-muted-foreground">
             {editor.slideCount > 1
               ? 'No motion yet: plays the slides in order.'
               : 'No motion yet: a still clip. Add an animation in the Motion tab.'}
@@ -555,7 +555,7 @@ export function ExportPanel({ embed, onBusyChange, onExported, onOpenBatch }: Ex
             <Layers01Icon className="shrink-0 text-muted-foreground" size={16} />
             <span className="min-w-0">
               <span className="block text-xs font-medium text-foreground">Batch export</span>
-              <span className="block text-[11px] text-muted-foreground">
+              <span className="block text-[0.6875rem] text-muted-foreground">
                 Apply this design to many screenshots
               </span>
             </span>

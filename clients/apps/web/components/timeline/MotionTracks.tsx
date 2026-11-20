@@ -216,7 +216,7 @@ function Row({
         title={label}
       >
         {icon ? <span className="shrink-0 text-muted-foreground">{icon}</span> : null}
-        <span className="min-w-0 flex-1 truncate text-[10px] font-medium text-muted-foreground">
+        <span className="min-w-0 flex-1 truncate text-[0.625rem] font-medium text-muted-foreground">
           {label}
         </span>
         {onRemove ? (
@@ -466,7 +466,7 @@ function Span({
         onPointerMove={onPointerMove}
         onPointerUp={stop}
       />
-      <span className="pointer-events-none truncate text-[10px] font-medium">{label}</span>
+      <span className="pointer-events-none truncate text-[0.625rem] font-medium">{label}</span>
       <span
         aria-hidden
         className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize hover:bg-foreground/15"

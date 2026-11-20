@@ -115,7 +115,7 @@ export const ArtboardPreview = memo(
           />
         ) : null}
         {!url && (status === 'error' || current?.error) ? (
-          <p className="absolute inset-0 grid place-items-center p-2 text-center text-[11px] text-muted-foreground">
+          <p className="absolute inset-0 grid place-items-center p-2 text-center text-[0.6875rem] text-muted-foreground">
             {current?.error ?? 'Preview unavailable'}
           </p>
         ) : null}

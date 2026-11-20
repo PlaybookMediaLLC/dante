@@ -60,7 +60,7 @@ function refLabel(ref: string): string {
 
 function KeyChip({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex h-5 items-center rounded-md bg-foreground/[0.04] px-1.5 font-mono text-[11px] font-medium text-foreground/80 ring-1 ring-foreground/[0.1] ring-inset">
+    <span className="inline-flex h-5 items-center rounded-md bg-foreground/[0.04] px-1.5 font-mono text-[0.6875rem] font-medium text-foreground/80 ring-1 ring-foreground/[0.1] ring-inset">
       {children}
     </span>
   )

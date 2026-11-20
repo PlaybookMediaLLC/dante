@@ -69,7 +69,7 @@ export function SizePicker({
           onCheckedChange={() => onChange(toggleTarget(value, target))}
         />
         <span className="min-w-0 flex-1 truncate text-foreground">{target.label}</span>
-        <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+        <span className="font-mono text-[0.625rem] tabular-nums text-muted-foreground">
           {target.width}×{target.height}
         </span>
       </Label>
@@ -99,7 +99,7 @@ export function SizePicker({
               {extra.length > 0 ? <div className="pb-1">{extra.map(option)}</div> : null}
               {PICKER_GROUPS.map((group) => (
                 <div className="pb-1" key={group}>
-                  <p className="px-2 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="px-2 pb-0.5 pt-2 text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
                     {SIZE_GROUP_LABELS[group]}
                   </p>
                   {EXPORT_SIZE_PRESETS.filter((preset) => preset.group === group).map(option)}
@@ -110,7 +110,7 @@ export function SizePicker({
               className="space-y-1.5 border-t border-foreground/[0.08] p-3"
               onSubmit={addCustom}
             >
-              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-[0.625rem] font-medium uppercase tracking-wide text-muted-foreground">
                 Custom
               </p>
               <div className="flex items-center gap-1.5">
@@ -143,7 +143,7 @@ export function SizePicker({
                 </Button>
               </div>
               {customError ? (
-                <p className="text-[11px] text-destructive" role="alert">
+                <p className="text-[0.6875rem] text-destructive" role="alert">
                   {customError}
                 </p>
               ) : null}
@@ -165,7 +165,7 @@ export function SizePicker({
               key={target.id}
             >
               <span className="text-foreground">{target.label}</span>
-              <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+              <span className="font-mono text-[0.625rem] tabular-nums text-muted-foreground">
                 {target.width}×{target.height}
               </span>
               <Button variant="custom" size={null}

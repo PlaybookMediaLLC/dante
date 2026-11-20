@@ -215,7 +215,7 @@ export function EasingField({
       <div className="grid grid-cols-4 gap-1.5">
         {(['x1', 'y1', 'x2', 'y2'] as const).map((key) => (
           <Label className="block space-y-0.5" key={key}>
-            <span className="block text-[10px] uppercase text-muted-foreground">{key}</span>
+            <span className="block text-[0.625rem] uppercase text-muted-foreground">{key}</span>
             <Input
               aria-label={`Bézier ${key}`}
               className="h-7 w-full rounded-md border border-foreground/10 bg-background px-1.5 text-xs tabular-nums text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"

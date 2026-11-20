@@ -71,7 +71,7 @@ export function CodeOptions({ code, id }: { code: CodeContent; id: string }) {
           Code
         </Label>
         <Textarea
-          className="min-h-40 w-full resize-y rounded-md border border-foreground/10 bg-foreground/[0.04] p-2 font-mono text-[11px] leading-relaxed text-foreground focus:border-foreground/25 focus:outline-none focus:ring-1 focus:ring-foreground/15"
+          className="min-h-40 w-full resize-y rounded-md border border-foreground/10 bg-foreground/[0.04] p-2 font-mono text-[0.6875rem] leading-relaxed text-foreground focus:border-foreground/25 focus:outline-none focus:ring-1 focus:ring-foreground/15"
           id={`${id}-code`}
           maxLength={MAX_CODE_LENGTH}
           onChange={(event) => update({ code: event.target.value })}

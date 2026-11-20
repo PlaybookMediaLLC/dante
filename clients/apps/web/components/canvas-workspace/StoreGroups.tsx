@@ -185,7 +185,7 @@ export function StoreGroupsLayer({
               size={null}
               type="button"
               data-store-group-label
-              className="absolute -top-6 left-0 flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[11px] font-medium"
+              className="absolute -top-6 left-0 flex max-w-full items-center gap-1 truncate rounded px-1.5 py-0.5 text-[0.6875rem] font-medium"
               style={{
                 background: selected === id ? '#2563eb' : 'transparent',
                 color: selected === id ? '#fff' : undefined,
@@ -241,7 +241,7 @@ export function StoreGroupPanel({
     <div data-testid="store-group-panel">
       <section className="space-y-2 border-b px-4 py-4">
         <h2 className="text-ui-lg font-medium">App Store screenshots</h2>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           {item.group.document.slides.length} slides ·{' '}
           {item.group.document.localization.locales.length || 1} languages · drawn and exported by
           the store renderer
@@ -302,7 +302,7 @@ export function StoreGroupPanel({
             Delete
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[0.6875rem] text-muted-foreground">
           Export every required store size and language from the screenshot editor.
         </p>
       </section>

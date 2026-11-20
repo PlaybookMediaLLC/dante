@@ -74,7 +74,7 @@ function TimeTrack({
             style={{ left: `${leftPercent}%` }}
           >
             <div className="flex flex-col items-start h-full">
-              <span className="ml-1 mt-1 text-[9px] leading-none text-muted-foreground/60 tabular-nums">
+              <span className="ml-1 mt-1 text-[0.5625rem] leading-none text-muted-foreground/60 tabular-nums">
                 {formatTime(i * 1000)}
               </span>
               <div className="mb-1 mt-auto ml-[1px] h-1 w-1 rounded-full bg-muted-foreground/30" />
@@ -141,7 +141,7 @@ function PlayheadTicker({
     >
       <div className="relative flex flex-col items-center h-full">
         <div className="pointer-events-auto flex min-w-[32px] shrink-0 items-center justify-center rounded-md bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
-          <span className="text-[9px] font-semibold tabular-nums leading-none">{timeLabel}</span>
+          <span className="text-[0.5625rem] font-semibold tabular-nums leading-none">{timeLabel}</span>
         </div>
         <div className="w-px flex-1 bg-primary" />
       </div>
@@ -301,7 +301,7 @@ function ResizableAnimationClip({
         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-background/70 text-foreground shadow-xs">
           <VideoReplayIcon size={11} />
         </span>
-        <span className="truncate text-[10px] font-medium text-foreground/85">{clip.name}</span>
+        <span className="truncate text-[0.625rem] font-medium text-foreground/85">{clip.name}</span>
       </div>
 
       <Button variant="custom" size={null}
@@ -344,7 +344,7 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
             <path d="M16.376 21.304c.457 0 .755-.265 1.148-.93l4.135-7.168c.231-.404.341-.719.341-1.056s-.11-.652-.341-1.056l-4.135-7.169C17.131 3.261 16.833 3 16.376 3c-.462 0-.764.261-1.153.925l-4.139 7.169c-.231.404-.34.719-.34 1.056s.113.652.344 1.056l4.135 7.168c.389.665.691.93 1.153.93m-.138-1.794-4.027-7.022c-.082-.144-.117-.237-.117-.338s.031-.194.109-.338l4.035-7.022a.149.149 0 0 1 .267 0l4.031 7.022c.082.144.117.237.117.338s-.035.194-.117.338l-4.031 7.022c-.061.114-.206.114-.267 0" />
           </g>
         </svg>
-        <span className="truncate text-[10px] font-medium text-muted-foreground">Animations</span>
+        <span className="truncate text-[0.625rem] font-medium text-muted-foreground">Animations</span>
       </div>
 
       <div
@@ -373,7 +373,7 @@ function AnimationTrack({ width, onAddAnimation }: { width: number; onAddAnimati
               }}
               className={cn(
                 'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2.5',
-                'text-[11px] font-medium text-muted-foreground',
+                'text-[0.6875rem] font-medium text-muted-foreground',
                 'transition-colors duration-150',
                 'hover:bg-foreground/[0.06] hover:text-foreground',
                 'active:scale-[0.98]',
@@ -445,7 +445,7 @@ function VideoTrack({ width }: { width: number }) {
         ) : (
           <Image01Icon size={16} className="text-muted-foreground shrink-0" />
         )}
-        <span className="truncate text-[10px] font-medium text-muted-foreground">
+        <span className="truncate text-[0.625rem] font-medium text-muted-foreground">
           {slides.length > 1 ? `${slides.length} slides` : imageName || 'Screenshot'}
         </span>
       </div>
@@ -473,10 +473,10 @@ function VideoTrack({ width }: { width: number }) {
                       <SlidePreview src={item.src} />
                     </div>
                     <div className="flex min-w-0 flex-col">
-                      <span className="truncate text-[10px] font-medium text-foreground/80">
+                      <span className="truncate text-[0.625rem] font-medium text-foreground/80">
                         {slides.length > 1 ? `Slide ${mediaItems.indexOf(item) + 1}` : 'Mockup'}
                       </span>
-                      <span className="truncate text-[9px] tabular-nums text-muted-foreground">
+                      <span className="truncate text-[0.5625rem] tabular-nums text-muted-foreground">
                         {item.duration}s
                       </span>
                     </div>
@@ -577,7 +577,7 @@ function SlideDurationHandle({
         <span className="h-2.5 w-px rounded-full bg-foreground/45" />
         <span className="h-2.5 w-px rounded-full bg-foreground/45" />
         {(showHint || isDragging) && (
-          <div className="pointer-events-none absolute left-5 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-foreground/10 bg-card px-2 py-1 text-[10px] font-medium text-foreground shadow-lg">
+          <div className="pointer-events-none absolute left-5 top-1/2 z-50 -translate-y-1/2 whitespace-nowrap rounded-md border border-foreground/10 bg-card px-2 py-1 text-[0.625rem] font-medium text-foreground shadow-lg">
             Drag to adjust duration
           </div>
         )}

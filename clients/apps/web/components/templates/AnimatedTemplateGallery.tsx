@@ -165,7 +165,7 @@ export function AnimatedTemplatePreview({
         <PresetPreviewOverlay preset={visualPreset} />
 
         {showBadges ? (
-          <div className="absolute right-2 top-2 rounded-md border border-foreground/10 bg-background/60 px-1.5 py-1 text-[10px] font-medium tabular-nums text-muted-foreground backdrop-blur-md">
+          <div className="absolute right-2 top-2 rounded-md border border-foreground/10 bg-background/60 px-1.5 py-1 text-[0.625rem] font-medium tabular-nums text-muted-foreground backdrop-blur-md">
             {formatDuration(template.duration)}
           </div>
         ) : null}

@@ -128,7 +128,7 @@ export function ScreenInspector({ id }: { id: string }) {
               valueDisplay={`${Math.round(screen.screen.scale * 100)}%`}
             />
             {cropping ? (
-              <p className="text-[11px] leading-snug text-muted-foreground">
+              <p className="text-[0.6875rem] leading-snug text-muted-foreground">
                 Drag the screenshot, or use the arrow keys, to choose what shows. Esc when done.
               </p>
             ) : null}

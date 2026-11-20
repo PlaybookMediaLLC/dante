@@ -112,7 +112,7 @@ export function SocialSetSwitcher() {
             <SetDot color={set.color} />
             <span className="min-w-0 flex-1">
               <span className="block truncate">{set.name}</span>
-              <span className="block truncate text-[11px] text-muted-foreground">
+              <span className="block truncate text-[0.6875rem] text-muted-foreground">
                 {set.accounts.length === 0
                   ? 'No accounts yet'
                   : set.accounts
@@ -121,7 +121,7 @@ export function SocialSetSwitcher() {
               </span>
             </span>
             {set.visibility === 'PRIVATE' ? (
-              <span className="text-[10px] text-muted-foreground" title="Only its owner sees it">
+              <span className="text-[0.625rem] text-muted-foreground" title="Only its owner sees it">
                 private
               </span>
             ) : null}

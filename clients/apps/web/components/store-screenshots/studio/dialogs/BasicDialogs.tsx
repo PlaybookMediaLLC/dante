@@ -43,13 +43,13 @@ export function ShortcutsDialog({ open, onOpenChange }: DialogProps): React.JSX.
         <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
           {groups.map((group) => (
             <section key={group}>
-              <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group}</h3>
+              <h3 className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group}</h3>
               <dl className="space-y-1.5">
                 {SHORTCUTS.filter((shortcut) => shortcut.group === group).map((shortcut) => (
                   <div key={shortcut.action} className="flex items-baseline justify-between gap-3 text-xs">
                     <dt className="text-foreground">{shortcut.action}</dt>
                     <dd>
-                      <kbd className="rounded border border-foreground/15 bg-foreground/[0.04] px-1.5 py-0.5 font-mono text-[10px]">{shortcut.keys}</kbd>
+                      <kbd className="rounded border border-foreground/15 bg-foreground/[0.04] px-1.5 py-0.5 font-mono text-[0.625rem]">{shortcut.keys}</kbd>
                     </dd>
                   </div>
                 ))}
@@ -128,7 +128,7 @@ export function ApplyStyleDialog({ open, onOpenChange }: DialogProps): React.JSX
               <Checkbox  checked={groups.includes(group)} onCheckedChange={(checked) => setGroups((checked === true) ? [...groups, group] : groups.filter((item) => item !== group))} className="mt-0.5" />
               <span>
                 <span className="block font-medium">{GROUP_LABELS[group].label}</span>
-                <span className="block text-[10px] text-muted-foreground">{GROUP_LABELS[group].hint}</span>
+                <span className="block text-[0.625rem] text-muted-foreground">{GROUP_LABELS[group].hint}</span>
               </span>
             </Label>
           ))}

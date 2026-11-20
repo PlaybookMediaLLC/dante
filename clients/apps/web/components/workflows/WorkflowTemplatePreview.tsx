@@ -154,7 +154,7 @@ export function WorkflowTemplateDiagram({ template }: { template: WorkflowTempla
               >
                 <Icon className="size-4" />
               </span>
-              <span className="hidden min-h-[2.5em] w-[4.25rem] text-center text-[11px] leading-tight text-muted-foreground @[24.5rem]:block">
+              <span className="hidden min-h-[2.5em] w-[4.25rem] text-center text-[0.6875rem] leading-tight text-muted-foreground @[24.5rem]:block">
                 {label}
               </span>
             </span>

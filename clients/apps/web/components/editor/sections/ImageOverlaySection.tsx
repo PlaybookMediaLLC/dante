@@ -126,7 +126,7 @@ export function ImageOverlaySection() {
           <p className="text-xs font-medium text-foreground">
             {totalLayers > 0 ? `${totalLayers} overlay${totalLayers !== 1 ? 's' : ''}` : 'No overlays'}
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[0.625rem] text-muted-foreground">
             {totalLayers > 0 ? 'Manage depth & assets' : 'Add stickers, overlays & more'}
           </p>
         </div>

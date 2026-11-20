@@ -199,7 +199,7 @@ export function TransformsGallery() {
                     isSelected ? 'opacity-100' : 'opacity-0 group-hover/card:opacity-100'
                   )}>
                     <span className={cn(
-                      'px-2 py-0.5 rounded-md text-[10px] font-medium border',
+                      'px-2 py-0.5 rounded-md text-[0.625rem] font-medium border',
                       isSelected
                         ? 'bg-card text-foreground border-foreground/20'
                         : 'bg-background/90 text-muted-foreground border-foreground/10'

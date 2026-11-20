@@ -30,7 +30,7 @@ export function ShareButton({
       <Button variant="custom" size={null}
         aria-label="Share"
         className={cn(
-          'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-[13px] font-medium text-muted-foreground',
+          'inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg text-[0.8125rem] font-medium text-muted-foreground',
           'transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground disabled:pointer-events-none disabled:opacity-35',
           compact ? 'px-2' : 'px-2.5'
         )}

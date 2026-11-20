@@ -89,7 +89,7 @@ function LayerRow({
             }
           }}
         >
-          <span aria-hidden="true" className="w-4 shrink-0 text-center text-[11px] opacity-70">
+          <span aria-hidden="true" className="w-4 shrink-0 text-center text-[0.6875rem] opacity-70">
             {TYPE_GLYPHS[layer.type]}
           </span>
           {layer.groupId ? <span aria-hidden="true" className="h-4 w-0.5 shrink-0 rounded bg-violet-400" title="Grouped" /> : null}
@@ -116,7 +116,7 @@ function LayerRow({
           ) : (
             <span className={cn('min-w-0 flex-1 truncate', (layer.hidden || hiddenByLayout) && 'opacity-50')}>{layer.name}</span>
           )}
-          {hiddenByLayout ? <span className="shrink-0 text-[9px] text-amber-600" title="This layout shows fewer devices; the device is kept">not in layout</span> : null}
+          {hiddenByLayout ? <span className="shrink-0 text-[0.5625rem] text-amber-600" title="This layout shows fewer devices; the device is kept">not in layout</span> : null}
           <Button variant="custom" size={null}
             type="button"
             aria-label={layer.hidden ? `Show ${layer.name}` : `Hide ${layer.name}`}
@@ -218,7 +218,7 @@ function LayerList({ owner, layers, title }: { owner: LayerOwner; layers: StoreL
 
   return (
     <div className="space-y-1">
-      <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</p>
+      <p className="px-1 text-[0.625rem] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</p>
       <div
         ref={listRef}
         role="listbox"

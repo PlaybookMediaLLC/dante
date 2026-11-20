@@ -146,7 +146,7 @@ function WorkflowNode({ data, selected }: NodeProps<CanvasNode>) {
         ) : null}
       </div>
       {data.kind === 'condition' || data.kind === 'classify' ? (
-        <div className="relative grid grid-cols-2 border-t border-border text-center text-[10px] font-medium">
+        <div className="relative grid grid-cols-2 border-t border-border text-center text-[0.625rem] font-medium">
           <span className="border-r border-border py-1.5 text-emerald-600 dark:text-emerald-400">
             TRUE · Continue
           </span>

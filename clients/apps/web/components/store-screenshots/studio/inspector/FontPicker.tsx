@@ -115,7 +115,7 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
 
   return (
     <div className="space-y-1">
-      <Label htmlFor={id} className="block text-[11px] text-muted-foreground">
+      <Label htmlFor={id} className="block text-[0.6875rem] text-muted-foreground">
         {label}
       </Label>
       <div className="flex gap-1.5">
@@ -151,7 +151,7 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
         </Select>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <Button variant="custom" size={null} type="button" className="h-8 shrink-0 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]" aria-label="Add a font">
+            <Button variant="custom" size={null} type="button" className="h-8 shrink-0 rounded-md border border-foreground/10 px-2 text-[0.6875rem] hover:bg-foreground/[0.05]" aria-label="Add a font">
               Add
             </Button>
           </PopoverTrigger>
@@ -163,7 +163,7 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
                 void addGoogle(family)
               }}
             >
-              <Label className="block text-[11px] font-medium" htmlFor={`${id}-google`}>
+              <Label className="block text-[0.6875rem] font-medium" htmlFor={`${id}-google`}>
                 Google Fonts family
               </Label>
               <div className="flex gap-1.5">
@@ -180,14 +180,14 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
                     <SelectItem key={name} value={name} />
                   ))}
                 </datalist>
-                <Button variant="custom" size={null} type="submit" disabled={busy || !family.trim()} className="h-8 rounded-md bg-foreground px-2.5 text-[11px] text-background disabled:opacity-40">
+                <Button variant="custom" size={null} type="submit" disabled={busy || !family.trim()} className="h-8 rounded-md bg-foreground px-2.5 text-[0.6875rem] text-background disabled:opacity-40">
                   Add
                 </Button>
               </div>
-              <p className="text-[10px] leading-snug text-muted-foreground">Noto fonts cover Japanese, Korean, Chinese, Arabic, Hebrew, and other scripts.</p>
+              <p className="text-[0.625rem] leading-snug text-muted-foreground">Noto fonts cover Japanese, Korean, Chinese, Arabic, Hebrew, and other scripts.</p>
             </form>
             <div className="space-y-2 border-t border-foreground/10 pt-3">
-              <Label className="flex items-start gap-2 text-[11px] leading-snug">
+              <Label className="flex items-start gap-2 text-[0.6875rem] leading-snug">
                 <Checkbox  checked={licensed} onCheckedChange={(checked) => setLicensed((checked === true))} className="mt-0.5" />
                 I have a license to use this font in published app store artwork.
               </Label>
@@ -195,7 +195,7 @@ export function FontPicker({ label, value, onChange }: { label: string; value: s
                 type="button"
                 disabled={!licensed}
                 onClick={() => fileRef.current?.click()}
-                className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40"
+                className="h-8 w-full rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05] disabled:opacity-40"
               >
                 Upload WOFF2, WOFF, TTF, or OTF
               </Button>

@@ -35,11 +35,11 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
     <>
       <Section title="Screenshot">
         <div className="flex items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2">
-          <span className="min-w-0 flex-1 truncate text-[11px]">{asset ? `${asset.name} · ${asset.width} × ${asset.height}` : 'No screenshot yet'}</span>
+          <span className="min-w-0 flex-1 truncate text-[0.6875rem]">{asset ? `${asset.name} · ${asset.width} × ${asset.height}` : 'No screenshot yet'}</span>
           <Button variant="custom" size={null}
             type="button"
             onClick={() => actions.chooseScreenshot(owner.kind === 'slide' ? { slideId: owner.id, layerId: layer.id } : null)}
-            className="h-7 shrink-0 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]"
+            className="h-7 shrink-0 rounded-md border border-foreground/10 px-2 text-[0.6875rem] hover:bg-foreground/[0.05]"
           >
             {asset ? 'Replace' : 'Choose'}
           </Button>
@@ -63,7 +63,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                 patch([layer.id], { image: { mode, scale: 1, offsetX: 0, offsetY: 0 } })
               }}
             />
-            <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <p className="text-[0.6875rem] leading-relaxed text-muted-foreground">
               {layer.image.mode === 'fill'
                 ? 'Fills the device screen. Image edges may be cropped.'
                 : layer.image.mode === 'fit'
@@ -77,11 +77,11 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                   api.getState().selectLayers(owner, [layer.id], 'replace', { deep: true })
                   api.getState().setCropping(layer.id)
                 }}
-                className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
+                className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]"
               >
                 Crop on canvas
               </Button>
-              <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { image: { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 } })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]">
+              <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { image: { mode: 'fill', scale: 1, offsetX: 0, offsetY: 0 } })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]">
                 Reset crop
               </Button>
             </div>
@@ -94,7 +94,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                   api.getState().selectLayers(owner, [callout.id])
                   api.getState().setPickingCallout(callout.id)
                 }}
-                className="h-8 w-full rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]"
+                className="h-8 w-full rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]"
               >
                 Add magnified callout
               </Button>
@@ -114,7 +114,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
           }}
         />
         <div className="space-y-1">
-          <span className="block text-[11px] text-muted-foreground">Finish</span>
+          <span className="block text-[0.6875rem] text-muted-foreground">Finish</span>
           <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Finish">
             {model.finishes.map((finish) => (
               <Button variant="custom" size={null}
@@ -131,7 +131,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
             ))}
           </div>
           {model.photo ? (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[0.625rem] text-muted-foreground">
               Realistic {model.finishes.find((finish) => finish.id === model.photo?.finishId)?.name} uses a photographed frame; other finishes are drawn.
             </p>
           ) : null}
@@ -163,13 +163,13 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
             {bar.visible ? (
               <>
                 {likelyHasBar && !bar.cover ? (
-                  <p className="rounded-md bg-amber-500/10 p-2 text-[11px] text-amber-800 dark:text-amber-200">
+                  <p className="rounded-md bg-amber-500/10 p-2 text-[0.6875rem] text-amber-800 dark:text-amber-200">
                     This screenshot looks like a full-screen capture and probably has its own status bar. Turn on “Cover the original” to avoid two bars.
                   </p>
                 ) : null}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label className="block text-[11px] text-muted-foreground" htmlFor={`time-${layer.id}`}>
+                    <Label className="block text-[0.6875rem] text-muted-foreground" htmlFor={`time-${layer.id}`}>
                       Time
                     </Label>
                     <div className="flex gap-1">
@@ -180,7 +180,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                         onChange={(event) => patch([layer.id], { statusBar: { time: event.target.value } }, 'bar-time')}
                         className="h-8 min-w-0 flex-1 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2 text-xs outline-none"
                       />
-                      <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { statusBar: { time: '9:41' } })} className="h-8 rounded-md border border-foreground/10 px-1.5 text-[10px]">
+                      <Button variant="custom" size={null} type="button" onClick={() => patch([layer.id], { statusBar: { time: '9:41' } })} className="h-8 rounded-md border border-foreground/10 px-1.5 text-[0.625rem]">
                         9:41
                       </Button>
                     </div>
@@ -190,7 +190,7 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
                   <NumberField label="Wi-Fi bars" value={bar.wifi} min={0} max={3} onChange={(wifi) => patch([layer.id], { statusBar: { wifi } }, 'bar-wifi')} hint="0 hides Wi-Fi" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="block text-[11px] text-muted-foreground" htmlFor={`carrier-${layer.id}`}>
+                  <Label className="block text-[0.6875rem] text-muted-foreground" htmlFor={`carrier-${layer.id}`}>
                     Carrier
                   </Label>
                   <Input
@@ -233,15 +233,15 @@ export function DevicePanel({ owner, layer, node }: { owner: LayerOwner; layer: 
       <TransformSection owner={owner} layer={layer} node={node} tilt title="Position and tilt" />
       <Section title="Reset">
         <div className="flex gap-2">
-          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.devices', owner, layerIds: [layer.id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Moves the device back to its layout position. Text is not affected.">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.devices', owner, layerIds: [layer.id] })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]" title="Moves the device back to its layout position. Text is not affected.">
             Reset device position
           </Button>
-          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.layer', owner, layerId: layer.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[11px] hover:bg-foreground/[0.05]" title="Position, crop, and adjustments">
+          <Button variant="custom" size={null} type="button" onClick={() => api.getState().dispatch({ type: 'reset.layer', owner, layerId: layer.id })} className="h-8 flex-1 rounded-md border border-foreground/10 text-[0.6875rem] hover:bg-foreground/[0.05]" title="Position, crop, and adjustments">
             Reset all
           </Button>
         </div>
         {layer.placement.mode === 'auto' ? (
-          <p className="text-[10px] text-muted-foreground">Placed by the {slide.layout ?? 'template'} layout, slot {layer.placement.slot + 1}.</p>
+          <p className="text-[0.625rem] text-muted-foreground">Placed by the {slide.layout ?? 'template'} layout, slot {layer.placement.slot + 1}.</p>
         ) : null}
       </Section>
       <LayerStateSection owner={owner} layer={layer} />

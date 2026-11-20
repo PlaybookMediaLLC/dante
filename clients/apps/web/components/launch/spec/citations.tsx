@@ -29,7 +29,7 @@ const STATUS: Record<SpecSource['status'], { label: string; tone: PillTone }> = 
 }
 
 const chipClass =
-  'inline-flex h-5 shrink-0 items-center rounded-md px-1.5 font-mono text-[11px] leading-none font-medium ring-1 ring-inset'
+  'inline-flex h-5 shrink-0 items-center rounded-md px-1.5 font-mono text-[0.6875rem] leading-none font-medium ring-1 ring-inset'
 
 /** A reference chip ([S1], [G2]) that opens a popover with what it points at. */
 export function ChipPopover({

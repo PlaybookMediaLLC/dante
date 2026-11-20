@@ -344,7 +344,7 @@ export function DepthSection() {
         defaultOpen={true}
         action={
           layers.length + (mainImageUrl ? 1 : 0) > 0 ? (
-            <span className="text-[10px] tabular-nums text-muted-foreground">
+            <span className="text-[0.625rem] tabular-nums text-muted-foreground">
               {layers.length + (mainImageUrl ? 1 : 0)}
             </span>
           ) : undefined
@@ -423,11 +423,11 @@ export function DepthSection() {
                         {layer.label}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-[10px] text-muted-foreground capitalize">
+                        <p className="text-[0.625rem] text-muted-foreground capitalize">
                           {layer.type === 'image-overlay' ? 'Image' : layer.type === 'text-overlay' ? 'Text' : layer.type === 'annotation' ? 'Drawing' : layer.type.replace('-', ' ')}
                         </p>
                         {isImageOverlay && layer.layerPosition === 'back' && (
-                          <span className="text-[9px] px-1 py-px rounded bg-foreground/[0.06] text-muted-foreground leading-none border border-foreground/10">
+                          <span className="text-[0.5625rem] px-1 py-px rounded bg-foreground/[0.06] text-muted-foreground leading-none border border-foreground/10">
                             behind
                           </span>
                         )}
@@ -477,7 +477,7 @@ export function DepthSection() {
                           e.stopPropagation();
                           reorderLayer(layer.id, 'up');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[0.625rem] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
                         title="Move forward"
                       >
                         <ArrowUp01Icon size={12} />
@@ -487,7 +487,7 @@ export function DepthSection() {
                           e.stopPropagation();
                           reorderLayer(layer.id, 'down');
                         }}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[0.625rem] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
                         title="Move backward"
                       >
                         <ArrowDown01Icon size={12} />
@@ -499,7 +499,7 @@ export function DepthSection() {
                           updateImageOverlay(layer.id, { layer: newLayer });
                         }}
                         className={cn(
-                          'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors border',
+                          'flex items-center gap-1 px-2 py-1 rounded-md text-[0.625rem] font-medium transition-colors border',
                           layer.layerPosition === 'back'
                             ? 'text-foreground border-foreground/20 bg-foreground/[0.08] hover:bg-foreground/[0.1]'
                             : 'text-muted-foreground border-foreground/10 hover:text-foreground hover:bg-foreground/[0.06]'
@@ -542,7 +542,7 @@ export function DepthSection() {
                   <p className="text-xs font-medium text-foreground truncate">
                     {imageName || 'Main image'}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">Screenshot · properties in Edit</p>
+                  <p className="text-[0.625rem] text-muted-foreground">Screenshot · properties in Edit</p>
                 </div>
               </Button>
             )}
@@ -776,7 +776,7 @@ function OverlayTiltControls({ overlay, onUpdate }: OverlayControlProps) {
         <span className="text-xs font-medium text-muted-foreground">3D Tilt</span>
         <Button variant="custom" size={null}
           onClick={() => onUpdate({ tilt: undefined })}
-          className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
+          className="flex items-center gap-1 px-2 py-1 rounded-md text-[0.625rem] font-medium text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] transition-colors border border-foreground/10"
         >
           <RefreshIcon size={11} /> Reset
         </Button>

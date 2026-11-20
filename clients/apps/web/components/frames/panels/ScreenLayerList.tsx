@@ -43,7 +43,7 @@ export function ScreenLayerList() {
   return (
     <SectionWrapper
       action={
-        <span className="text-[10px] tabular-nums text-muted-foreground">{mockups.length}</span>
+        <span className="text-[0.625rem] tabular-nums text-muted-foreground">{mockups.length}</span>
       }
       defaultOpen
       title="Screens"
@@ -107,7 +107,7 @@ export function ScreenLayerList() {
                   className="shrink-0 cursor-grab text-muted-foreground/60"
                   size={14}
                 />
-                <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded border border-foreground/10 bg-foreground/[0.06] text-[9px] text-muted-foreground">
+                <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded border border-foreground/10 bg-foreground/[0.06] text-[0.5625rem] text-muted-foreground">
                   {thumbnail ? (
                     <img
                       alt=""
@@ -123,7 +123,7 @@ export function ScreenLayerList() {
                   <span className="block truncate text-xs text-foreground/85">
                     {contentLabel(mockup)}
                   </span>
-                  <span className="block truncate text-[10px] text-muted-foreground">
+                  <span className="block truncate text-[0.625rem] text-muted-foreground">
                     {frameLabel(mockup)}
                   </span>
                 </span>
@@ -143,7 +143,7 @@ export function ScreenLayerList() {
           )
         })}
       </ul>
-      <p className="mt-1 px-2 text-[10px] text-muted-foreground">
+      <p className="mt-1 px-2 text-[0.625rem] text-muted-foreground">
         Drag to reorder, or press Alt with ↑ or ↓.
       </p>
     </SectionWrapper>

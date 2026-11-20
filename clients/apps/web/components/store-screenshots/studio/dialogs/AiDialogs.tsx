@@ -264,7 +264,7 @@ export function CopyDialog({ open, onOpenChange }: DialogProps): React.JSX.Eleme
                 <div className="min-w-0 flex-1 text-xs">
                   <p className="font-semibold">{item.headline || '(no headline)'}</p>
                   {item.subheadline ? <p className="text-muted-foreground">{item.subheadline}</p> : null}
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="text-[0.625rem] text-muted-foreground">
                     {document.slides.find((slide) => slide.id === item.slideId)?.name} · {localeName(item.locale)} · {item.tone === 'previous' ? 'earlier copy' : item.tone}
                     {item.appliedAt ? ' · applied' : ''}
                   </p>

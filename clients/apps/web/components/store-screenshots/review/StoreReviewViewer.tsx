@@ -82,7 +82,7 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
             Read-only review{review.versionLabel ? ` · ${review.versionLabel}` : ''} · shared {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
           </p>
         </div>
-        <span className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[11px] text-muted-foreground">You can comment; you cannot edit</span>
+        <span className="rounded-full bg-foreground/[0.06] px-2.5 py-1 text-[0.6875rem] text-muted-foreground">You can comment; you cannot edit</span>
       </header>
       <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[1fr_360px]">
         <main className="flex min-h-0 flex-col items-center gap-4 p-5">
@@ -111,7 +111,7 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
             </Button>
             {slideComments.map((comment, number) =>
               comment.x !== null && comment.y !== null ? (
-                <span key={comment.id} className={cn('pointer-events-none absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[11px] font-semibold text-white shadow', comment.resolvedAt ? 'bg-zinc-400' : 'bg-violet-600')} style={{ left: `${comment.x}%`, top: `${comment.y}%` }}>
+                <span key={comment.id} className={cn('pointer-events-none absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full text-[0.6875rem] font-semibold text-white shadow', comment.resolvedAt ? 'bg-zinc-400' : 'bg-violet-600')} style={{ left: `${comment.x}%`, top: `${comment.y}%` }}>
                   {number + 1}
                 </span>
               ) : null
@@ -156,7 +156,7 @@ export function StoreReviewViewer({ token, review }: { token: string; review: Re
                   Remove pin
                 </Button>
               ) : (
-                <span className="text-[11px] text-muted-foreground">Tip: click the slide to pin a spot.</span>
+                <span className="text-[0.6875rem] text-muted-foreground">Tip: click the slide to pin a spot.</span>
               )}
               <Button type="submit" disabled={sending || !name.trim() || !body.trim()}>
                 {sending ? 'Sending…' : 'Comment'}

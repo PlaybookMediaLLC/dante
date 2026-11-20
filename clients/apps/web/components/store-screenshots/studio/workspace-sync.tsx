@@ -227,7 +227,7 @@ export function useWorkspaceSync(store: StoreApi<EditorState>) {
 
 /** The workspace half of the header's save status. */
 export function WorkspaceSaveStatus({ sync }: { sync: ReturnType<typeof useWorkspaceSync> }) {
-  const button = 'h-7 rounded-md border border-foreground/15 px-2 text-[11px]'
+  const button = 'h-7 rounded-md border border-foreground/15 px-2 text-[0.6875rem]'
   if (!sync.status || sync.status === 'checking') return null
   if (sync.status === 'off')
     return (
@@ -238,20 +238,20 @@ export function WorkspaceSaveStatus({ sync }: { sync: ReturnType<typeof useWorks
   if (sync.status === 'conflict')
     return (
       <span className="flex items-center gap-1">
-        <span role="status" className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] text-amber-700 dark:text-amber-300">
+        <span role="status" className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[0.625rem] text-amber-700 dark:text-amber-300">
           Changed on another device
         </span>
         <Button variant="custom" size={null} type="button" onClick={sync.loadTheirs} className={button}>
           Load workspace version
         </Button>
-        <Button variant="custom" size={null} type="button" onClick={sync.keepMine} className="h-7 rounded-md bg-foreground px-2 text-[11px] text-background">
+        <Button variant="custom" size={null} type="button" onClick={sync.keepMine} className="h-7 rounded-md bg-foreground px-2 text-[0.6875rem] text-background">
           Keep mine
         </Button>
       </span>
     )
   return (
     <span className="flex items-center gap-1">
-      <span role="status" aria-live="polite" className="shrink-0 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+      <span role="status" aria-live="polite" className="shrink-0 px-1.5 py-0.5 text-[0.625rem] text-muted-foreground">
         {sync.status === 'saved' ? 'Saved to workspace' : sync.status === 'error' ? 'Not saved to workspace' : 'Saving to workspace…'}
       </span>
       {sync.status === 'error' ? (

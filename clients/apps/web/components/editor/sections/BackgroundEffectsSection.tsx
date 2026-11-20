@@ -28,7 +28,7 @@ export function BackgroundEffectsSection() {
       <div className="space-y-3">
         {/* Mesh Gradients */}
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+          <p className="text-[0.625rem] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
             Mesh Gradients
           </p>
           <div className="grid grid-cols-3 gap-1.5">
@@ -78,7 +78,7 @@ export function BackgroundEffectsSection() {
 
         {/* Pattern Overlay */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[0.625rem] font-semibold uppercase tracking-widest text-muted-foreground">
             Pattern
           </p>
           <div className="flex gap-1">
@@ -103,7 +103,7 @@ export function BackgroundEffectsSection() {
                   })
                 }
                 className={cn(
-                  "flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all border",
+                  "flex-1 py-1.5 rounded-md text-[0.625rem] font-medium transition-all border",
                   (p.id === "none" && !pattern.enabled) ||
                     (p.id === pattern.type && pattern.enabled)
                     ? "bg-primary/10 border-primary/30 text-primary"

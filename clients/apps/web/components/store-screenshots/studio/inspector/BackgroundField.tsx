@@ -129,15 +129,15 @@ export function BackgroundField({
       ) : null}
       <div className="flex flex-wrap gap-2">
         {onChooseImage ? (
-          <Button variant="custom" size={null} type="button" onClick={onChooseImage} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={onChooseImage} className="h-8 rounded-md border border-foreground/10 px-2 text-[0.6875rem] hover:bg-foreground/[0.05]">
             Upload image
           </Button>
         ) : null}
-        <Button variant="custom" size={null} type="button" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((open) => !open)} className="h-8 rounded-md border border-foreground/10 px-2 text-[11px] hover:bg-foreground/[0.05]">
+        <Button variant="custom" size={null} type="button" aria-expanded={libraryOpen} onClick={() => setLibraryOpen((open) => !open)} className="h-8 rounded-md border border-foreground/10 px-2 text-[0.6875rem] hover:bg-foreground/[0.05]">
           {libraryOpen ? 'Hide library' : 'Image library'}
         </Button>
         {allowInherit ? (
-          <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="h-8 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-foreground/[0.05]">
+          <Button variant="custom" size={null} type="button" onClick={() => onChange(null)} className="h-8 rounded-md px-2 text-[0.6875rem] text-muted-foreground hover:bg-foreground/[0.05]">
             Use project background
           </Button>
         ) : null}
@@ -146,7 +146,7 @@ export function BackgroundField({
         <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
           {BACKGROUND_CATEGORY_ORDER.map((category) => (
             <div key={category} className="space-y-1.5">
-              <p className="text-[10px] font-medium text-muted-foreground">{BACKGROUND_CATEGORY_LABELS[category] ?? category}</p>
+              <p className="text-[0.625rem] font-medium text-muted-foreground">{BACKGROUND_CATEGORY_LABELS[category] ?? category}</p>
               <div className="grid grid-cols-4 gap-1.5">
                 {(backgroundCategories[category] ?? []).map((path, index) => (
                   <Button variant="custom" size={null}

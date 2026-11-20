@@ -269,17 +269,13 @@ function WorkspaceSwitcher({
   collapsed: boolean
   organizationName: string
 }) {
-  const { data: session } = useHydratedSession()
-  return (
-    <AccountMenu
-      workspaceName={organizationName}
-      align={collapsed ? 'end' : 'start'}
-      side={collapsed ? 'right' : 'top'}
-      triggerClassName={cn(
-        'flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-2 text-start transition-colors hover:bg-foreground/[0.05]',
-        collapsed && 'mx-auto size-10 justify-center px-0'
-      )}
-    >
+  const { data: session, isPending } = useHydratedSession()
+  const triggerClassName = cn(
+    'flex h-11 w-full min-w-0 items-center gap-2.5 rounded-xl px-2 text-start transition-colors hover:bg-foreground/[0.05]',
+    collapsed && 'mx-auto size-10 justify-center px-0'
+  )
+  const row = (
+    <>
       <span
         aria-hidden="true"
         className="grid size-7 shrink-0 place-items-center rounded-lg bg-foreground text-xs font-medium text-background"
@@ -303,6 +299,24 @@ function WorkspaceSwitcher({
           />
         </>
       )}
+    </>
+  )
+  // The workspace is known from the server, so its row shows while the session
+  // loads instead of an empty gap; the menu opens once the session is in.
+  if (isPending)
+    return (
+      <div aria-hidden="true" className={triggerClassName}>
+        {row}
+      </div>
+    )
+  return (
+    <AccountMenu
+      workspaceName={organizationName}
+      align={collapsed ? 'end' : 'start'}
+      side={collapsed ? 'right' : 'top'}
+      triggerClassName={triggerClassName}
+    >
+      {row}
     </AccountMenu>
   )
 }

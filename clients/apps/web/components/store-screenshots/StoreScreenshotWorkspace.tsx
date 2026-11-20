@@ -256,7 +256,7 @@ function SlideCard({
       >
         <StoreSlideCanvas project={project} slide={slide} slideIndex={index} profile={profile} className="w-full" />
         {!disabled ? (
-          <span className="absolute inset-x-0 bottom-0 translate-y-full bg-foreground/75 px-2 py-2 text-center text-[10px] font-medium text-background backdrop-blur-sm transition-transform group-hover:translate-y-0 group-focus-within:translate-y-0">
+          <span className="absolute inset-x-0 bottom-0 translate-y-full bg-foreground/75 px-2 py-2 text-center text-[0.625rem] font-medium text-background backdrop-blur-sm transition-transform group-hover:translate-y-0 group-focus-within:translate-y-0">
             Edit screenshot
           </span>
         ) : null}
@@ -471,7 +471,7 @@ function StoreOverview({
               <Button variant="outline" size="icon-sm" aria-label="Previous screenshots" disabled={safePage === 0} onClick={(event) => changePage(safePage - 1, event.detail > 0)}>
                 <ArrowLeft02Icon size={14} />
               </Button>
-              <span className="text-[11px] tabular-nums text-muted-foreground">{safePage + 1} / {pages}</span>
+              <span className="text-[0.6875rem] tabular-nums text-muted-foreground">{safePage + 1} / {pages}</span>
               <Button variant="outline" size="icon-sm" aria-label="Next screenshots" disabled={safePage === pages - 1} onClick={(event) => changePage(safePage + 1, event.detail > 0)}>
                 <ArrowRight02Icon size={14} />
               </Button>

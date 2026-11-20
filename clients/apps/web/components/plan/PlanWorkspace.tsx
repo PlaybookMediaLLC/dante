@@ -1258,13 +1258,13 @@ export function PlanWorkspace({
                       {Array.from({ length: 24 }, (_, hour) => (
                         <div
                           key={hour}
-                          className="absolute w-full border-t text-[10px] text-muted-foreground"
+                          className="absolute w-full border-t text-[0.625rem] text-muted-foreground"
                           style={{ top: hour * 60, height: 60 }}
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={(e) => drop(e, day, hour)}
                         >
                           <Button
-                            className="h-auto px-1 py-0 text-[10px] font-normal text-muted-foreground"
+                            className="h-auto px-1 py-0 text-[0.625rem] font-normal text-muted-foreground"
                             disabled={!canEdit || day < today}
                             onClick={() => create(day, `${String(hour).padStart(2, '0')}:00`)}
                             size={null}

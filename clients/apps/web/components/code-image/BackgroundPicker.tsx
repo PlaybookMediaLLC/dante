@@ -78,7 +78,7 @@ function ImageSwatch({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-1.5 block text-[10px] font-medium uppercase tracking-wide text-white/40">
+    <span className="mb-1.5 block text-[0.625rem] font-medium uppercase tracking-wide text-white/40">
       {children}
     </span>
   );
@@ -147,7 +147,7 @@ export function BackgroundPicker({
           <SectionLabel>Images</SectionLabel>
           {IMAGE_CATEGORIES.map((category) => (
             <div key={category.id} className="mb-2 last:mb-0">
-              <span className="mb-1 block text-[10px] text-white/40">{category.label}</span>
+              <span className="mb-1 block text-[0.625rem] text-white/40">{category.label}</span>
               <div className="flex flex-wrap gap-1.5">
                 {(backgroundCategories[category.id] ?? []).map((path) => (
                   <ImageSwatch

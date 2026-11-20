@@ -323,7 +323,7 @@ export function ChannelConnections({ canManage }: { canManage: boolean }) {
         <span className="flex min-w-0 items-center gap-2">
           <Avatar className="size-6">
             {connection.avatarUrl ? <AvatarImage alt="" src={connection.avatarUrl} /> : null}
-            <AvatarFallback className="text-[10px]">{initials(name)}</AvatarFallback>
+            <AvatarFallback className="text-[0.625rem]">{initials(name)}</AvatarFallback>
           </Avatar>
           <span className="grid min-w-0 text-sm">
             <span className="truncate">{name}</span>

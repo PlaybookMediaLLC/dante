@@ -151,8 +151,8 @@ export function ScreenshotDesignSection() {
               </div>
             </div>
             <div className="px-2.5 py-2 text-left">
-              <p className="text-[11px] font-semibold text-foreground">{theme.name}{active === theme.id ? ' ✓' : ''}</p>
-              <p className="text-[9px] text-muted-foreground truncate">{theme.description}</p>
+              <p className="text-[0.6875rem] font-semibold text-foreground">{theme.name}{active === theme.id ? ' ✓' : ''}</p>
+              <p className="text-[0.5625rem] text-muted-foreground truncate">{theme.description}</p>
             </div>
           </Button>
         ))}

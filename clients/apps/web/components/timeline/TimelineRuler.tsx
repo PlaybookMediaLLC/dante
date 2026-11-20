@@ -57,7 +57,7 @@ export function TimelineRuler({ width }: TimelineRulerProps) {
               }`}
             />
             {isMajor && (
-              <span className="text-[9px] text-foreground/50 mt-0.5 font-mono">
+              <span className="text-[0.5625rem] text-foreground/50 mt-0.5 font-mono">
                 {formatTickLabel(time)}
               </span>
             )}

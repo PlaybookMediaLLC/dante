@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 
-const insertButton = 'flex h-9 items-center gap-2 rounded-md border border-foreground/10 px-2.5 text-left text-[11px] hover:bg-foreground/[0.05] disabled:opacity-40'
+const insertButton = 'flex h-9 items-center gap-2 rounded-md border border-foreground/10 px-2.5 text-left text-[0.6875rem] hover:bg-foreground/[0.05] disabled:opacity-40'
 
 /** Add text, devices, annotations, callouts, and images to the active slide. */
 export function InsertPanel(): React.JSX.Element {
@@ -133,7 +133,7 @@ export function StylePanel(): React.JSX.Element {
       <Section title="Typography" description="Defaults for every slide. Slides keep their own changes unless you also replace them.">
         <div role="tablist" aria-label="Text role" className="flex gap-1">
           {textRoleSchema.options.map((item) => (
-            <Button variant="custom" size={null} key={item} type="button" role="tab" aria-selected={role === item} onClick={() => setRole(item)} className={cn('h-7 flex-1 rounded-md text-[11px]', role === item ? 'bg-foreground/[0.1] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.05]')}>
+            <Button variant="custom" size={null} key={item} type="button" role="tab" aria-selected={role === item} onClick={() => setRole(item)} className={cn('h-7 flex-1 rounded-md text-[0.6875rem]', role === item ? 'bg-foreground/[0.1] text-foreground' : 'text-muted-foreground hover:bg-foreground/[0.05]')}>
               {TEXT_ROLE_LABELS[item]}
             </Button>
           ))}
@@ -209,7 +209,7 @@ export function LanguagesPanel(): React.JSX.Element {
               <div key={code} className={cn('flex items-center gap-2 rounded-md border px-2 py-1.5', locale === code ? 'border-foreground/30 bg-foreground/[0.06]' : 'border-foreground/10')}>
                 <Button variant="custom" size={null} type="button" aria-pressed={locale === code} onClick={() => api.getState().setLocale(code)} className="min-w-0 flex-1 text-left">
                   <span className="block truncate text-xs font-medium">{localeName(code)}</span>
-                  <span className="block text-[10px] text-muted-foreground">
+                  <span className="block text-[0.625rem] text-muted-foreground">
                     {status
                       ? `${status.total - status.missing}/${status.total} translated · ${status.approved} approved${status.outdated ? ` · ${status.outdated} outdated` : ''}`
                       : `${code} · source`}
@@ -262,7 +262,7 @@ export function LanguagesPanel(): React.JSX.Element {
               api.getState().dispatch({ type: 'locales.set', locales: [...locales, adding] })
               setAdding('')
             }}
-            className="h-8 rounded-md bg-foreground px-2.5 text-[11px] text-background disabled:opacity-40"
+            className="h-8 rounded-md bg-foreground px-2.5 text-[0.6875rem] text-background disabled:opacity-40"
           >
             Add
           </Button>

@@ -37,7 +37,7 @@ export function RedactSection() {
   return (
     <SectionWrapper defaultOpen={false} title="Redact">
       <div className="space-y-2">
-        <p className="text-[11px] leading-snug text-muted-foreground">
+        <p className="text-[0.6875rem] leading-snug text-muted-foreground">
           Find emails, API keys, card numbers, names, and faces, review them, and cover them for
           good. Runs on this device.
         </p>

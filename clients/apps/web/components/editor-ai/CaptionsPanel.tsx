@@ -174,7 +174,7 @@ export function CaptionsPanel({ disabled }: { disabled: boolean }) {
       >
         {loading ? 'Writing…' : saved ? 'Write again' : 'Write alt text and captions'}
       </Button>
-      <p className="text-[11px] text-muted-foreground">
+      <p className="text-[0.6875rem] text-muted-foreground">
         Sends a snapshot of the design to the AI provider and uses AI credits.
       </p>
 

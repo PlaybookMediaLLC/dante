@@ -192,11 +192,11 @@ export function ImportDialog({ open, onOpenChange, initialFiles }: DialogProps &
             <ol aria-label="Screenshots to import" className="max-h-80 space-y-1 overflow-y-auto">
               {items.map((item, index) => (
                 <li key={item.id} className={cn('flex items-center gap-2 rounded-md border p-1.5', item.problem ? 'border-destructive/30 bg-destructive/[0.04]' : 'border-foreground/10')}>
-                  <span className="w-5 text-center text-[11px] tabular-nums text-muted-foreground">{index + 1}</span>
+                  <span className="w-5 text-center text-[0.6875rem] tabular-nums text-muted-foreground">{index + 1}</span>
                   <img src={item.url} alt="" className="h-12 w-7 rounded object-cover" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs">{item.file.name}</span>
-                    <span className={cn('block text-[10px]', item.problem ? 'text-destructive' : 'text-muted-foreground')}>{item.problem ?? `${(item.file.size / 1024 / 1024).toFixed(1)} MB`}</span>
+                    <span className={cn('block text-[0.625rem]', item.problem ? 'text-destructive' : 'text-muted-foreground')}>{item.problem ?? `${(item.file.size / 1024 / 1024).toFixed(1)} MB`}</span>
                   </span>
                   <Button variant="custom" size={null} type="button" aria-label={`Move ${item.file.name} up`} disabled={index === 0} onClick={() => move(index, -1)} className="flex size-7 items-center justify-center rounded hover:bg-foreground/[0.06] disabled:opacity-30">
                     ↑

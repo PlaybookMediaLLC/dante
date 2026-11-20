@@ -116,7 +116,7 @@ export function BrandSection() {
         session && canManage ? (
           <Button variant="custom" size={null}
             aria-label="New brand kit"
-            className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            className="flex h-6 items-center gap-1 rounded-md bg-muted/60 px-2 text-[0.625rem] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={() => setEditing({})}
             type="button"
           >
@@ -128,15 +128,15 @@ export function BrandSection() {
       title="Visual brand kits"
     >
       {!session ? (
-        <p className="px-2 text-[11px] text-muted-foreground">
+        <p className="px-2 text-[0.6875rem] text-muted-foreground">
           Sign in to use your workspace&apos;s brand kits.
         </p>
       ) : error ? (
-        <p className="px-2 text-[11px] text-destructive" role="alert">
+        <p className="px-2 text-[0.6875rem] text-destructive" role="alert">
           {error}
         </p>
       ) : kits.length === 0 ? (
-        <p className="px-2 text-[11px] text-muted-foreground">
+        <p className="px-2 text-[0.6875rem] text-muted-foreground">
           {loading
             ? 'Loading brand kits…'
             : canManage
@@ -178,8 +178,8 @@ export function BrandSection() {
                         ))}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[11px] font-medium">{kit.name}</span>
-                      <span className="block truncate text-[9px] text-muted-foreground">
+                      <span className="block truncate text-[0.6875rem] font-medium">{kit.name}</span>
+                      <span className="block truncate text-[0.5625rem] text-muted-foreground">
                         {kit.primaryFont ? fontName(kit.primaryFont) : 'No font'}
                         {kit.logos.length
                           ? ` · ${kit.logos.length} logo${kit.logos.length > 1 ? 's' : ''}`
@@ -224,7 +224,7 @@ export function BrandSection() {
                     <Button variant="custom" size={null}
                       aria-pressed={on}
                       className={cn(
-                        'h-6 rounded-md border px-2 text-[10px] transition-colors disabled:opacity-40',
+                        'h-6 rounded-md border px-2 text-[0.625rem] transition-colors disabled:opacity-40',
                         on
                           ? 'border-foreground/30 bg-foreground text-background'
                           : 'border-foreground/15 text-muted-foreground'

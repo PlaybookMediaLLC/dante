@@ -132,7 +132,7 @@ function ColorInput({
       <span className="block">{label}</span>
       <span className="flex h-9 items-center gap-2 rounded-md border border-foreground/10 bg-foreground/[0.035] px-2">
         <Input aria-label={ariaLabel ?? `${label} color`} type="color" value={value} onChange={(event) => onChange(event.target.value)} className="size-5 cursor-pointer rounded border-0 bg-transparent p-0" />
-        <span className="font-mono text-[11px] uppercase text-foreground">{value}</span>
+        <span className="font-mono text-[0.6875rem] uppercase text-foreground">{value}</span>
       </span>
     </Label>
   );
@@ -446,13 +446,13 @@ export function StoreGlobalPanel({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs text-foreground">Custom background</p>
-                      <p className="mt-0.5 text-[10px] text-muted-foreground">Upload an image for this slide.</p>
+                      <p className="mt-0.5 text-[0.625rem] text-muted-foreground">Upload an image for this slide.</p>
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="shrink-0 text-[11px]"
+                      className="shrink-0 text-[0.6875rem]"
                       onClick={() => backgroundInputRef.current?.click()}
                     >
                       <Image01Icon size={13} />
@@ -503,7 +503,7 @@ export function StoreGlobalPanel({
                         alt=""
                         className="size-9 shrink-0 rounded object-cover"
                       />
-                      <span className="min-w-0 flex-1 truncate text-[11px] text-foreground">
+                      <span className="min-w-0 flex-1 truncate text-[0.6875rem] text-foreground">
                         {selectedSlide.backgroundImageOverride.name}
                       </span>
                       <Button variant="custom" size={null}
@@ -719,7 +719,7 @@ export function StoreSlidePanel({
             <Section title="Copy" compact>
               <div className="space-y-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium text-muted-foreground">Heading</span>
+                  <span className="text-[0.625rem] font-medium text-muted-foreground">Heading</span>
                   {slide.headline ? (
                     <Button variant="custom" size={null}
                       type="button"
@@ -751,7 +751,7 @@ export function StoreSlidePanel({
               </div>
               <div className="space-y-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-medium text-muted-foreground">Subheading</span>
+                  <span className="text-[0.625rem] font-medium text-muted-foreground">Subheading</span>
                   {slide.subhead ? (
                     <Button variant="custom" size={null}
                       type="button"
@@ -792,7 +792,7 @@ export function StoreSlidePanel({
                     className="space-y-2 rounded-md border border-foreground/10 bg-foreground/[0.025] p-2"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-medium text-muted-foreground">Text {index + 1}</span>
+                      <span className="text-[0.625rem] font-medium text-muted-foreground">Text {index + 1}</span>
                       <Button variant="custom" size={null}
                         type="button"
                         aria-label={`Remove text block ${index + 1}`}
@@ -830,7 +830,7 @@ export function StoreSlidePanel({
                         : slide.subheadColorOverride ?? theme.subheadColor)}
                       onChange={(color) => updateExtraText(text.id, { color })}
                     />
-                    <div className="grid grid-cols-[minmax(0,1fr)_32px_32px_50px] gap-1 px-0.5 text-[9px] text-muted-foreground">
+                    <div className="grid grid-cols-[minmax(0,1fr)_32px_32px_50px] gap-1 px-0.5 text-[0.5625rem] text-muted-foreground">
                       <span>Style</span>
                       <span className="text-center">Bold</span>
                       <span className="text-center">Italic</span>
@@ -910,7 +910,7 @@ export function StoreSlidePanel({
                 );
               })}
               <div className="flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
-                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                <p className="text-[0.625rem] leading-relaxed text-muted-foreground">
                   Drag any text directly on the canvas.
                 </p>
                 <Button
@@ -919,7 +919,7 @@ export function StoreSlidePanel({
                   size="sm"
                   disabled={extraTexts.length >= 6}
                   onClick={addExtraText}
-                  className="h-8 shrink-0 px-2.5 text-[11px]"
+                  className="h-8 shrink-0 px-2.5 text-[0.6875rem]"
                 >
                   <Add01Icon size={13} /> Add text
                 </Button>
@@ -948,7 +948,7 @@ export function StoreSlidePanel({
                   </span>
                 </Label>
                 <div className="flex h-9 items-center justify-between gap-3 rounded-md border border-foreground/10 bg-foreground/[0.025] px-2.5">
-                  <Label htmlFor="store-text-color-scope" className="cursor-pointer text-[10px] font-medium text-muted-foreground">
+                  <Label htmlFor="store-text-color-scope" className="cursor-pointer text-[0.625rem] font-medium text-muted-foreground">
                     Apply to all screenshots
                   </Label>
                   <Switch
@@ -983,7 +983,7 @@ export function StoreSlidePanel({
             <Section title={isDuo ? `${screenLabel} image` : "Screenshot"} compact>
               {isDuo ? (
                 <div className="grid grid-cols-2 gap-2">
-                    <Label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Label className="flex min-w-0 items-center gap-1.5 text-[0.625rem] text-muted-foreground">
                       <span className="shrink-0">Left</span>
                       <span className="relative min-w-0 flex-1">
                         <UiSelect
@@ -992,7 +992,7 @@ export function StoreSlidePanel({
                         >
                           <SelectTrigger
                             aria-label="Left device image"
-                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[0.625rem] text-foreground outline-none focus:border-foreground/25"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1006,7 +1006,7 @@ export function StoreSlidePanel({
                         </UiSelect>
                       </span>
                     </Label>
-                    <Label className="flex min-w-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Label className="flex min-w-0 items-center gap-1.5 text-[0.625rem] text-muted-foreground">
                       <span className="shrink-0">Right</span>
                       <span className="relative min-w-0 flex-1">
                         <UiSelect
@@ -1015,7 +1015,7 @@ export function StoreSlidePanel({
                         >
                           <SelectTrigger
                             aria-label="Right device image"
-                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[10px] text-foreground outline-none focus:border-foreground/25"
+                            className="h-8 w-full appearance-none rounded-md border border-foreground/10 bg-foreground/[0.035] py-0 pl-1.5 pr-6 text-[0.625rem] text-foreground outline-none focus:border-foreground/25"
                           >
                             <SelectValue />
                           </SelectTrigger>
@@ -1048,12 +1048,12 @@ export function StoreSlidePanel({
               {screenSlide.src && usesDeviceFrame ? (
                 <>
                   <div className="flex items-center justify-between gap-3 border-t border-foreground/10 pt-3">
-                    <span className="text-[10px] font-medium text-muted-foreground">Image framing</span>
+                    <span className="text-[0.625rem] font-medium text-muted-foreground">Image framing</span>
                     <Button variant="custom" size={null}
                       type="button"
                       disabled={!imageFramingChanged}
                       onClick={() => onChange(screenSlide.id, { image: { ...DEFAULT_IMAGE_TRANSFORM } })}
-                      className="rounded px-1.5 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
+                      className="rounded px-1.5 py-1 text-[0.625rem] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.05] hover:text-foreground disabled:pointer-events-none disabled:opacity-35"
                     >
                       Reset
                     </Button>
@@ -1072,7 +1072,7 @@ export function StoreSlidePanel({
                       { id: "custom", label: "Crop" },
                     ]}
                   />
-                  <p className="px-0.5 text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="px-0.5 text-[0.625rem] leading-relaxed text-muted-foreground">
                     {imageMode === "fill"
                       ? "Fills the screen edge to edge. Some image edges may be cropped."
                       : imageMode === "fit"

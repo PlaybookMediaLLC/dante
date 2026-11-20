@@ -38,7 +38,7 @@ export function TagChip({ tag }: { tag: { color: DraftTagWire['color']; name: st
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] leading-none',
+        'inline-flex items-center rounded-full px-1.5 py-0.5 text-[0.625rem] leading-none',
         CHIPS[tag.color]
       )}
     >
