@@ -109,6 +109,55 @@ export const CREATE_TOOLS = [
   },
 ] as const
 
+/**
+ * The image tools Create opens inside the app at /create/tools/<slug>. Each
+ * slug matches its public page (/<slug>), which stays outside the shell for search.
+ */
+export const IN_APP_TOOLS = [
+  {
+    slug: 'compress-image',
+    label: 'Compress',
+    title: 'Compress images',
+    description: 'Make files smaller without making them look worse.',
+  },
+  {
+    slug: 'convert-image',
+    label: 'Convert',
+    title: 'Convert images',
+    description: 'Switch between PNG, JPG, WebP, and AVIF.',
+  },
+  {
+    slug: 'resize-image',
+    label: 'Resize',
+    title: 'Resize images',
+    description: 'Set exact pixels or a percentage, with the ratio kept.',
+  },
+  {
+    slug: 'crop-image',
+    label: 'Crop',
+    title: 'Crop an image',
+    description: 'Drag a frame or pick square, 16:9, and more.',
+  },
+  {
+    slug: 'rotate-image',
+    label: 'Rotate',
+    title: 'Rotate and flip',
+    description: 'Turn images 90 degrees or mirror them, in bulk.',
+  },
+  {
+    slug: 'remove-background',
+    label: 'Remove background',
+    title: 'Remove background',
+    description: 'Cut out the subject and get a transparent PNG.',
+  },
+  {
+    slug: 'compress-video',
+    label: 'Compress video',
+    title: 'Compress a video',
+    description: 'Shrink a video to a quality level or an exact size in MB.',
+  },
+] as const
+
 /** One tool's entry in `CREATE_TOOLS`. */
 export type CreateTool = (typeof CREATE_TOOLS)[number]
 
@@ -296,6 +345,8 @@ export function paidCapability(from: string | null | undefined): string | null {
     ['/create/code', 'Code image'],
     ['/code', 'Code image'],
     ['/tweet', 'Post images'],
+    ['/create/tweet', 'Post images'],
+    ['/create/tools', 'Image tools'],
     ['/projects', 'Library'],
     ['/assets', 'Library'],
   ]
