@@ -786,35 +786,6 @@
 .create-tile.is-text .create-tile-media > * {
   box-shadow: none;
 }
-/* Create's prompt bar floats over the gallery's foot, like an image studio's. */
-.create-prompt {
-  position: sticky;
-  bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: min(100%, 640px);
-  margin: 8px auto 0;
-  padding: 6px 6px 6px 16px;
-  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
-  border-radius: 999px;
-  background: var(--background);
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 5%),
-    0 12px 32px -12px rgb(0 0 0 / 22%);
-}
-.create-prompt:focus-within {
-  border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
-}
-/* The bar is the field: its input drops the shell's control fill and ring. */
-:is(.create-prompt, .canvas-copilot-bar) [data-slot='input'],
-:is(.create-prompt, .canvas-copilot-bar) [data-slot='input']:focus-visible {
-  border-color: transparent;
-  background-color: transparent;
-  box-shadow: none;
-  font-size: 14px;
-}
 /* The words on a starter's sheet, at the size of a page seen from across a desk. */
 .home-art-title {
   display: block;
@@ -891,41 +862,84 @@
 .dark :is(.home-starter-tile, .home-card-media) {
   background: color-mix(in srgb, var(--foreground) 8%, var(--background));
 }
-/* The canvas's copilot dock: a chat bar at the board's foot, its thread above. */
-.canvas-copilot {
+/* The AI chat bar (components/assistant): over the page's foot, its thread
+   above it, inside a slot that fills the page or the canvas board. */
+.assistant-slot {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+.assistant {
   position: absolute;
   bottom: 12px;
   left: 50%;
-  z-index: 30;
   display: grid;
   gap: 8px;
-  width: min(560px, calc(100% - 24px));
+  width: min(600px, calc(100% - 24px));
   transform: translateX(-50%);
+  pointer-events: auto;
 }
-.canvas-copilot-thread,
-.canvas-copilot-bar {
+.assistant-thread,
+.assistant-bar,
+.assistant-launcher {
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
   background: var(--background);
   box-shadow:
     0 1px 2px rgb(0 0 0 / 5%),
     0 12px 32px -12px rgb(0 0 0 / 22%);
 }
-.canvas-copilot-thread {
+.assistant-thread {
   overflow: hidden;
   border-radius: 18px;
 }
-.canvas-copilot-bar {
+.assistant-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px 5px 5px 16px;
+  gap: 8px;
+  padding: 5px 5px 5px 14px;
   border-radius: 999px;
 }
-.canvas-copilot-bar:focus-within {
+.assistant-bar:focus-within {
   border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
 }
-.canvas-copilot-bar [data-slot='input'] {
+/* What the assistant sees: the page or the item it acts on. */
+.assistant-context {
+  flex-shrink: 0;
+  max-width: 34%;
+  overflow: hidden;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: var(--muted-foreground);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* The bar is the field: its input drops the shell's control fill and ring. */
+.assistant-bar [data-slot='input'],
+.assistant-bar [data-slot='input']:focus-visible {
   height: 32px;
   flex: 1;
   padding-inline: 0;
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+  font-size: 14px;
+}
+/* Closed, the bar is a small pill in the corner, out of the page's way. */
+.assistant-launcher {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: auto;
 }

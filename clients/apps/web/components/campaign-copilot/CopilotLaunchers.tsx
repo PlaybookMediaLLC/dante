@@ -13,6 +13,7 @@ import { type FormEvent, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
+import { useAssistantAbility } from '@/components/assistant/AssistantProvider'
 import Link from 'next/link'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -163,16 +164,41 @@ export function AskShotsButton({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
 
+  /** The campaign's latest conversation, or a new one about it. */
+  async function conversation(): Promise<string> {
+    if (conversationId) return conversationId
+    const { conversations } = await client.conversation.list.query({ campaignId })
+    const id =
+      conversations[0]?.id ??
+      (await client.conversation.create.mutate({ campaignId })).conversation.id
+    setConversationId(id)
+    return id
+  }
+
+  // The assistant bar on this campaign's pages asks the campaign agent; the panel shows its run.
+  useAssistantAbility(
+    aiEnabled
+      ? {
+          id: `campaign-agent:${campaignId}`,
+          label: 'Campaign agent',
+          placeholder: 'Ask the campaign agent about this campaign',
+          priority: 10,
+          run: async ({ ask, push }) => {
+            const id = await conversation()
+            await client.conversation.send.mutate({ content: ask, conversationId: id })
+            setOpen(true)
+            push({ kind: 'note', text: 'Sent to the campaign agent. Its work shows in the panel.' })
+          },
+        }
+      : null
+  )
+
   async function openPanel() {
     setError(null)
     if (conversationId) return setOpen(true)
     setBusy(true)
     try {
-      const { conversations } = await client.conversation.list.query({ campaignId })
-      const id =
-        conversations[0]?.id ??
-        (await client.conversation.create.mutate({ campaignId })).conversation.id
-      setConversationId(id)
+      await conversation()
       setOpen(true)
     } catch (failure) {
       setError(errorMessage(failure))

@@ -35,7 +35,8 @@ import { LayerSelection } from './LayerSelection'
 import { PeerMarkers, PresenceSummary, useCanvasPresence } from './CanvasPresence'
 import { CanvasStoreEditor, StoreGroupsLayer } from './StoreGroups'
 import { useCanvasShortcuts } from './use-canvas-shortcuts'
-import { CanvasCopilotDock } from './CanvasCopilotDock'
+import { useCanvasCopilot } from './use-canvas-copilot'
+import { AssistantSlot } from '@/components/assistant/AssistantProvider'
 
 const TimelineEditor = dynamic(
   () => import('@/components/timeline/TimelineEditor').then((module) => module.TimelineEditor),
@@ -97,6 +98,15 @@ export function CanvasWorkspace({
     }
   }, [flushNative])
   const actions = useCanvasActions(session, flush)
+  useCanvasCopilot({
+    activeId,
+    artboards: state.document.artboards,
+    canvas: { id: session.record.id, name: session.record.name },
+    enabled: editing,
+    error: native.error,
+    onEdit: (id) => actions.edit(id),
+    ready: native.ready,
+  })
   const active = state.document.artboards.find((artboard) => artboard.id === activeId) ?? null
   const editingStore =
     state.document.storeGroups.find((item) => item.group.id === editingStoreId) ?? null
@@ -370,15 +380,7 @@ export function CanvasWorkspace({
             <>
               <ZoomBar actions={actions} />
               <Minimap artboards={state.document.artboards} />
-              {editing ? (
-                <CanvasCopilotDock
-                  artboards={state.document.artboards}
-                  activeId={activeId}
-                  ready={native.ready}
-                  error={native.error}
-                  onEdit={(id) => actions.edit(id)}
-                />
-              ) : null}
+              <AssistantSlot />
             </>
           )}
         </section>

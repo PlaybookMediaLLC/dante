@@ -2,6 +2,8 @@ import { cookies, headers } from 'next/headers'
 import type { ReactNode } from 'react'
 import { OnboardingProgressCard } from '@/components/onboarding/OnboardingProgressCard'
 import { PreferencesProvider } from '@/components/settings/PreferencesProvider'
+import { AssistantBar } from '@/components/assistant/AssistantBar'
+import { AssistantProvider, AssistantSlot } from '@/components/assistant/AssistantProvider'
 import { PendingDraftInput } from '@/components/write/pending-draft'
 import { getPageAccess } from '@/lib/auth/page-access'
 import { contentDraftsEnabled } from '@/lib/content-drafts/flag'
@@ -55,82 +57,89 @@ export async function PlatformShell({
   const brandCss = brandThemeCss(access?.whitelabel)
   return (
     <PreferencesProvider>
-      {/* Rendered with the shell, so branding stays out of public pages. */}
-      {brandCss ? <style>{brandCss}</style> : null}
-      {access?.whitelabel?.faviconUrl ? (
-        <link href={access.whitelabel.faviconUrl} rel="icon" />
-      ) : null}
-      <ProductTourProvider access={platformAccess} autoStart={variant === 'page'}>
-        <div
-          data-platform-shell
-          data-platform-variant={variant}
-          className={cn(
-            'platform-shell flex h-dvh min-h-0 flex-col overflow-hidden text-foreground md:flex-row',
-            surface.base
-          )}
-        >
-          <a
-            className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-background focus:p-3"
-            href="#platform-content"
+      <AssistantProvider>
+        {/* Rendered with the shell, so branding stays out of public pages. */}
+        {brandCss ? <style>{brandCss}</style> : null}
+        {access?.whitelabel?.faviconUrl ? (
+          <link href={access.whitelabel.faviconUrl} rel="icon" />
+        ) : null}
+        <ProductTourProvider access={platformAccess} autoStart={variant === 'page'}>
+          <div
+            data-platform-shell
+            data-platform-variant={variant}
+            className={cn(
+              'platform-shell flex h-dvh min-h-0 flex-col overflow-hidden text-foreground md:flex-row',
+              surface.base
+            )}
           >
-            Skip to content
-          </a>
-          <PlatformSidebar
-            brand={brandIdentity(access?.whitelabel)}
-            campaignsEnabled={platformAccess.campaignsEnabled}
-            deniedPermissions={access?.deniedPermissions}
-            draftsEnabled={platformAccess.draftsEnabled}
-            draftsPlan={platformAccess.draftsPlan}
-            initialNavigation={navigation}
-            notificationIdentity={
-              access?.organization
-                ? { userId: access.session.user.id, workspaceId: access.organization.id }
-                : undefined
-            }
-            organizationName={organizationName}
-            paidPlan={platformAccess.paidPlan}
-            role={access?.role ?? 'viewer'}
-            variant={variant}
-          />
-          {access?.organization ? (
-            <WorkspaceTabGuard
-              workspaceId={access.organization.id}
-              workspaceName={access.organization.name}
+            <a
+              className="sr-only focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-background focus:p-3"
+              href="#platform-content"
+            >
+              Skip to content
+            </a>
+            <PlatformSidebar
+              brand={brandIdentity(access?.whitelabel)}
+              campaignsEnabled={platformAccess.campaignsEnabled}
+              deniedPermissions={access?.deniedPermissions}
+              draftsEnabled={platformAccess.draftsEnabled}
+              draftsPlan={platformAccess.draftsPlan}
+              initialNavigation={navigation}
+              notificationIdentity={
+                access?.organization
+                  ? { userId: access.session.user.id, workspaceId: access.organization.id }
+                  : undefined
+              }
+              organizationName={organizationName}
+              paidPlan={platformAccess.paidPlan}
+              role={access?.role ?? 'viewer'}
+              variant={variant}
             />
-          ) : null}
-          {variant === 'page' ? (
-            <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:py-3 md:pe-3">
+            {access?.organization ? (
+              <WorkspaceTabGuard
+                workspaceId={access.organization.id}
+                workspaceName={access.organization.name}
+              />
+            ) : null}
+            {variant === 'page' ? (
+              <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden md:py-3 md:pe-3">
+                <div
+                  data-platform-scroll
+                  id="platform-content"
+                  tabIndex={0}
+                  aria-label="Page content"
+                  role="region"
+                  className={cn(
+                    // `relative` keeps hidden form inputs in here, or they make the window scroll too.
+                    'relative h-full min-h-0 overflow-y-auto overscroll-contain md:rounded-2xl md:border',
+                    surface.panel,
+                    surface.border
+                  )}
+                >
+                  {children}
+                </div>
+                {/* New → Post opens a blank post over the page's content, beside the navigation. */}
+                <PendingDraftInput />
+                {/* The AI chat bar sits over the page unless the page gives it a slot of its own. */}
+                <AssistantSlot fallback />
+                <AssistantBar />
+              </div>
+            ) : (
               <div
-                data-platform-scroll
                 id="platform-content"
-                tabIndex={0}
-                aria-label="Page content"
-                role="region"
-                className={cn(
-                  // `relative` keeps hidden form inputs in here, or they make the window scroll too.
-                  'relative h-full min-h-0 overflow-y-auto overscroll-contain md:rounded-2xl md:border',
-                  surface.panel,
-                  surface.border
-                )}
+                tabIndex={-1}
+                className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
               >
                 {children}
+                <PendingDraftInput variant="editor" />
+                {/* Full-bleed editors show the bar only in a slot of their own, as the canvas gives. */}
+                <AssistantBar />
               </div>
-              {/* New → Post opens a blank post over the page's content, beside the navigation. */}
-              <PendingDraftInput />
-            </div>
-          ) : (
-            <div
-              id="platform-content"
-              tabIndex={-1}
-              className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-background"
-            >
-              {children}
-              <PendingDraftInput variant="editor" />
-            </div>
-          )}
-          <OnboardingProgressCard />
-        </div>
-      </ProductTourProvider>
+            )}
+            <OnboardingProgressCard />
+          </div>
+        </ProductTourProvider>
+      </AssistantProvider>
     </PreferencesProvider>
   )
 }

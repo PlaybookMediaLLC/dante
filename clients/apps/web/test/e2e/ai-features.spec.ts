@@ -1,4 +1,7 @@
-import { expect, type Page, test } from './framework'
+import { expect, type Page, test, trpcMutation } from './framework'
+import { canvasDocumentSchema } from '@/lib/canvas/document'
+import { blankArtboard } from '@/lib/canvas/recipes'
+import { newCreativeSetId } from '@/lib/creative-sets/document'
 import sharp from 'sharp'
 
 test.use({ workspaceOptions: { plan: 'pro' } })
@@ -122,5 +125,49 @@ test(
     // Regenerating keeps the earlier result to go back to.
     await page.getByRole('button', { name: 'Generate another' }).click()
     await expect(results.getByRole('button')).toHaveCount(2, { timeout: 90_000 })
+  }
+)
+
+test(
+  'the assistant bar answers from the page it is on, offers the work it found, and hands the canvas to its copilot',
+  { tag: '@journey' },
+  async ({ app, page }) => {
+    const created = await trpcMutation(page, 'project.create', {
+      name: 'Assistant launch hero',
+      document: { version: 2, image: { src: null } },
+    })
+    expect(created.status).toBe(200)
+    const projectId = (created.body as { id: string }).id
+
+    await app.open('/home')
+    await page.getByRole('button', { name: 'Ask AI', exact: true }).click()
+    const assistant = page.getByRole('region', { name: 'Assistant' })
+    await expect(assistant.getByTitle('The assistant sees: Home')).toBeVisible()
+    const sent = page.waitForRequest('**/api/ai/assistant')
+    await assistant.getByRole('textbox', { name: 'Ask the assistant' }).fill('What did I work on?')
+    await page.keyboard.press('Enter')
+    // The page went with the question; the scripted model answers from it.
+    expect((await sent).postDataJSON().page).toMatchObject({ area: 'home', path: '/home' })
+    await expect(assistant.getByText(/^You are on Home\./)).toBeVisible({ timeout: 60_000 })
+    const link = assistant.getByRole('link', { name: /Open Assistant launch hero/ })
+    await expect(link).toHaveAttribute('href', `/editor?project=${projectId}`)
+
+    // On a canvas the artboard copilot answers instead, with the bar open on the board.
+    const canvas = await trpcMutation(page, 'canvas.create', {
+      id: newCreativeSetId(),
+      name: 'Assistant canvas',
+      document: canvasDocumentSchema.parse({
+        version: 1,
+        kind: 'canvas',
+        artboards: [blankArtboard('wide-16x9', { x: 0, y: 0 })],
+      }),
+    })
+    expect(canvas.status).toBe(200)
+    await app.open(`/canvas/${(canvas.body as { id: string }).id}`)
+    await expect(
+      page
+        .getByRole('region', { name: 'Assistant' })
+        .getByTitle(/^The assistant sees: Artboard 1 · /)
+    ).toBeVisible({ timeout: 60_000 })
   }
 )

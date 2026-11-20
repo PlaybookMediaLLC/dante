@@ -869,6 +869,25 @@ function scriptCopySuggestions(text: string, system: string) {
   }
 }
 
+// ------------------------------------------------ workspace assistant --
+
+/**
+ * The workspace assistant's turn: look up recent work, offer the newest item,
+ * then answer naming the page it was asked from, so a test can see the page
+ * context arrived and the tools ran.
+ */
+function scriptAssistant(system: string, results: ToolResult[]): LanguageModelV4Content[] {
+  const page = system.match(/^Page: (.+?) \(/m)?.[1] ?? 'this page'
+  const work = results.find((result) => result.toolName === 'listRecentWork')
+  if (!work) return toolCalls([{ input: {}, toolName: 'listRecentWork' }])
+  const items = (work.output as { items?: Array<{ href: string; name: string }> } | null)?.items ?? []
+  if (items[0] && !results.some((result) => result.toolName === 'offerLink')) {
+    return toolCalls([{ input: { href: items[0].href, label: `Open ${clip(items[0].name, 40)}` }, toolName: 'offerLink' }])
+  }
+  const count = `${items.length} recent item${items.length === 1 ? '' : 's'}`
+  return [{ text: `You are on ${page}. Your workspace has ${count}${items[0] ? `; the newest is ${items[0].name}` : ''}.`, type: 'text' }]
+}
+
 export function createScriptedModel(modelId: string): LanguageModelV4 {
   return new MockLanguageModelV4({
     doGenerate: async (options) => {
@@ -933,6 +952,9 @@ export function createScriptedModel(modelId: string): LanguageModelV4 {
       }
       if (names.includes('createCampaign')) {
         return respond(scriptConversation(options, names, calls, results))
+      }
+      if (names.includes('offerLink') && names.includes('listRecentWork')) {
+        return respond(scriptAssistant(systemText(options), results))
       }
       if (names.includes('requestApproval')) {
         const next = scriptApproval(text, names, calls)
