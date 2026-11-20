@@ -32,7 +32,7 @@ export function SidebarRecents({
   if (!items.length) return null
   return (
     <section aria-labelledby="sidebar-recents" className="grid gap-0.5">
-      <h2 id="sidebar-recents" className="px-2.5 pt-2 pb-1.5 text-[12.5px] text-muted-foreground">
+      <h2 id="sidebar-recents" className="px-2.5 pt-2 pb-1.5 text-[0.78125rem] text-muted-foreground">
         Recents
       </h2>
       <ul className="grid gap-0.5">
@@ -44,7 +44,7 @@ export function SidebarRecents({
                 href={item.href}
                 onClick={onNavigate}
                 title={`${item.title} · ${item.type}`}
-                className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
+                className="flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[0.84375rem] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
               >
                 <Icon size={15} aria-hidden="true" className="shrink-0 text-muted-foreground" />
                 <span className="truncate">{item.title}</span>
@@ -56,7 +56,7 @@ export function SidebarRecents({
       <SidebarLink
         href="/library"
         onClick={onNavigate}
-        className="px-2.5 pt-2 text-[12.5px] text-muted-foreground hover:text-foreground"
+        className="px-2.5 pt-2 text-[0.78125rem] text-muted-foreground hover:text-foreground"
       >
         Show more
       </SidebarLink>

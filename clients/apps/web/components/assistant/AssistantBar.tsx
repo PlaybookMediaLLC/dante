@@ -233,7 +233,7 @@ export function AssistantBar({
     <section aria-label="Assistant" className="assistant" data-board-control>
       {entries.length ? (
         <div className="assistant-thread">
-          <header className="flex items-center gap-2 border-b px-3 py-2 text-[12.5px]">
+          <header className="flex items-center gap-2 border-b px-3 py-2 text-[0.78125rem]">
             <span className="font-medium">Shots</span>
             <span className="truncate text-muted-foreground">{ability.label}</span>
             <Button
@@ -256,7 +256,7 @@ export function AssistantBar({
               <li
                 key={index}
                 className={cn(
-                  'max-w-[85%] text-[13px] leading-relaxed',
+                  'max-w-[85%] text-[0.8125rem] leading-relaxed',
                   entry.kind === 'post' && 'w-full',
                   entry.kind === 'user' &&
                     'justify-self-end rounded-2xl bg-foreground px-3 py-1.5 text-background',
@@ -391,7 +391,7 @@ export function AssistantLauncher({
       aria-expanded={open}
       title={`Ask AI about this page or your workspace (${keys.label({ key: 'j', mod: true })})`}
       className={cn(
-        'flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
+        'flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[0.84375rem] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
         collapsed && 'mx-auto size-10 justify-center px-0'
       )}
       onClick={() => {

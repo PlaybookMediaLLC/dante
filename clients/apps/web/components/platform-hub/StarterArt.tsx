@@ -118,7 +118,7 @@ export function StarterArt({ kind }: { kind: StarterKind }) {
           <b className="home-art-title">When a release ships</b>
           <span className="home-art-meta">Workflow · Automatic</span>
           <span className="mt-[9px] flex items-center gap-[5px]">
-            <span className="rounded-full bg-[#1d4d3a] px-[6px] py-[2px] text-[7px] font-semibold text-[#d7f5c7]">
+            <span className="rounded-full bg-[#1d4d3a] px-[6px] py-[2px] text-[0.4375rem] font-semibold text-[#d7f5c7]">
               v2.4.0
             </span>
             <span className="h-px flex-1 bg-black/15" />

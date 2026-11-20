@@ -20,7 +20,7 @@ export function AssistantPost({ text }: { text: string }) {
   const busy = useBlankDraft()
   return (
     <figure className="grid gap-2 rounded-2xl border bg-background p-3">
-      <blockquote className="max-h-48 overflow-y-auto text-[13px] leading-relaxed whitespace-pre-wrap">
+      <blockquote className="max-h-48 overflow-y-auto text-[0.8125rem] leading-relaxed whitespace-pre-wrap">
         {text}
       </blockquote>
       <Button
