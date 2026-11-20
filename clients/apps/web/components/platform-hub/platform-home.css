@@ -864,8 +864,7 @@
   pointer-events: auto;
 }
 .assistant-thread,
-.assistant-bar,
-.assistant-launcher {
+.assistant-bar {
   border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
   background: var(--background);
   box-shadow:
@@ -909,23 +908,6 @@
   background-color: transparent;
   box-shadow: none;
   font-size: 14px;
-}
-/* Closed, the bar is a small pill in the corner, out of the page's way (the
-   onboarding card and toasts take the other one). */
-.assistant-launcher {
-  position: absolute;
-  left: 16px;
-  bottom: 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding-inline: 14px;
-  border-radius: 999px;
-  color: var(--foreground);
-  font-size: 13px;
-  font-weight: 500;
-  pointer-events: auto;
 }
 /* At the foot's end, beside controls the page keeps at its start (the canvas's zoom bar). */
 .assistant-slot[data-placement='end'] .assistant {

@@ -35,7 +35,16 @@ const useConversation = create<{
   controller: AbortController | null
   /** Whether the bar is open, kept across pages with the conversation. */
   open: boolean
-}>(() => ({ abilityId: null, entries: [], memory: { current: [] }, controller: null, open: false }))
+  /** Bumped when the launcher asks for the cursor in the bar. */
+  focus: number
+}>(() => ({
+  abilityId: null,
+  entries: [],
+  memory: { current: [] },
+  controller: null,
+  open: false,
+  focus: 0,
+}))
 
 const setOpen = (open: boolean) => useConversation.setState({ open })
 
@@ -97,6 +106,12 @@ export function AssistantBar() {
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight })
   }, [entries])
+
+  // The launcher puts the cursor in the bar once it has opened.
+  const focus = useConversation((state) => state.focus)
+  useEffect(() => {
+    if (focus) input.current?.focus()
+  }, [focus, open])
 
   if (!registry || !available || !registry.slot) return null
 
@@ -266,22 +281,45 @@ export function AssistantBar() {
         )}
       </form>
     </section>
-  ) : (
+  ) : null
+  return bar ? createPortal(bar, registry.slot) : null
+}
+
+/**
+ * "Ask AI" in the sidebar: opens the bar over the page and puts the cursor in
+ * it. It lives in the navigation so a closed bar never covers the page.
+ */
+export function AssistantLauncher({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean
+  /** Closes the phone menu the launcher sits in. */
+  onNavigate?: () => void
+}) {
+  const registry = useAssistantRegistry()
+  const available = useAiAvailable()
+  const open = useConversation((state) => state.open)
+  if (!registry?.slot || !available) return null
+  return (
     <Button
       type="button"
       variant="custom"
       size={null}
-      className="assistant-launcher"
       aria-label="Open the assistant"
-      data-board-control
+      aria-expanded={open}
+      title="Ask AI about this page or your workspace"
+      className={cn(
+        'flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
+        collapsed && 'mx-auto size-10 justify-center px-0'
+      )}
       onClick={() => {
-        setOpen(true)
-        requestAnimationFrame(() => input.current?.focus())
+        onNavigate?.()
+        useConversation.setState((state) => ({ open: true, focus: state.focus + 1 }))
       }}
     >
-      <SparkleIcon aria-hidden="true" className="size-4 text-violet-500" />
-      Ask AI
+      <SparkleIcon aria-hidden="true" className="size-[18px] shrink-0 text-violet-500" />
+      {collapsed ? null : 'Ask AI'}
     </Button>
   )
-  return createPortal(bar, registry.slot)
 }
