@@ -830,18 +830,6 @@
   padding-top: 4px;
 }
 /* A full composition crops like a photo: the tile is all picture. */
-.create-tile.is-cover {
-  aspect-ratio: 4 / 3;
-}
-.create-tile.is-cover .create-tile-media {
-  padding: 0;
-}
-/* 134% of a 4:3 tile's width is a 16:9 picture as tall as the tile. */
-.create-tile.is-cover .create-tile-media > * {
-  width: 134%;
-  max-width: none;
-  box-shadow: none;
-}
 /* The pages a tool makes, standing on the tile's colour above the label. */
 .create-tile-media.is-spread {
   padding: 12% 9% 26%;
@@ -853,11 +841,6 @@
 /* Home's Create pill: a full pill, as the search beside it is. */
 .platform-shell .home-create[data-slot='button'] {
   border-radius: 999px;
-}
-/* A light composition behind the name needs a deeper shade to keep it legible. */
-.create-tile.is-cover::after {
-  height: 64px;
-  background: linear-gradient(to top, rgb(0 0 0 / 62%), rgb(0 0 0 / 25%) 55%, transparent);
 }
 .dark :is(.home-starter-tile, .home-card-media) {
   background: color-mix(in srgb, var(--foreground) 8%, var(--background));
@@ -951,4 +934,20 @@
   width: min(520px, calc(100% - 500px));
   min-width: min(320px, calc(100% - 24px));
   transform: none;
+}
+/* A tall template tile glows with the template's own background: blurred and
+   enlarged so it fills the tile, the template itself a framed card on top. */
+.create-tile-backdrop {
+  position: absolute;
+  inset: -12%;
+  filter: blur(22px) saturate(1.15);
+  pointer-events: none;
+}
+.create-tile:has(.create-tile-backdrop) .create-tile-media > * {
+  width: 112%;
+  max-width: none;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 12%),
+    0 18px 36px -14px rgb(0 0 0 / 45%);
 }

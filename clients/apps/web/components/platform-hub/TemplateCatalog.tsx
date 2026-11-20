@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useNearViewport } from '@/components/design/DocumentPreview'
 import { ImageTemplatePreview } from '@/components/templates/ImageTemplateGallery'
+import { PresetPreviewBackground } from '@/components/presets/PresetGallery'
 import { AnimatedTemplatePreview } from '@/components/templates/AnimatedTemplateGallery'
 import { RecipePreview } from '@/components/canvas-workspace/RecipePreview'
 import { StoreTemplatePreview } from '@/components/store-screenshots/StoreTemplatePreview'
@@ -34,7 +35,7 @@ function PreviewCard({
   href,
   action,
   text = false,
-  cover = false,
+  backdrop,
   children,
 }: {
   name: string
@@ -43,13 +44,18 @@ function PreviewCard({
   action: string
   /** The preview is words, not a picture: the tile grows to fit them. */
   text?: boolean
-  /** The preview is a whole 16:9 composition: it covers its tile like a photo. */
-  cover?: boolean
+  /** The template's own background, blurred behind the preview to fill a tall tile. */
+  backdrop?: ReactNode
   children: ReactNode
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className={text ? 'create-tile is-text' : cover ? 'create-tile is-cover' : 'create-tile'}>
+    <li className={text ? 'create-tile is-text' : 'create-tile'}>
+      {backdrop ? (
+        <div aria-hidden="true" className="create-tile-backdrop">
+          {backdrop}
+        </div>
+      ) : null}
       <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="create-tile-media">
         {near ? (
           <div aria-hidden="true">{children}</div>
@@ -81,7 +87,7 @@ export function TemplateStrip({ count = 10 }: { count?: number }) {
           description={template.preset.description}
           href={newScreenshotFrom(template.preset.id)}
           action="Use template"
-          cover
+          backdrop={<PresetPreviewBackground preset={template.preset} />}
         >
           <ImageTemplatePreview template={template} />
         </PreviewCard>
@@ -163,6 +169,7 @@ export default function TemplateCatalog() {
                 description={template.preset.description}
                 href={newScreenshotFrom(template.preset.id)}
                 action="Use template"
+                backdrop={<PresetPreviewBackground preset={template.preset} />}
               >
                 <ImageTemplatePreview template={template} />
               </PreviewCard>
