@@ -3,7 +3,7 @@ import 'server-only'
 import { z } from 'zod'
 import { INTERNAL_HREF_MAX, internalHref } from '@/lib/assistant/page-context'
 import { EDITOR_ASK_MAX, editorAskHref } from '@/lib/ai/editor-ask'
-import { ASSISTANT_POST_MAX } from '@/lib/api/contracts/ai'
+import { ASSISTANT_POST_MAX, ASSISTANT_POSTS_MAX } from '@/lib/api/contracts/ai'
 import { CAMPAIGN_SHIP_MAX, campaignShipHref } from '@/lib/campaigns/ship-ask'
 import { defineTool, type ToolRun } from '@/lib/ai/tools/executor'
 import { marketingTools } from '@/lib/ai/tools/marketing'
@@ -46,9 +46,6 @@ export type AssistantTurnState = {
 const MAX_LINKS = 4
 
 const WORK_KINDS = ['screenshot', 'canvas', 'post'] as const
-
-/** Most posts one reply drafts. */
-const MAX_POSTS = 2
 
 /** startWork's description: the same every turn, with each canvas recipe the model may pick. */
 const START_WORK_DESCRIPTION =
@@ -186,14 +183,23 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   })
 
   /** Whether the workspace's plan includes `feature`; a backend failure still fails the call. */
-  async function allowed(feature: 'campaign:workflow' | 'content:drafts' | 'workspace:paid') {
-    try {
-      await requireWorkspaceFeature(access, feature)
-      return true
-    } catch (error) {
-      if (error instanceof WorkspaceEntitlementError) return false
-      throw error
-    }
+  type Feature = 'campaign:workflow' | 'content:drafts' | 'workspace:paid'
+  // One backend read per feature per turn, however many calls ask.
+  const decisions = new Map<Feature, Promise<boolean>>()
+  function allowed(feature: Feature): Promise<boolean> {
+    const known = decisions.get(feature)
+    if (known) return known
+    const decision = requireWorkspaceFeature(access, feature).then(
+      () => true,
+      (error: unknown) => {
+        // A failed read is not a refusal: forget it, and fail this call.
+        decisions.delete(feature)
+        if (error instanceof WorkspaceEntitlementError) return false
+        throw error
+      }
+    )
+    decisions.set(feature, decision)
+    return decision
   }
 
   const draftPost = defineTool(run, {
@@ -201,18 +207,22 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
       'Write a social post for the person and offer it under your reply, to open as a draft ' +
       'in the post editor. Nothing is saved until they click. Write the finished post, ' +
       'grounded in what your tools returned (the product, the work, the campaign); never ' +
-      'invent features, numbers or links. At most two per reply.',
+      'invent features, numbers or links. Keep it to one short post (under 280 characters) ' +
+      'unless they ask for longer. At most two per reply.',
     effect: 'read',
-    execute: async ({ text }) => {
-      if (state.posts.length >= MAX_POSTS)
+    execute: async ({ text }, { signal }) => {
+      if (state.posts.length >= ASSISTANT_POSTS_MAX)
         return { error: 'Two posts is the most.', ok: false as const }
       if (!contentDraftsEnabled() || !(await allowed('content:drafts')))
         return { error: 'Posts are not on for this workspace.', ok: false as const }
+      // Checked again after the wait: calls in one step run at once, and a timed-out call adds nothing.
+      if (signal.aborted || state.posts.length >= ASSISTANT_POSTS_MAX)
+        return { error: 'Two posts is the most.', ok: false as const }
       state.posts.push({ text })
       return { offered: true, ok: true as const }
     },
     inputSchema: z.object({ text: z.string().trim().min(1).max(ASSISTANT_POST_MAX) }),
-    maxCallsPerRun: MAX_POSTS + 1,
+    maxCallsPerRun: ASSISTANT_POSTS_MAX,
     name: 'draftPost',
     permission: 'artifact:edit',
     timeoutMs: 15_000,
@@ -221,7 +231,7 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
   const startWork = defineTool(run, {
     description: START_WORK_DESCRIPTION,
     effect: 'read',
-    execute: async (input) => {
+    execute: async (input, { signal }) => {
       if (state.links.length >= MAX_LINKS)
         return { error: 'Four buttons is the most.', ok: false as const }
       // A button the plan does not open would land on the upgrade page without its request.
@@ -247,6 +257,8 @@ export function workspaceAssistantTools(run: ToolRun, state: AssistantTurnState)
           : input.kind === 'campaign'
             ? 'Start this campaign'
             : `Start a ${CANVAS_RECIPES[input.recipe].name} canvas`
+      if (signal.aborted || state.links.length >= MAX_LINKS)
+        return { error: 'Four buttons is the most.', ok: false as const }
       if (!state.links.some((link) => link.href === href)) state.links.push({ href, label })
       return { offered: true, ok: true as const }
     },

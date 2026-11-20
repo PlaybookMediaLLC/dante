@@ -10,6 +10,7 @@ import {
   type AssistantTurnState,
   workspaceAssistantTools,
 } from '@/lib/ai/tools/workspace-assistant'
+import { ASSISTANT_POSTS_MAX } from '@/lib/api/contracts/ai'
 import { LAUNCH_AI_RATE_LIMIT } from '@/lib/api/rate-limit-policy'
 import { describePage, type PageContext } from '@/lib/assistant/page-context'
 import type { OrganizationAccess } from '@/lib/auth/access'
@@ -68,7 +69,7 @@ export async function runWorkspaceAssistantTurn(
       return {
         links: state.links,
         messages: result.response.messages,
-        posts: state.posts,
+        posts: state.posts.slice(0, ASSISTANT_POSTS_MAX),
         text: result.text,
       }
     })

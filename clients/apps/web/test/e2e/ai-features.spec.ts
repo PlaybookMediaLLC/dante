@@ -1,4 +1,4 @@
-import { expect, type Page, test, trpcMutation } from './framework'
+import { draftEditor, expect, type Page, test, trpcMutation } from './framework'
 import { canvasDocumentSchema } from '@/lib/canvas/document'
 import { blankArtboard } from '@/lib/canvas/recipes'
 import { newCreativeSetId } from '@/lib/creative-sets/document'
@@ -176,7 +176,9 @@ test(
     })
     await assistant.getByRole('button', { name: 'Open as a draft' }).click()
     await expect(page).toHaveURL(/\/publish\/[^/?]+$/, { timeout: 60_000 })
-    await expect(page.getByText(/^We just shipped something new\./).first()).toBeVisible()
+    await expect(draftEditor(page)).toContainText('We just shipped something new.', {
+      timeout: 60_000,
+    })
 
     // On a canvas the artboard copilot answers instead, with the bar open on the board.
     const canvas = await trpcMutation(page, 'canvas.create', {

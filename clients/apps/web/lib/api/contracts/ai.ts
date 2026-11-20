@@ -68,6 +68,8 @@ export const assistantLinkSchema = z.object({
 
 /** Characters of one post the assistant drafts. */
 export const ASSISTANT_POST_MAX = 3_000
+/** Posts one reply may draft. */
+export const ASSISTANT_POSTS_MAX = 2
 
 /** A post the assistant wrote, offered to open as a draft. */
 export const assistantPostSchema = z.object({ text: z.string().min(1).max(ASSISTANT_POST_MAX) })
@@ -79,7 +81,8 @@ export const assistantPostSchema = z.object({ text: z.string().min(1).max(ASSIST
 export const workspaceAssistantResponseSchema = z.object({
   links: z.array(assistantLinkSchema),
   messages: z.array(z.looseObject({ role: editorResponseRoleSchema })),
-  posts: z.array(assistantPostSchema).max(2),
+  // Defaulted, so a browser newer than the server mid-deploy still reads the reply.
+  posts: z.array(assistantPostSchema).max(ASSISTANT_POSTS_MAX).default([]),
   text: z.string(),
 })
 

@@ -75,15 +75,24 @@ test("a long conversation keeps its newest turns, starting at one of the person'
 })
 
 test('the bar offers only asks the member can carry out', () => {
-  const starts = (asks: string[]) => asks.filter((ask) => /^(Make|Start)\b/.test(ask))
-  assert.ok(starts(workspaceSuggestions('home', { canEdit: true, paidPlan: true })).length >= 2)
-  // A viewer cannot start work; a free workspace cannot start a canvas.
-  assert.deepEqual(starts(workspaceSuggestions('home', { canEdit: false, paidPlan: true })), [])
+  const all = { canEdit: true, paidPlan: true, posts: true }
+  const starts = (asks: string[]) => asks.filter((ask) => /^(Make|Start|Draft)\b/.test(ask))
+  assert.ok(starts(workspaceSuggestions('home', all)).length >= 3)
+  // A viewer starts nothing; a free workspace no canvas; one without posts no post.
+  for (const area of ['home', 'create', 'publish', 'library'] as const)
+    assert.deepEqual(starts(workspaceSuggestions(area, { ...all, canEdit: false })), [], area)
+  const free = workspaceSuggestions('home', { ...all, paidPlan: false })
   assert.deepEqual(
-    workspaceSuggestions('home', { canEdit: true, paidPlan: false }).filter((ask) =>
-      /canvas/i.test(ask)
-    ),
+    free.filter((ask) => /canvas/i.test(ask)),
     []
   )
-  assert.ok(workspaceSuggestions(undefined, { canEdit: false, paidPlan: false }).length > 0)
+  assert.ok(free.some((ask) => /^Make\b/.test(ask)))
+  const postless = workspaceSuggestions('publish', { ...all, posts: false })
+  assert.deepEqual(
+    postless.filter((ask) => /^Draft\b/.test(ask)),
+    []
+  )
+  assert.ok(
+    workspaceSuggestions(undefined, { canEdit: false, paidPlan: false, posts: false }).length > 0
+  )
 })

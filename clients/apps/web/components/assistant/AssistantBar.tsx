@@ -77,10 +77,13 @@ function pageTitle(): string {
 export function AssistantBar({
   canEdit,
   paidPlan,
+  posts,
 }: {
   /** The member may make work, so the bar offers asks that start some. */
   canEdit: boolean
   paidPlan: boolean
+  /** Posts are on, and on the workspace's plan. */
+  posts: boolean
 }) {
   const registry = useAssistantRegistry()
   const available = useAiAvailable()
@@ -108,7 +111,7 @@ export function AssistantBar({
   const registered = [...(registry?.abilities.values() ?? [])]
   const ability: AssistantAbility = registered.reduce<AssistantAbility>(
     (best, item) => (item.priority > best.priority ? item : best),
-    workspaceAbility(title, area, { canEdit, paidPlan })
+    workspaceAbility(title, area, { canEdit, paidPlan, posts })
   )
 
   // A different ability starts its own conversation (a running one finishes first), with

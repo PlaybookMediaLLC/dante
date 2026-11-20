@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { Window } from '@/components/platform-landing/primitives'
@@ -23,7 +24,11 @@ export function ResourceCards({
   }[]
 }) {
   return (
-    <ul className="create-gallery is-row is-square">
+    <ul
+      className="create-gallery is-row is-square"
+      // A short list (Tools alone) keeps tiles near 300px instead of stretching across the page.
+      style={{ '--tiles': items.length } as CSSProperties}
+    >
       {items.map((item) => (
         <li className="create-tile group" key={item.title}>
           <span aria-hidden="true" className="create-tile-media is-spread">

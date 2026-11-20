@@ -668,7 +668,11 @@
 .create-gallery.is-row {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
 }
-/* The tools are square entry points, shorter than the template wall below them. */
+/* The tools are square entry points, shorter than the template wall below them; a short
+   list (Tools alone) stops at a tile's size instead of stretching into giant squares. */
+.create-gallery.is-square {
+  max-width: calc(var(--tiles, 5) * 316px);
+}
 .create-gallery.is-square > .create-tile {
   aspect-ratio: 1;
 }

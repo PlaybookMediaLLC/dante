@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/select'
 
 import { SpinnerGapIcon as LoaderCircle } from '@phosphor-icons/react/dist/ssr/SpinnerGap'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useTRPCClient } from '@/lib/trpc/react'
 import { CampaignCopilot } from './CampaignCopilot'
@@ -38,11 +38,19 @@ export function ShipInput({
   products?: { name: string; slug: string; url: string }[]
 }) {
   const client = useTRPCClient()
-  // The assistant opens this box with what was shipped already written (`?ship=`).
-  const params = useSearchParams()
-  const [value, setValue] = useState(
-    () => params.get(CAMPAIGN_SHIP_PARAM)?.trim().slice(0, CAMPAIGN_SHIP_MAX) ?? ''
-  )
+  const [value, setValue] = useState('')
+  // The assistant opens this box with what was shipped already written (`?ship=`), also from
+  // this page itself; dropped once read, as the editor drops `?ask=`, so a reload asks nothing.
+  const ship = useSearchParams().get(CAMPAIGN_SHIP_PARAM)?.trim().slice(0, CAMPAIGN_SHIP_MAX) ?? ''
+  const shipped = useRef('')
+  useEffect(() => {
+    if (!ship || shipped.current === ship) return
+    shipped.current = ship
+    setValue(ship)
+    const url = new URL(window.location.href)
+    url.searchParams.delete(CAMPAIGN_SHIP_PARAM)
+    window.history.replaceState(null, '', url)
+  }, [ship])
   const [productSlug, setProductSlug] = useState(products[0]?.slug ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)

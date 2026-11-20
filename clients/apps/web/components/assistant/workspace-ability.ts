@@ -14,21 +14,21 @@ const WORKSPACE_ABILITY_ID = 'workspace'
 
 /**
  * One-click asks per area, each one the assistant's tools can answer. `make`
- * asks start work (startWork needs `artifact:edit`); `canvas` ones also need
- * a paid plan.
+ * asks start work (startWork needs `artifact:edit`); `paid` ones (canvases)
+ * also need a paid plan, and `post` ones (draftPost) the workspace's posts.
  */
-type Suggestion = { ask: string; needs?: 'make' | 'canvas' }
+type Suggestion = { ask: string; needs?: 'make' | 'paid' | 'post' }
 const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
   home: [
     { ask: 'What did we work on most recently?' },
     { ask: 'Make a launch visual for our newest feature', needs: 'make' },
-    { ask: 'Start a product launch canvas', needs: 'canvas' },
-    { ask: 'Draft a post about our latest release', needs: 'make' },
+    { ask: 'Start a product launch canvas', needs: 'paid' },
+    { ask: 'Draft a post about our latest release', needs: 'post' },
   ],
   create: [
     { ask: 'Make a dark hero shot for a new feature', needs: 'make' },
     { ask: 'Which canvas fits a release announcement?' },
-    { ask: 'Start a feature walkthrough canvas', needs: 'canvas' },
+    { ask: 'Start a feature walkthrough canvas', needs: 'paid' },
   ],
   campaigns: [
     { ask: 'Which campaigns are still drafts?' },
@@ -36,7 +36,7 @@ const SUGGESTIONS: Partial<Record<PlatformArea, readonly Suggestion[]>> = {
     { ask: 'What do you know about our product?' },
   ],
   publish: [
-    { ask: 'Draft a post about our latest release', needs: 'make' },
+    { ask: 'Draft a post about our latest release', needs: 'post' },
     { ask: 'Which posts are scheduled?' },
     { ask: 'Open my latest post draft' },
   ],
@@ -57,15 +57,21 @@ const DEFAULT_SUGGESTIONS: readonly Suggestion[] = [
 ]
 
 /** What the member may start here, which decides the asks worth offering. */
-export type WorkspaceAllowance = { canEdit: boolean; paidPlan: boolean }
+export type WorkspaceAllowance = {
+  canEdit: boolean
+  paidPlan: boolean
+  /** Posts are on, and on the workspace's plan. */
+  posts: boolean
+}
 
 /** The area's one-click asks this member can carry out. */
 export function workspaceSuggestions(
   area: PlatformArea | undefined,
-  { canEdit, paidPlan }: WorkspaceAllowance
+  { canEdit, paidPlan, posts }: WorkspaceAllowance
 ): string[] {
+  const can = { make: true, paid: paidPlan, post: posts }
   return ((area && SUGGESTIONS[area]) || DEFAULT_SUGGESTIONS)
-    .filter((item) => !item.needs || (canEdit && (item.needs === 'make' || paidPlan)))
+    .filter((item) => !item.needs || (canEdit && can[item.needs]))
     .map((item) => item.ask)
 }
 
