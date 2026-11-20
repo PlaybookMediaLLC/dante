@@ -150,7 +150,11 @@ jobs:
             --base "$work/before.json" --digest "$IMAGE_DIGEST" \
             --tag "social-backend-$GITHUB_SHA" --collab-tag "collab-$GITHUB_SHA" \
             --from-infisical-env --output "$work/spec.json"
-          doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"
+          # doctl writes a JSON error to stdout: show only its details, never the spec.
+          if ! doctl apps propose --app "$APP_ID" --spec "$work/spec.json" -o json > "$work/proposal.json"; then
+            jq -r '.errors[]?.detail // empty' "$work/proposal.json" >&2 || true
+            exit 1
+          fi
           doctl apps update "$APP_ID" --spec "$work/spec.json" --wait > "$work/update.log"
           doctl apps get "$APP_ID" -o json > "$work/after.json"
           # web, backend, and collab once its secrets are set; storage is retired.
