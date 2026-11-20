@@ -248,12 +248,14 @@ test('A: a manual product announcement survives reload and exports what was comp
   expect(size(other!.document)!.width).toBeGreaterThan(1080)
   await page.screenshot({ path: path.join(out, 'a-reloaded.png') })
 
-  const { file } = await exportFiles(page, { only: ['16:9'] })
+  const { dialog, file } = await exportFiles(page, { only: ['16:9'] })
   const bytes = await readFile(file)
   expect(await sharp(bytes).metadata()).toMatchObject({ format: 'png', width: 1080, height: 1350 })
   await notBlank(bytes)
 
   // A rename from the header reaches the sidebar's Recents before its 30-second cache goes stale.
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
   await page.getByRole('button', { name: 'Expand navigation' }).click()
   const recents = page.getByRole('region', { name: 'Recents' })
   await expect(recents.getByRole('link', { exact: true, name: 'Untitled canvas' })).toBeVisible()
