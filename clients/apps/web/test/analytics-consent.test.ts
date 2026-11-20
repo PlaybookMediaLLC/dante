@@ -14,6 +14,10 @@ test('share, review, invitation and reset secrets never reach analytics', () => 
   )
   assert.equal(scrubUrl('/reset-password?token=secret#top'), '/reset-password?token=[redacted]#top')
   assert.equal(scrubUrl('/sign-in?callbackURL=%2Fs%2Fabc'), '/sign-in?callbackURL=[redacted]')
+  assert.equal(
+    scrubUrl('/editor?start=new&ask=a+private+brief'),
+    '/editor?start=new&ask=[redacted]'
+  )
   assert.equal(scrubUrl('/settings/security'), '/settings/security')
 
   const event = scrubEvent({

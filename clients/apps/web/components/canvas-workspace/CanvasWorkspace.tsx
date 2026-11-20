@@ -259,7 +259,7 @@ export function CanvasWorkspace({
 
   return (
     <main
-      className="flex h-[var(--editor-height,100dvh)] min-h-[560px] flex-col bg-[#eceeed] dark:bg-[#141615]"
+      className="flex h-[var(--editor-height,100dvh)] min-h-[560px] flex-col bg-[#f4f4f4] dark:bg-[#141414]"
       data-testid="canvas-workspace"
     >
       <CanvasHeader

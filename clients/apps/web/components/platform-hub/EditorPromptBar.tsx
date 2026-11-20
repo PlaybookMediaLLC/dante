@@ -8,6 +8,7 @@ import { ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useTRPCClient } from '@/lib/trpc/react'
+import { EDITOR_ASK_MAX, EDITOR_ASK_PARAM } from '@/lib/ai/editor-ask'
 
 /**
  * Create's prompt bar: a new screenshot that opens with the editor's AI
@@ -27,16 +28,17 @@ export function EditorPromptBar() {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const ask = text.trim()
-    if (ask) router.push(`/editor?${new URLSearchParams({ start: 'new', ask })}`)
+    if (ask)
+      router.push(`/editor?${new URLSearchParams({ start: 'new', [EDITOR_ASK_PARAM]: ask })}`)
   }
   return (
-    <form onSubmit={submit} className="create-prompt" role="search" aria-label="Describe a visual">
+    <form onSubmit={submit} className="create-prompt" aria-label="Describe a visual">
       <SparkleIcon aria-hidden="true" className="size-4 shrink-0 text-violet-500" />
       <Input
         aria-label="Describe the visual you want"
         placeholder="Describe the visual you want, then add your screenshot"
         value={text}
-        maxLength={2000}
+        maxLength={EDITOR_ASK_MAX}
         onChange={(event) => setText(event.target.value)}
         className="h-9 flex-1 border-0 bg-transparent px-0 text-[14px] shadow-none focus-visible:ring-0 dark:bg-transparent"
       />

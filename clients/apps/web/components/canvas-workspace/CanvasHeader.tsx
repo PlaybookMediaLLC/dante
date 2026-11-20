@@ -132,7 +132,7 @@ export function CanvasHeader({
             </Tool>
           </>
         ) : null}
-        {canEdit ? (
+        {canEdit && state.document.artboards.length > 1 ? (
           <Tool label="Arrange as a grid" onClick={() => actions.arrangeAsDeck()}>
             <SquaresFourIcon className="size-4" />
           </Tool>

@@ -11,7 +11,8 @@
 export const POST_MANAGEMENT_USED = 'post_management_used'
 
 const TOKEN_PATH = /\/(s|review)\/[^/?#]+/g
-const SECRET_PARAMS = ['token', 'invitationId', 'callbackURL']
+// `ask` is a person's own words for the editor copilot (Create's prompt bar).
+const SECRET_PARAMS = ['token', 'invitationId', 'callbackURL', 'ask']
 
 /** Returns the string with share/review tokens and secret query values redacted. */
 export function scrubUrl(value: string): string {

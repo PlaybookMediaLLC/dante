@@ -166,6 +166,13 @@ export function Minimap({ artboards }: { artboards: Artboard[] }) {
   if (artboards.length < 2) return null
   const rects = artboards.map((artboard) => ({ id: artboard.id, rect: artboardRect(artboard) }))
   const visible = visibleWorldRect(viewport, screen)
+  // Only worth showing when part of the board is out of view.
+  const inView = ({ rect }: (typeof rects)[number]) =>
+    rect.x >= visible.x &&
+    rect.y >= visible.y &&
+    rect.x + rect.width <= visible.x + visible.width &&
+    rect.y + rect.height <= visible.y + visible.height
+  if (rects.every(inView)) return null
   const bounds = boundsOf([...rects.map((item) => item.rect), visible])!
   const scale = Math.min(MAP.width / bounds.width, MAP.height / bounds.height)
   const offset = {

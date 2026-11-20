@@ -11,6 +11,7 @@ import { TemplateBrowser, TemplateHighlights } from '@/components/platform-hub/T
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
 import { requirePaidPageAccess } from '@/lib/auth/page-access'
+import { accessAllows } from '@/lib/auth/permissions'
 
 type CreatePageProps = {
   params: Promise<{ locale: string }>
@@ -139,7 +140,8 @@ export default async function CreatePage({ params, searchParams }: CreatePagePro
             <TemplateHighlights />
           </section>
         )}
-        {view ? null : <EditorPromptBar />}
+        {/* The copilot edits the design, so the bar is for people who may edit. */}
+        {view || !accessAllows(access, 'artifact:edit') ? null : <EditorPromptBar />}
       </Page>
     </PlatformShell>
   )

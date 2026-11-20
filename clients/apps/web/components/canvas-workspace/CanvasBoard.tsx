@@ -428,7 +428,7 @@ export function CanvasBoard({
           aria-roledescription="infinite canvas"
           tabIndex={0}
           data-testid="canvas-board"
-          className="relative h-full w-full touch-none overflow-hidden bg-[#eceeed] outline-none dark:bg-[#141615]"
+          className="relative h-full w-full touch-none overflow-hidden bg-[#f4f4f4] outline-none dark:bg-[#141414]"
           style={{
             cursor,
             backgroundImage: grid.visible

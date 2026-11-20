@@ -3,16 +3,11 @@ import { redirect } from 'next/navigation'
 import { platformHref } from '@/lib/platform/navigation'
 import { PlatformShell } from '@/components/platform-shell/PlatformShell'
 import { Page } from '@/components/platform-ui'
-import { Stage } from '@/components/platform-landing/primitives'
-import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
-import { ImageIcon as ImagePlus } from '@/components/platform-shell/icons'
-import { EditIcon as PenLine } from '@/components/platform-shell/icons'
-import { CampaignsIcon as Megaphone } from '@/components/platform-shell/icons'
-import { AutomateIcon as Workflow } from '@/components/platform-shell/icons'
+import { ArrowForwardIcon as ArrowRight, AddIcon as Plus } from '@/components/platform-shell/icons'
 import { CategoryIcon as Shapes } from '@/components/platform-shell/icons'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { SearchField } from '@/components/platform-shell/ShellActions'
-import { HomeTemplateRow } from '@/components/platform-hub/TemplateBrowser'
+import { StarterArt, type StarterKind } from '@/components/platform-hub/StarterArt'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { NeedsAttention } from '@/components/platform-hub/NeedsAttention'
 import { RecentWork } from '@/components/platform-hub/RecentWork'
@@ -53,9 +48,9 @@ export default async function HomePage({
   const starters = [
     {
       title: 'Create a visual',
+      art: 'visual' as StarterKind,
       description: 'Screenshots, mockups, and designs.',
       href: gated('/create'),
-      icon: ImagePlus,
       pro: !paid,
       allowed: can('artifact:edit'),
     },
@@ -63,9 +58,9 @@ export default async function HomePage({
       ? [
           {
             title: 'Write a post',
+            art: 'post' as StarterKind,
             description: 'Draft and schedule your posts.',
             href: '/publish',
-            icon: PenLine,
             // Makes the draft at once, as New → Post does.
             startsPost: true,
             allowed: can('artifact:edit'),
@@ -76,9 +71,9 @@ export default async function HomePage({
       ? [
           {
             title: 'Plan a campaign',
+            art: 'campaign' as StarterKind,
             description: 'Organize your next product launch.',
             href: gated('/campaigns/new'),
-            icon: Megaphone,
             pro: !paid,
             allowed: can('release:create'),
           },
@@ -86,10 +81,10 @@ export default async function HomePage({
       : []),
     {
       title: 'Turn releases into campaigns',
+      art: 'automate' as StarterKind,
       description: 'Draft a campaign each time you ship.',
       // Automate opens without a paid plan and says there that its runs need Pro.
       href: paid ? '/workflows/new' : '/workflows',
-      icon: Workflow,
       pro: !paid,
       allowed: can('workspace:update'),
     },
@@ -97,7 +92,7 @@ export default async function HomePage({
     title: string
     description: string
     href: string
-    icon: typeof Workflow
+    art: StarterKind
     pro?: boolean
     startsPost?: boolean
     allowed: boolean
@@ -114,7 +109,14 @@ export default async function HomePage({
         actions={
           <>
             <SearchField />
-            {paid ? null : (
+            {paid ? (
+              <ButtonLink
+                href="/create"
+                className="home-create h-9 gap-1.5 rounded-full px-4 text-[13px]"
+              >
+                <Plus size={15} aria-hidden="true" /> Create
+              </ButtonLink>
+            ) : (
               <ButtonLink href="/upgrade" variant="outline" className="gap-2 rounded-full">
                 See plans <ArrowRight size={15} aria-hidden="true" />
               </ButtonLink>
@@ -122,70 +124,71 @@ export default async function HomePage({
           </>
         }
       >
-        <section aria-labelledby="home-start" className="platform-home">
-          <h2 className="home-eyebrow" id="home-start">
-            Start something new
-          </h2>
-          {available.length < starters.length ? (
-            <p className="mb-3 text-sm text-muted-foreground">
-              Your {roleLabels[normalizeOrganizationRole(access.role)]} role can view this
-              workspace&apos;s work{available.length ? ' and start what is listed here' : ''}. Ask a
-              workspace owner or admin for more access.
-            </p>
-          ) : null}
-          <ul className="home-starters">
-            {available.map(({ title, description, href, icon: Icon, pro, startsPost }, index) => {
-              const content = (
-                <>
-                  <span className="home-starter-tile" aria-hidden="true">
-                    {/* A page coming out of the tile, like a template's first sheet. */}
-                    <span className="home-starter-sheet">
-                      <Stage className="h-14 w-full rounded-md" variant={index}>
-                        <span className="grid size-7 place-items-center rounded-md bg-[#090909]/90 text-white ring-1 ring-white/10">
-                          <Icon size={15} />
-                        </span>
-                      </Stage>
-                      <span className="mt-2.5 block h-1.5 w-[70%] rounded-full bg-foreground/15" />
-                      <span className="mt-1.5 block h-1.5 w-[48%] rounded-full bg-foreground/10" />
-                    </span>
-                  </span>
-                  <span className="home-starter-title">
-                    {title}
-                    {pro ? <span className="platform-pro-badge">Pro</span> : null}
-                  </span>
-                  <span className="home-starter-detail">{description}</span>
-                </>
-              )
-              return (
-                <li key={href}>
-                  {startsPost ? (
-                    <StartPostAction>{content}</StartPostAction>
-                  ) : (
-                    <SidebarLink href={href} className="home-starter group">
-                      {content}
+        <RecentWork
+          organizationId={access.organization!.id}
+          draftsEnabled={contentDraftsEnabled()}
+          paidPlan={paid}
+          intro={
+            <section aria-labelledby="home-start" className="home-start">
+              <h2 className="home-eyebrow" id="home-start">
+                Start something new
+              </h2>
+              {available.length < starters.length ? (
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Your {roleLabels[normalizeOrganizationRole(access.role)]} role can view this
+                  workspace&apos;s work{available.length ? ' and start what is listed here' : ''}.
+                  Ask a workspace owner or admin for more access.
+                </p>
+              ) : null}
+              <ul className="home-starters">
+                {available.map(({ title, description, href, art, pro, startsPost }) => {
+                  const content = (
+                    <>
+                      <span className="home-starter-tile">
+                        <StarterArt kind={art} />
+                      </span>
+                      <span className="home-starter-title">
+                        {title}
+                        {pro ? <span className="platform-pro-badge">Pro</span> : null}
+                      </span>
+                      <span className="home-starter-detail">{description}</span>
+                    </>
+                  )
+                  return (
+                    <li key={href}>
+                      {startsPost ? (
+                        <StartPostAction>{content}</StartPostAction>
+                      ) : (
+                        <SidebarLink href={href} className="home-starter group">
+                          {content}
+                        </SidebarLink>
+                      )}
+                    </li>
+                  )
+                })}
+                {paid ? (
+                  <li>
+                    <SidebarLink href="/create?view=templates" className="home-starter group">
+                      <span className="home-starter-tile">
+                        <StarterArt kind="templates" />
+                      </span>
+                      <span className="home-starter-title">Browse all templates</span>
+                      <span className="home-starter-detail">
+                        Finished looks for your next visual.
+                      </span>
                     </SidebarLink>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-        {paid ? <HomeTemplateRow /> : null}
-
+                  </li>
+                ) : null}
+              </ul>
+            </section>
+          }
+        />
         {paid && contentDraftsEnabled() && can('artifact:edit') && access.organization ? (
           <Suspense fallback={null}>
             <UpcomingQueue tenant={sessionTenant(access, access.organization.id, requestHeaders)} />
           </Suspense>
         ) : null}
-        <div className="home-work platform-home">
-          <RecentWork
-            organizationId={access.organization!.id}
-            draftsEnabled={contentDraftsEnabled()}
-            paidPlan={paid}
-          />
-          <NeedsAttention />
-        </div>
-
+        <NeedsAttention />
         <SidebarLink href={gated('/library?view=brand')} className="platform-home home-brand group">
           <span className="flex items-center gap-3">
             <span className="grid size-8 shrink-0 place-items-center">

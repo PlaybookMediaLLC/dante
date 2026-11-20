@@ -2,8 +2,6 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
-import { CategoryIcon, CloseIcon } from '@/components/platform-shell/icons'
-import { Stage } from '@/components/platform-landing/primitives'
 import { SidebarLink } from '@/components/platform-shell/SidebarLink'
 import { useNearViewport } from '@/components/design/DocumentPreview'
 import { ImageTemplatePreview } from '@/components/templates/ImageTemplateGallery'
@@ -36,6 +34,7 @@ function PreviewCard({
   href,
   action,
   text = false,
+  cover = false,
   children,
 }: {
   name: string
@@ -44,11 +43,13 @@ function PreviewCard({
   action: string
   /** The preview is words, not a picture: the tile grows to fit them. */
   text?: boolean
+  /** The preview is a whole 16:9 composition: it covers its tile like a photo. */
+  cover?: boolean
   children: ReactNode
 }) {
   const [ref, near] = useNearViewport<HTMLDivElement>()
   return (
-    <li className={text ? 'create-tile is-text' : 'create-tile'}>
+    <li className={text ? 'create-tile is-text' : cover ? 'create-tile is-cover' : 'create-tile'}>
       <div ref={ref} role="img" aria-label={`Preview of ${name}`} className="create-tile-media">
         {near ? (
           <div aria-hidden="true">{children}</div>
@@ -57,8 +58,7 @@ function PreviewCard({
         )}
       </div>
       <div className="create-tile-label">
-        <h3 className="truncate">{name}</h3>
-        <p>{description}</p>
+        <h3>{name}</h3>
       </div>
       <SidebarLink
         aria-label={`${action}: ${name}`}
@@ -81,87 +81,12 @@ export function TemplateStrip({ count = 10 }: { count?: number }) {
           description={template.preset.description}
           href={newScreenshotFrom(template.preset.id)}
           action="Use template"
+          cover
         >
           <ImageTemplatePreview template={template} />
         </PreviewCard>
       ))}
     </ul>
-  )
-}
-
-const HIDE_HOME_TEMPLATES = 'shots:home-templates-hidden'
-
-/**
- * Home's "Start with a template" row: a few screenshot templates on soft
- * tiles and the way to all of them. The × hides it on this browser.
- */
-export function HomeTemplates() {
-  const [hidden, setHidden] = useState(false)
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(HIDE_HOME_TEMPLATES) === '1') setHidden(true)
-    } catch {
-      // Storage blocked: the row shows.
-    }
-  }, [])
-  if (hidden) return null
-  return (
-    <section aria-labelledby="home-templates" className="platform-home">
-      <div className="home-eyebrow flex items-center gap-1">
-        <h2 id="home-templates">Start with a template</h2>
-        <Button
-          type="button"
-          variant="custom"
-          size={null}
-          aria-label="Hide templates"
-          className="grid size-6 place-items-center rounded-full hover:bg-foreground/[0.06] hover:text-foreground"
-          onClick={() => {
-            setHidden(true)
-            try {
-              localStorage.setItem(HIDE_HOME_TEMPLATES, '1')
-            } catch {
-              // Storage blocked: hidden for this visit only.
-            }
-          }}
-        >
-          <CloseIcon className="size-3.5" aria-hidden="true" />
-        </Button>
-      </div>
-      <ul className="home-starters">
-        {IMAGE_TEMPLATES.slice(0, 4).map((template) => (
-          <li key={template.preset.id}>
-            <SidebarLink
-              href={newScreenshotFrom(template.preset.id)}
-              className="home-starter group"
-            >
-              <span className="home-starter-tile home-template-tile" aria-hidden="true">
-                <span className="home-template-preview">
-                  <ImageTemplatePreview template={template} />
-                </span>
-              </span>
-              <span className="home-starter-title">{template.preset.name}</span>
-              <span className="home-starter-detail">Screenshot template</span>
-            </SidebarLink>
-          </li>
-        ))}
-        <li>
-          <SidebarLink href="/create?view=templates" className="home-starter group">
-            <span className="home-starter-tile home-starter-collage" aria-hidden="true">
-              {[0, 1, 2, 3].map((variant) => (
-                <Stage key={variant} className="size-full rounded-lg" variant={variant + 2}>
-                  {null}
-                </Stage>
-              ))}
-              <span className="home-starter-collage-icon">
-                <CategoryIcon size={16} />
-              </span>
-            </span>
-            <span className="home-starter-title">Browse all templates</span>
-            <span className="home-starter-detail">Finished looks for your next visual.</span>
-          </SidebarLink>
-        </li>
-      </ul>
-    </section>
   )
 }
 

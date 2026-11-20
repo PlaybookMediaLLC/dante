@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowForwardIcon as ArrowRight } from '@/components/platform-shell/icons'
 import { ButtonLink } from '@/components/platform-shell/ButtonLink'
 import { EmptyState } from '@/components/platform-ui'
@@ -54,10 +54,13 @@ function Thumb({ item, size }: { item: WorkItem; size: 'row' | 'card' }) {
 /** Bounded reads from existing tenant-authorized collections; failures stay visible. */
 export function RecentWork({
   draftsEnabled,
+  intro,
   organizationId,
   paidPlan = true,
 }: {
   draftsEnabled: boolean
+  /** Shown between the filters and the list, as Home's starters are. */
+  intro?: ReactNode
   organizationId: string
   /** Without it, screenshots and canvases are a paid feature, so only posts are listed. */
   paidPlan?: boolean
@@ -115,12 +118,6 @@ export function RecentWork({
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <SidebarLink
-            href={paidPlan ? '/library' : '/publish'}
-            className="me-2 hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground sm:flex"
-          >
-            {paidPlan ? 'View library' : 'View drafts'} <ArrowRight size={13} aria-hidden="true" />
-          </SidebarLink>
           <div className="home-view-toggle" role="group" aria-label="Layout">
             <Button
               type="button"
@@ -145,6 +142,12 @@ export function RecentWork({
           </div>
         </div>
       </div>
+      {intro ? (
+        <>
+          {intro}
+          <h2 className="home-eyebrow mt-9">Recent</h2>
+        </>
+      ) : null}
       {query.isPending ? (
         <p role="status" className="py-6 text-sm text-muted-foreground">
           Loading recent work…
@@ -171,8 +174,8 @@ export function RecentWork({
                   <Thumb item={item} size={view === 'list' ? 'row' : 'card'} />
                 </span>
                 <span className="home-item-text">
-                  <span className="block truncate text-[13px] text-foreground">{item.title}</span>
-                  <span className="block truncate text-[11.5px] text-muted-foreground">
+                  <span className="block truncate text-[14px] text-foreground">{item.title}</span>
+                  <span className="block truncate text-[12px] text-muted-foreground">
                     <span className={view === 'list' ? 'sm:hidden' : undefined}>
                       {kindLabel(item)} ·{' '}
                     </span>
@@ -181,12 +184,7 @@ export function RecentWork({
                     </time>
                   </span>
                 </span>
-                {view === 'list' ? (
-                  <>
-                    <span className="home-row-kind">{kindLabel(item)}</span>
-                    <span className="home-row-scope">{item.scope}</span>
-                  </>
-                ) : null}
+                {view === 'list' ? <span className="home-row-kind">{kindLabel(item)}</span> : null}
               </SidebarLink>
             </li>
           ))}
@@ -213,14 +211,20 @@ export function RecentWork({
           }
         />
       ) : null}
-      {paidPlan ? (
+      <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted-foreground">
         <SidebarLink
-          href="/library?type=store"
-          className="mt-4 inline-block text-xs text-muted-foreground underline-offset-4 hover:underline"
+          href={paidPlan ? '/library' : '/publish'}
+          className="inline-flex items-center gap-1 hover:text-foreground"
         >
-          Find store projects saved on this browser
+          {paidPlan ? 'View all in Library' : 'View all drafts'}{' '}
+          <ArrowRight size={12} aria-hidden="true" />
         </SidebarLink>
-      ) : null}
+        {paidPlan ? (
+          <SidebarLink href="/library?type=store" className="hover:text-foreground">
+            Store projects saved on this browser
+          </SidebarLink>
+        ) : null}
+      </p>
     </section>
   )
 }

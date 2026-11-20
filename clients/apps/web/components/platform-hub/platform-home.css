@@ -389,11 +389,15 @@
 }
 .home-starter-sheet {
   display: block;
-  width: 62%;
-  height: 80%;
-  padding: 10px;
+  width: 64%;
+  height: 82%;
+  padding: 12px 11px 0;
+  overflow: hidden;
+  color: #111;
+  text-align: start;
   border-radius: 10px 10px 0 0;
-  background: var(--background);
+  /* Paper in either theme: the sheet shows the page a starter makes. */
+  background: #fff;
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent),
     0 8px 24px -10px rgb(0 0 0 / 22%);
@@ -403,25 +407,6 @@
   .home-starter:hover .home-starter-sheet {
     transform: translateY(-4px);
   }
-}
-.home-starter-collage {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  padding: 14px 18%;
-}
-.home-starter-collage-icon {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: var(--background);
-  box-shadow: 0 4px 14px -4px rgb(0 0 0 / 30%);
-  color: var(--foreground);
-  transform: translate(-50%, -50%);
 }
 .home-starter-title {
   display: inline-flex;
@@ -476,9 +461,9 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 56px;
-  margin-inline: -10px;
-  padding: 8px 10px;
+  min-height: 64px;
+  margin-inline: -12px;
+  padding: 10px 12px;
   border-radius: 12px;
   transition: background-color 120ms ease;
 }
@@ -488,22 +473,14 @@
 .home-rows > li:has(.home-row:hover) {
   border-bottom-color: transparent;
 }
-.home-row-kind,
-.home-row-scope {
-  flex-shrink: 0;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
 .home-row-kind {
-  width: 9rem;
-}
-.home-row-scope {
-  width: 6rem;
-  text-align: end;
+  flex-shrink: 0;
+  width: 10rem;
+  color: var(--muted-foreground);
+  font-size: 12.5px;
 }
 @media (max-width: 639px) {
-  .home-row-kind,
-  .home-row-scope {
+  .home-row-kind {
     display: none;
   }
 }
@@ -513,9 +490,9 @@
   display: block;
   flex-shrink: 0;
   width: 40px;
-  height: 30px;
+  height: 40px;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--muted);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 9%, transparent);
 }
@@ -523,9 +500,9 @@
   display: grid;
   align-content: start;
   gap: 3px;
-  width: 26px;
-  height: 32px;
-  margin-inline: 7px;
+  width: 30px;
+  height: 38px;
+  margin-inline: 5px;
   padding: 5px 4px;
   border-radius: 3px;
   background: var(--background);
@@ -552,9 +529,6 @@
 .home-row > .home-item-text {
   min-width: 0;
   flex: 1;
-}
-.home-row .home-item-text > :first-child {
-  font-weight: 500;
 }
 .home-card > .home-item-text {
   min-width: 0;
@@ -742,9 +716,9 @@
 .create-tile::after {
   position: absolute;
   inset: auto 0 0;
-  height: 96px;
+  height: 72px;
   z-index: 1;
-  background: linear-gradient(to top, rgb(0 0 0 / 62%), transparent);
+  background: linear-gradient(to top, rgb(0 0 0 / 50%), transparent);
   content: '';
   pointer-events: none;
 }
@@ -759,7 +733,8 @@
 }
 .create-tile-label > :first-child {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 25%);
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
@@ -784,9 +759,6 @@
 /* A 40px row thumbnail has no room for the preview's words; the grid view shows them. */
 .home-design-thumb:not(.is-card) :is(p, [role='status']) {
   font-size: 0;
-}
-.dark .home-starter-sheet {
-  background: color-mix(in srgb, var(--foreground) 7%, var(--card));
 }
 /* Phones keep two tiles a row, like a photo gallery, instead of one oversized tile. */
 @media (max-width: 639px) {
@@ -835,25 +807,6 @@
 .create-prompt:focus-within {
   border-color: color-mix(in srgb, var(--foreground) 22%, transparent);
 }
-/* A template's own preview, centred on its tile like a slide on a desk. */
-.home-template-tile {
-  align-items: center;
-}
-.home-template-preview {
-  display: block;
-  width: 76%;
-  overflow: hidden;
-  border-radius: 8px;
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--foreground) 6%, transparent),
-    0 10px 24px -12px rgb(0 0 0 / 35%);
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .home-starter:hover .home-template-preview {
-    transform: translateY(-3px);
-  }
-}
 /* The bar is the field: its input drops the shell's control fill and ring. */
 .create-prompt [data-slot='input'],
 .create-prompt [data-slot='input']:focus-visible {
@@ -861,4 +814,80 @@
   background-color: transparent;
   box-shadow: none;
   font-size: 14px;
+}
+/* The words on a starter's sheet, at the size of a page seen from across a desk. */
+.home-art-title {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.home-art-meta {
+  display: block;
+  margin-top: 2px;
+  color: rgb(0 0 0 / 45%);
+  font-size: 7.5px;
+}
+/* A wall of four looks for "Browse all templates". */
+.home-art-collage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 16%;
+}
+.home-art-collage > span {
+  display: grid;
+  place-content: center;
+  overflow: hidden;
+  border-radius: 7px;
+  box-shadow: 0 6px 14px -8px rgb(0 0 0 / 45%);
+  text-align: center;
+  line-height: 1;
+}
+.home-art-collage b {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.home-art-collage i {
+  font-family: Georgia, serif;
+  font-size: 10px;
+}
+.home-start {
+  padding-top: 4px;
+}
+/* A full composition crops like a photo: the tile is all picture. */
+.create-tile.is-cover {
+  aspect-ratio: 4 / 3;
+}
+.create-tile.is-cover .create-tile-media {
+  padding: 0;
+}
+/* 134% of a 4:3 tile's width is a 16:9 picture as tall as the tile. */
+.create-tile.is-cover .create-tile-media > * {
+  width: 134%;
+  max-width: none;
+  box-shadow: none;
+}
+/* The pages a tool makes, standing on the tile's colour above the label. */
+.create-tile-media.is-spread {
+  padding: 12% 9% 26%;
+}
+.create-tile-media.is-spread > * {
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Home's Create pill: a full pill, as the search beside it is. */
+.platform-shell .home-create[data-slot='button'] {
+  border-radius: 999px;
+}
+/* A light composition behind the name needs a deeper shade to keep it legible. */
+.create-tile.is-cover::after {
+  height: 64px;
+  background: linear-gradient(to top, rgb(0 0 0 / 62%), rgb(0 0 0 / 25%) 55%, transparent);
+}
+.dark :is(.home-starter-tile, .home-card-media) {
+  background: color-mix(in srgb, var(--foreground) 8%, var(--background));
 }

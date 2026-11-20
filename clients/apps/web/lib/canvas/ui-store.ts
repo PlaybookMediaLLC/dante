@@ -65,7 +65,8 @@ const initial = {
   selection: [] as string[],
   activeId: null as string | null,
   tool: 'select' as CanvasTool,
-  grid: { visible: true, snap: true, size: 16 as GridSize },
+  // The board reads as plain paper, like a slides tool; Grid in the zoom bar shows the dots.
+  grid: { visible: false, snap: true, size: 16 as GridSize },
   leftTab: 'insert' as LeftTab,
   leftOpen: true,
   rightOpen: true,
