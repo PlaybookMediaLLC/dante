@@ -94,7 +94,10 @@ export default async function InAppToolPage({ params }: ToolPageProps) {
           {/* The highlighted row names the open tool, so the pane holds only the tool.
               The tools center themselves at a reading width for their public pages;
               here they fill the pane beside the list. */}
-          <section aria-label={entry.title} className="min-w-0 [&>*]:mx-0 [&>*]:max-w-none">
+          <section
+            aria-label={entry.title}
+            className="min-w-0 [&_[data-local-dropzone]>div]:max-w-none [&>*]:mx-0 [&>*]:max-w-none"
+          >
             {slug === 'remove-background' ? (
               <RemoveBackgroundLoader />
             ) : slug === 'compress-video' ? (
