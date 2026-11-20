@@ -145,7 +145,7 @@ export function RecentWork({
       {intro ? (
         <>
           {intro}
-          <h2 className="home-eyebrow mt-9">Recent</h2>
+          <h2 className="home-eyebrow home-divider">Recent</h2>
         </>
       ) : null}
       {query.isPending ? (

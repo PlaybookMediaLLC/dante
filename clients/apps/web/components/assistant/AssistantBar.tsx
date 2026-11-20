@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { usePathname } from 'next/navigation'
 import { create } from 'zustand'
-import { SparkleIcon } from '@phosphor-icons/react/dist/ssr/Sparkle'
 import { ArrowUpIcon } from '@phosphor-icons/react/dist/ssr/ArrowUp'
 import { MinusIcon } from '@phosphor-icons/react/dist/ssr/Minus'
 import { StopIcon } from '@phosphor-icons/react/dist/ssr/Stop'
@@ -21,6 +20,7 @@ import type { PageContext } from '@/lib/assistant/page-context'
 import { platformArea } from '@/lib/platform/navigation'
 import { withoutLocale } from '@/lib/settings/appearance'
 import { cn } from '@/lib/utils'
+import { AssistantMark } from './AssistantMark'
 import { useAssistantRegistry } from './AssistantProvider'
 import { workspaceAbility } from './workspace-ability'
 
@@ -229,7 +229,7 @@ export function AssistantBar() {
         </div>
       ) : null}
       <form onSubmit={(event) => void submit(event)} className="assistant-bar">
-        <SparkleIcon aria-hidden="true" className="size-4 shrink-0 text-violet-500" />
+        <AssistantMark className="-mx-px shrink-0" size={22} />
         <span className="assistant-context" title={`The assistant sees: ${ability.label}`}>
           {ability.label}
         </span>
@@ -310,7 +310,7 @@ export function AssistantLauncher({
       aria-expanded={open}
       title="Ask AI about this page or your workspace"
       className={cn(
-        'flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
+        'flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] text-foreground/85 transition-colors hover:bg-foreground/[0.05] hover:text-foreground',
         collapsed && 'mx-auto size-10 justify-center px-0'
       )}
       onClick={() => {
@@ -318,7 +318,7 @@ export function AssistantLauncher({
         useConversation.setState((state) => ({ open: true, focus: state.focus + 1 }))
       }}
     >
-      <SparkleIcon aria-hidden="true" className="size-[18px] shrink-0 text-violet-500" />
+      <AssistantMark className="-mx-px shrink-0" size={22} />
       {collapsed ? null : 'Ask AI'}
     </Button>
   )

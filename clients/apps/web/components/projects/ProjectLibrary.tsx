@@ -34,6 +34,7 @@ import { DESIGN_DOCUMENT_VERSION, type DesignDocument } from '@/lib/design/docum
 import { type ProjectSort, projectSortSchema } from '@/lib/projects/schema'
 import { forgetProject } from '@/lib/projects/session'
 import { useTRPC, useTRPCClient } from '@/lib/trpc/react'
+import { RECENT_WORK_KEY } from '@/components/platform-hub/work'
 import { ProjectNameDialog } from './ProjectNameDialog'
 import { ProjectPreview } from './ProjectPreview'
 import { Label } from '@/components/ui/label'
@@ -134,6 +135,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
   async function duplicate(project: LibraryProject) {
     try {
       const copy = await trpcClient.project.duplicate.mutate({ projectId: project.id })
+      void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
       toast.success(`Duplicated as “${shortName(copy.name)}”`)
     } catch (error) {
       toast.error('Could not duplicate the project', { description: errorMessage(error) })
@@ -146,6 +148,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
     try {
       await trpcClient.project.delete.mutate({ projectId: deleting.id })
       forgetProject(deleting.id)
+      void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
       queryClient.setQueryData(options.queryKey, (current) =>
         current
           ? {
@@ -410,6 +413,7 @@ export function ProjectLibrary({ canEdit }: { canEdit: boolean }) {
           if (!renaming) return
           await trpcClient.project.rename.mutate({ name, projectId: renaming.id })
           await queryClient.invalidateQueries({ queryKey: trpc.project.list.queryKey() })
+          void queryClient.invalidateQueries({ queryKey: RECENT_WORK_KEY })
           if (query && !name.toLocaleLowerCase().includes(query.toLocaleLowerCase())) {
             returnFocus.current = searchRef.current
           }
