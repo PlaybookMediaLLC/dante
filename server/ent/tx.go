@@ -68,6 +68,14 @@ type Tx struct {
 	CaptureRecipe *CaptureRecipeClient
 	// ChannelConnection is the client for interacting with the ChannelConnection builders.
 	ChannelConnection *ChannelConnectionClient
+	// ClaimPathBinding is the client for interacting with the ClaimPathBinding builders.
+	ClaimPathBinding *ClaimPathBindingClient
+	// ClaimSupport is the client for interacting with the ClaimSupport builders.
+	ClaimSupport *ClaimSupportClient
+	// ClaimSupportSet is the client for interacting with the ClaimSupportSet builders.
+	ClaimSupportSet *ClaimSupportSetClient
+	// ClaimVerification is the client for interacting with the ClaimVerification builders.
+	ClaimVerification *ClaimVerificationClient
 	// CommunicationAttempt is the client for interacting with the CommunicationAttempt builders.
 	CommunicationAttempt *CommunicationAttemptClient
 	// CommunicationRecipient is the client for interacting with the CommunicationRecipient builders.
@@ -106,6 +114,12 @@ type Tx struct {
 	Design *DesignClient
 	// EnrichmentRecord is the client for interacting with the EnrichmentRecord builders.
 	EnrichmentRecord *EnrichmentRecordClient
+	// EvidenceClearance is the client for interacting with the EvidenceClearance builders.
+	EvidenceClearance *EvidenceClearanceClient
+	// EvidenceSource is the client for interacting with the EvidenceSource builders.
+	EvidenceSource *EvidenceSourceClient
+	// EvidenceVersion is the client for interacting with the EvidenceVersion builders.
+	EvidenceVersion *EvidenceVersionClient
 	// FrontendActivation is the client for interacting with the FrontendActivation builders.
 	FrontendActivation *FrontendActivationClient
 	// FrontendObservation is the client for interacting with the FrontendObservation builders.
@@ -230,6 +244,8 @@ type Tx struct {
 	ProjectVersion *ProjectVersionClient
 	// PublicationAttempt is the client for interacting with the PublicationAttempt builders.
 	PublicationAttempt *PublicationAttemptClient
+	// ReadinessCommandReceipt is the client for interacting with the ReadinessCommandReceipt builders.
+	ReadinessCommandReceipt *ReadinessCommandReceiptClient
 	// Release is the client for interacting with the Release builders.
 	Release *ReleaseClient
 	// ReleaseAutomation is the client for interacting with the ReleaseAutomation builders.
@@ -242,10 +258,34 @@ type Tx struct {
 	ReleaseAutomationRun *ReleaseAutomationRunClient
 	// ReleaseAutomationVersion is the client for interacting with the ReleaseAutomationVersion builders.
 	ReleaseAutomationVersion *ReleaseAutomationVersionClient
+	// ReleaseClaim is the client for interacting with the ReleaseClaim builders.
+	ReleaseClaim *ReleaseClaimClient
+	// ReleaseClaimVersion is the client for interacting with the ReleaseClaimVersion builders.
+	ReleaseClaimVersion *ReleaseClaimVersionClient
 	// ReleaseDocument is the client for interacting with the ReleaseDocument builders.
 	ReleaseDocument *ReleaseDocumentClient
+	// ReleaseEvidence is the client for interacting with the ReleaseEvidence builders.
+	ReleaseEvidence *ReleaseEvidenceClient
+	// ReleaseLineage is the client for interacting with the ReleaseLineage builders.
+	ReleaseLineage *ReleaseLineageClient
+	// ReleaseLineageBinding is the client for interacting with the ReleaseLineageBinding builders.
+	ReleaseLineageBinding *ReleaseLineageBindingClient
+	// ReleaseQualification is the client for interacting with the ReleaseQualification builders.
+	ReleaseQualification *ReleaseQualificationClient
+	// ReleaseQualificationAsset is the client for interacting with the ReleaseQualificationAsset builders.
+	ReleaseQualificationAsset *ReleaseQualificationAssetClient
+	// ReleaseQualificationDecision is the client for interacting with the ReleaseQualificationDecision builders.
+	ReleaseQualificationDecision *ReleaseQualificationDecisionClient
+	// ReleaseQualificationSource is the client for interacting with the ReleaseQualificationSource builders.
+	ReleaseQualificationSource *ReleaseQualificationSourceClient
+	// ReleaseReadiness is the client for interacting with the ReleaseReadiness builders.
+	ReleaseReadiness *ReleaseReadinessClient
+	// ReleaseSourceBinding is the client for interacting with the ReleaseSourceBinding builders.
+	ReleaseSourceBinding *ReleaseSourceBindingClient
 	// ReleaseSourceEvent is the client for interacting with the ReleaseSourceEvent builders.
 	ReleaseSourceEvent *ReleaseSourceEventClient
+	// ReleaseSourceObservation is the client for interacting with the ReleaseSourceObservation builders.
+	ReleaseSourceObservation *ReleaseSourceObservationClient
 	// ReleaseSpec is the client for interacting with the ReleaseSpec builders.
 	ReleaseSpec *ReleaseSpecClient
 	// ScheduledPost is the client for interacting with the ScheduledPost builders.
@@ -469,6 +509,10 @@ func (tx *Tx) init() {
 	tx.CaptureJob = NewCaptureJobClient(tx.config)
 	tx.CaptureRecipe = NewCaptureRecipeClient(tx.config)
 	tx.ChannelConnection = NewChannelConnectionClient(tx.config)
+	tx.ClaimPathBinding = NewClaimPathBindingClient(tx.config)
+	tx.ClaimSupport = NewClaimSupportClient(tx.config)
+	tx.ClaimSupportSet = NewClaimSupportSetClient(tx.config)
+	tx.ClaimVerification = NewClaimVerificationClient(tx.config)
 	tx.CommunicationAttempt = NewCommunicationAttemptClient(tx.config)
 	tx.CommunicationRecipient = NewCommunicationRecipientClient(tx.config)
 	tx.ContentAngle = NewContentAngleClient(tx.config)
@@ -488,6 +532,9 @@ func (tx *Tx) init() {
 	tx.DeploymentEvent = NewDeploymentEventClient(tx.config)
 	tx.Design = NewDesignClient(tx.config)
 	tx.EnrichmentRecord = NewEnrichmentRecordClient(tx.config)
+	tx.EvidenceClearance = NewEvidenceClearanceClient(tx.config)
+	tx.EvidenceSource = NewEvidenceSourceClient(tx.config)
+	tx.EvidenceVersion = NewEvidenceVersionClient(tx.config)
 	tx.FrontendActivation = NewFrontendActivationClient(tx.config)
 	tx.FrontendObservation = NewFrontendObservationClient(tx.config)
 	tx.FrontendSource = NewFrontendSourceClient(tx.config)
@@ -550,14 +597,27 @@ func (tx *Tx) init() {
 	tx.Project = NewProjectClient(tx.config)
 	tx.ProjectVersion = NewProjectVersionClient(tx.config)
 	tx.PublicationAttempt = NewPublicationAttemptClient(tx.config)
+	tx.ReadinessCommandReceipt = NewReadinessCommandReceiptClient(tx.config)
 	tx.Release = NewReleaseClient(tx.config)
 	tx.ReleaseAutomation = NewReleaseAutomationClient(tx.config)
 	tx.ReleaseAutomationExecutor = NewReleaseAutomationExecutorClient(tx.config)
 	tx.ReleaseAutomationNode = NewReleaseAutomationNodeClient(tx.config)
 	tx.ReleaseAutomationRun = NewReleaseAutomationRunClient(tx.config)
 	tx.ReleaseAutomationVersion = NewReleaseAutomationVersionClient(tx.config)
+	tx.ReleaseClaim = NewReleaseClaimClient(tx.config)
+	tx.ReleaseClaimVersion = NewReleaseClaimVersionClient(tx.config)
 	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)
+	tx.ReleaseEvidence = NewReleaseEvidenceClient(tx.config)
+	tx.ReleaseLineage = NewReleaseLineageClient(tx.config)
+	tx.ReleaseLineageBinding = NewReleaseLineageBindingClient(tx.config)
+	tx.ReleaseQualification = NewReleaseQualificationClient(tx.config)
+	tx.ReleaseQualificationAsset = NewReleaseQualificationAssetClient(tx.config)
+	tx.ReleaseQualificationDecision = NewReleaseQualificationDecisionClient(tx.config)
+	tx.ReleaseQualificationSource = NewReleaseQualificationSourceClient(tx.config)
+	tx.ReleaseReadiness = NewReleaseReadinessClient(tx.config)
+	tx.ReleaseSourceBinding = NewReleaseSourceBindingClient(tx.config)
 	tx.ReleaseSourceEvent = NewReleaseSourceEventClient(tx.config)
+	tx.ReleaseSourceObservation = NewReleaseSourceObservationClient(tx.config)
 	tx.ReleaseSpec = NewReleaseSpecClient(tx.config)
 	tx.ScheduledPost = NewScheduledPostClient(tx.config)
 	tx.ScreenshotCache = NewScreenshotCacheClient(tx.config)

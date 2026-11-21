@@ -275,6 +275,7 @@ export const test = base.extend<
 
 export type { Browser, Download, Locator, Page, Request, Route } from '@playwright/test'
 export type { E2EIdentity }
+export { waitForHydration }
 
 // One import for every spec. Where two modules once shared a name, this is
 // the one to use.

@@ -16,6 +16,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/outboxevent"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/predicate"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/workspaceentitlement"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/workspaceplan"
 	"github.com/lucsky/cuid"
 )
 
@@ -233,6 +234,11 @@ func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID st
 		return "", err
 	}
 	defer tx.Rollback()
+	if found, err := workspaceplan.LockWorkspace(ctx, tx, actor.OrganizationID); err != nil {
+		return "", err
+	} else if !found {
+		return AssetMissing, nil
+	}
 	current, err := tx.Asset.Query().Where(asset.ID(owned.ID), asset.OrganizationID(actor.OrganizationID)).Only(ctx)
 	if ent.IsNotFound(err) {
 		return AssetMissing, nil
@@ -279,6 +285,9 @@ func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID st
 	if needed {
 		return AssetInUse, nil
 	}
+	if err := tombstoneAssetEvidence(ctx, tx, actor.OrganizationID, current.ID); err != nil {
+		return "", err
+	}
 	changed, err := tx.Asset.Update().Where(asset.ID(current.ID), asset.OrganizationID(actor.OrganizationID),
 		asset.StatusEQ(asset.StatusUPLOADED)).SetStatus(asset.StatusDELETED).Save(ctx)
 	if err != nil {
@@ -306,6 +315,9 @@ func (c *Configuration) DeleteAsset(ctx context.Context, actor Actor, assetID st
 		return "", err
 	}
 	for _, poster := range posters {
+		if err := tombstoneAssetEvidence(ctx, tx, actor.OrganizationID, poster.ID); err != nil {
+			return "", err
+		}
 		if err := tx.Asset.UpdateOneID(poster.ID).SetStatus(asset.StatusDELETED).Exec(ctx); err != nil {
 			return "", err
 		}

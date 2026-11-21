@@ -491,6 +491,28 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	exec(t, s.DB, `INSERT INTO workspace_deletion(id,"organizationId","requestedByUserId","scheduledFor","updatedAt") VALUES('due','a','user',now()-interval '1 day',now()),('future','b','user',now()+interval '14 days',now())`)
 	exec(t, s.DB, `INSERT INTO audit_log(id,"organizationId","requestId","actorType",action,"entityType") VALUES('evidence','a','r','SERVICE','test','test')`)
 	for _, org := range []string{"a", "b"} {
+		exec(t, s.DB, `INSERT INTO release(id,"organizationId",title,"benefitStatement","updatedAt") VALUES($1,$2,'Retained facts','Benefit',now())`, "release-"+org, org)
+		exec(t, s.DB, `INSERT INTO platform_release_qualification(id,"organizationId","releaseId",version,"aggregateRevision",rollout,"sourceUrls",requirements,"authorKind","authorId") VALUES($1,$2,$3,1,1,'UNKNOWN','[]','[]','session','user')`, "facts-"+org, org, "release-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_qualification(id,"organizationId","releaseId",version,"aggregateRevision","parentRevisionId",rollout,"sourceUrls",requirements,"authorKind","authorId") VALUES($1,$2,$3,2,3,$4,'UNKNOWN','[]','[]','session','user')`, "facts-next-"+org, org, "release-"+org, "facts-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_readiness(id,"organizationId","releaseId","qualificationRevisionId","headRevision") VALUES($1,$2,$3,$4,3)`, "readiness-"+org, org, "release-"+org, "facts-next-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_qualification_decision(id,"organizationId","releaseId","qualificationRevisionId",decision,"humanUserId","sessionId",reason) VALUES($1,$2,$3,$4,'DEFERRED','user','historical-session','Awaiting facts')`, "decision-"+org, org, "release-"+org, "facts-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_qualification_asset(id,"organizationId","releaseId","qualificationRevisionId","assetId") VALUES($1,$2,$3,$4,$5)`, "evidence-"+org, org, "release-"+org, "facts-"+org, "asset-"+org)
+		exec(t, s.DB, `INSERT INTO platform_readiness_command_receipt(id,"organizationId","releaseId","actorKind","actorId",operation,"commandKey","requestSha256","responseRef") VALUES($1,$2,$3,'session','user','qualification.revise','facts',repeat('a',64),'{}')`, "receipt-"+org, org, "release-"+org)
+		exec(t, s.DB, `INSERT INTO source_app(id,"organizationId",name,provider,"allowedHosts","updatedAt") VALUES($1,$2,'Source','github','[]',now())`, "source-"+org, org)
+		exec(t, s.DB, `INSERT INTO platform_release_source_binding(id,"organizationId","sourceAppId",provider,"objectKind","repositoryId","providerObjectId","canonicalReleaseId") VALUES($1,$2,$3,'github','PULL_REQUEST','1001','10',$4)`, "binding-"+org, org, "source-"+org, "release-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_source_observation(id,"organizationId","sourceAppId","bindingId","eventKey",sequence,"bodySha256","occurredAt",origin,snapshot) VALUES($1,$2,$3,$4,'delivery',1,repeat('a',64),now(),'LIVE','{}')`, "observation-"+org, org, "source-"+org, "binding-"+org)
+		exec(t, s.DB, `UPDATE platform_release_source_binding SET "currentObservationId"=$1,"selectedObservationId"=$1,"lastEventSequence"=1,"changeSequence"=1,"selectedChangeSequence"=1 WHERE id=$2`, "observation-"+org, "binding-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_qualification_source(id,"organizationId","releaseId","qualificationRevisionId","bindingId","observationId") VALUES($1,$2,$3,$4,$5,$6)`, "source-evidence-"+org, org, "release-"+org, "facts-"+org, "binding-"+org, "observation-"+org)
+		exec(t, s.DB, `INSERT INTO release(id,"organizationId",title,"benefitStatement","updatedAt") VALUES($1,$2,'Grouped release','Grouped benefit',now())`, "destination-"+org, org)
+		exec(t, s.DB, `INSERT INTO platform_release_lineage(id,"organizationId",operation,"sourceReleaseId","destinationReleaseId","sourceRevision","destinationRevision",reason,"humanUserId","sessionId") VALUES($1,$2,'MERGE',$3,$4,1,1,'One release','user','historical-session')`, "lineage-"+org, org, "release-"+org, "destination-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_lineage_binding(id,"organizationId","lineageId","bindingId") VALUES($1,$2,$3,$4)`, "moved-"+org, org, "lineage-"+org, "binding-"+org)
+		exec(t, s.DB, `INSERT INTO platform_evidence_source(id,"organizationId",kind,"identitySha256","sourceBindingId") VALUES($1,$2,'RELEASE_SOURCE',repeat('a',64),$3)`, "evidence-source-"+org, org, "binding-"+org)
+		exec(t, s.DB, `INSERT INTO platform_evidence_version(id,"organizationId","sourceId",version,format,origin,"rawSha256","normalizedSha256","normalizationVersion","normalizedText","observedAt","authorId") VALUES($1,$2,$3,1,'TEXT','HUMAN',repeat('a',64),repeat('a',64),'text-v1','Private retained text',now(),'user')`, "evidence-version-"+org, org, "evidence-source-"+org)
+		exec(t, s.DB, `UPDATE platform_evidence_source SET "currentVersionId"=$1,"changeSequence"=2 WHERE id=$2`, "evidence-version-"+org, "evidence-source-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_evidence(id,"organizationId","releaseId","evidenceVersionId",purpose,"attachedByUserId") VALUES($1,$2,$3,$4,'Product facts','user')`, "evidence-link-"+org, org, "release-"+org, "evidence-version-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_claim(id,"organizationId","releaseId") VALUES($1,$2,$3)`, "claim-"+org, org, "release-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_claim_version(id,"organizationId","releaseId","claimId",version,text,qualifiers,"contentSha256",origin,"authorId") VALUES($1,$2,$3,$4,1,'Exact claim','{}',repeat('a',64),'HUMAN','user')`, "claim-version-"+org, org, "release-"+org, "claim-"+org)
+		exec(t, s.DB, `UPDATE platform_release_claim SET "currentVersionId"=$1 WHERE id=$2`, "claim-version-"+org, "claim-"+org)
 		exec(t, s.DB, `INSERT INTO launch_run(id,"organizationId",kind) VALUES($1,$2,'agent')`, "run-"+org, org)
 		exec(t, s.DB, `INSERT INTO launch_run_step(id,"organizationId","runId","index",kind,status) VALUES($1,$2,$3,0,'model','SUCCEEDED')`, "step-"+org, org, "run-"+org)
 		exec(t, s.DB, `INSERT INTO conversation(id,"organizationId",title) VALUES($1,$2,'Launch')`, "conversation-"+org, org)
@@ -519,6 +541,18 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 	for _, table := range []string{"launch_run", "launch_run_step", "conversation", "conversation_message", "onboarding_run", "page_knowledge", "ideal_customer_profile", "enrichment_record"} {
 		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
 		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
+	}
+	for _, table := range []string{"platform_evidence_source", "platform_evidence_version", "platform_release_evidence", "platform_release_claim", "platform_release_claim_version"} {
+		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
+		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
+	}
+	for _, table := range []string{"platform_release_lineage_binding", "platform_release_lineage", "platform_release_qualification_source", "platform_release_source_observation", "platform_release_source_binding", "platform_release_readiness", "platform_readiness_command_receipt", "platform_release_qualification_decision", "platform_release_qualification_asset", "platform_release_qualification"} {
+		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
+		want := 1
+		if table == "platform_release_qualification" {
+			want = 2
+		}
+		expect(t, s.DB, want, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
 	}
 	if len(o.deleted) != 1 || o.deleted[0] != "org/a/asset-a" {
 		t.Fatalf("deleted: %v", o.deleted)

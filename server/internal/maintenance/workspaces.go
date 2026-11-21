@@ -70,7 +70,30 @@ func (s *Store) purgeWorkspace(ctx context.Context, id, org string) error {
 		// These tables were added by a newer web release. Delete them when
 		// present while retaining compatibility during a rolling web upgrade.
 		// Mutation receipts embed drafts and cannot rely on the retained organization tombstone.
-		for _, table := range []string{"frontend_observation", "frontend_activation", "frontend_source", "calendar_mutation", "calendar_note", "analytics_snapshot", "analytics_post", "analytics_account", "platform_notification_inbox", "platform_notification_preference", "platform_notification_seen_action", "platform_notification_delivery", "platform_notification_policy", "platform_slack_connection", "github_observation", "github_production_policy", "github_recovery_scan", "release_automation_node", "release_automation_run", "release_source_event", "release_automation_version", "release_automation", "social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
+		var bindingsExist bool
+		if err := tx.QueryRowContext(ctx, `SELECT to_regclass('platform_release_source_binding') IS NOT NULL`).Scan(&bindingsExist); err != nil {
+			return err
+		}
+		if bindingsExist {
+			if _, err := tx.ExecContext(ctx, `UPDATE platform_release_source_binding SET "currentObservationId"=NULL,"selectedObservationId"=NULL WHERE "organizationId"=$1`, org); err != nil {
+				return err
+			}
+		}
+		var evidenceExists bool
+		if err := tx.QueryRowContext(ctx, `SELECT to_regclass('platform_evidence_source') IS NOT NULL`).Scan(&evidenceExists); err != nil {
+			return err
+		}
+		if evidenceExists {
+			for _, query := range []string{
+				`UPDATE platform_release_claim SET "currentVersionId"=NULL,"currentSupportSetId"=NULL,"currentDecisionId"=NULL WHERE "organizationId"=$1`,
+				`UPDATE platform_evidence_source SET "currentVersionId"=NULL,"changeSequence"="changeSequence"+1 WHERE "organizationId"=$1`,
+			} {
+				if _, err := tx.ExecContext(ctx, query, org); err != nil {
+					return err
+				}
+			}
+		}
+		for _, table := range []string{"platform_claim_path_binding", "platform_claim_verification", "platform_claim_support", "platform_claim_support_set", "platform_release_claim_version", "platform_release_claim", "platform_evidence_clearance", "platform_release_evidence", "platform_evidence_version", "platform_evidence_source", "platform_release_lineage_binding", "platform_release_lineage", "platform_release_qualification_source", "platform_release_source_observation", "platform_release_source_binding", "platform_release_readiness", "platform_readiness_command_receipt", "platform_release_qualification_decision", "platform_release_qualification_asset", "platform_release_qualification", "frontend_observation", "frontend_activation", "frontend_source", "calendar_mutation", "calendar_note", "analytics_snapshot", "analytics_post", "analytics_account", "platform_notification_inbox", "platform_notification_preference", "platform_notification_seen_action", "platform_notification_delivery", "platform_notification_policy", "platform_slack_connection", "github_observation", "github_production_policy", "github_recovery_scan", "release_automation_node", "release_automation_run", "release_source_event", "release_automation_version", "release_automation", "social_oauth_start", "social_tenant_binding", "github_install_start", "workspace_github_installation", "source_change", "deployment_event", "surface_capture", "product_profile", "conversation_message", "conversation", "launch_run_step", "page_knowledge", "enrichment_record", "ideal_customer_profile", "onboarding_run"} {
 			var exists bool
 			if err := tx.QueryRowContext(ctx, `SELECT to_regclass($1) IS NOT NULL`, table).Scan(&exists); err != nil {
 				return err
