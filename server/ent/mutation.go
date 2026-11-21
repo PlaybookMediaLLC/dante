@@ -78,6 +78,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactclaim"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitexport"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitmember"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitreviewdecision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitsourcepin"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -140,6 +147,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseclaimversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseevidence"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasekit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaselineage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaselineagebinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasequalification"
@@ -191,6 +199,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/profile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releaseautomation"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasefacts"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasekits"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasenotes"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/thread"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/whitelabel"
@@ -272,6 +281,13 @@ const (
 	TypeIdealCustomerProfile            = "IdealCustomerProfile"
 	TypeIntegrationConnection           = "IntegrationConnection"
 	TypeInvitation                      = "Invitation"
+	TypeKitArtifactClaim                = "KitArtifactClaim"
+	TypeKitArtifactRevision             = "KitArtifactRevision"
+	TypeKitExport                       = "KitExport"
+	TypeKitMember                       = "KitMember"
+	TypeKitReviewDecision               = "KitReviewDecision"
+	TypeKitRevision                     = "KitRevision"
+	TypeKitSourcePin                    = "KitSourcePin"
 	TypeLaunchRun                       = "LaunchRun"
 	TypeLaunchRunStep                   = "LaunchRunStep"
 	TypeMember                          = "Member"
@@ -333,6 +349,7 @@ const (
 	TypeReleaseClaimVersion             = "ReleaseClaimVersion"
 	TypeReleaseDocument                 = "ReleaseDocument"
 	TypeReleaseEvidence                 = "ReleaseEvidence"
+	TypeReleaseKit                      = "ReleaseKit"
 	TypeReleaseLineage                  = "ReleaseLineage"
 	TypeReleaseLineageBinding           = "ReleaseLineageBinding"
 	TypeReleaseQualification            = "ReleaseQualification"
@@ -64853,6 +64870,6968 @@ func (m *InvitationMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown Invitation edge %s", name)
 }
 
+// KitArtifactClaimMutation represents an operation that mutates the KitArtifactClaim nodes in the graph.
+type KitArtifactClaimMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	organization_id      *string
+	release_id           *string
+	artifact_revision_id *string
+	node_id              *string
+	claim_id             *string
+	claim_version_id     *string
+	support_set_id       *string
+	verification_id      *string
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*KitArtifactClaim, error)
+	predicates           []predicate.KitArtifactClaim
+}
+
+var _ ent.Mutation = (*KitArtifactClaimMutation)(nil)
+
+// kitartifactclaimOption allows management of the mutation configuration using functional options.
+type kitartifactclaimOption func(*KitArtifactClaimMutation)
+
+// newKitArtifactClaimMutation creates new mutation for the KitArtifactClaim entity.
+func newKitArtifactClaimMutation(c config, op Op, opts ...kitartifactclaimOption) *KitArtifactClaimMutation {
+	m := &KitArtifactClaimMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitArtifactClaim,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitArtifactClaimID sets the ID field of the mutation.
+func withKitArtifactClaimID(id string) kitartifactclaimOption {
+	return func(m *KitArtifactClaimMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitArtifactClaim
+		)
+		m.oldValue = func(ctx context.Context) (*KitArtifactClaim, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitArtifactClaim.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitArtifactClaim sets the old KitArtifactClaim of the mutation.
+func withKitArtifactClaim(node *KitArtifactClaim) kitartifactclaimOption {
+	return func(m *KitArtifactClaimMutation) {
+		m.oldValue = func(context.Context) (*KitArtifactClaim, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitArtifactClaimMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitArtifactClaimMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitArtifactClaim entities.
+func (m *KitArtifactClaimMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitArtifactClaimMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitArtifactClaimMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitArtifactClaim.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitArtifactClaimMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitArtifactClaimMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitArtifactClaimMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitArtifactClaimMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitArtifactClaimMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitArtifactClaimMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetArtifactRevisionID sets the "artifact_revision_id" field.
+func (m *KitArtifactClaimMutation) SetArtifactRevisionID(s string) {
+	m.artifact_revision_id = &s
+}
+
+// ArtifactRevisionID returns the value of the "artifact_revision_id" field in the mutation.
+func (m *KitArtifactClaimMutation) ArtifactRevisionID() (r string, exists bool) {
+	v := m.artifact_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArtifactRevisionID returns the old "artifact_revision_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldArtifactRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArtifactRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArtifactRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArtifactRevisionID: %w", err)
+	}
+	return oldValue.ArtifactRevisionID, nil
+}
+
+// ResetArtifactRevisionID resets all changes to the "artifact_revision_id" field.
+func (m *KitArtifactClaimMutation) ResetArtifactRevisionID() {
+	m.artifact_revision_id = nil
+}
+
+// SetNodeID sets the "node_id" field.
+func (m *KitArtifactClaimMutation) SetNodeID(s string) {
+	m.node_id = &s
+}
+
+// NodeID returns the value of the "node_id" field in the mutation.
+func (m *KitArtifactClaimMutation) NodeID() (r string, exists bool) {
+	v := m.node_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNodeID returns the old "node_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldNodeID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNodeID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNodeID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNodeID: %w", err)
+	}
+	return oldValue.NodeID, nil
+}
+
+// ResetNodeID resets all changes to the "node_id" field.
+func (m *KitArtifactClaimMutation) ResetNodeID() {
+	m.node_id = nil
+}
+
+// SetClaimID sets the "claim_id" field.
+func (m *KitArtifactClaimMutation) SetClaimID(s string) {
+	m.claim_id = &s
+}
+
+// ClaimID returns the value of the "claim_id" field in the mutation.
+func (m *KitArtifactClaimMutation) ClaimID() (r string, exists bool) {
+	v := m.claim_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimID returns the old "claim_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldClaimID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimID: %w", err)
+	}
+	return oldValue.ClaimID, nil
+}
+
+// ResetClaimID resets all changes to the "claim_id" field.
+func (m *KitArtifactClaimMutation) ResetClaimID() {
+	m.claim_id = nil
+}
+
+// SetClaimVersionID sets the "claim_version_id" field.
+func (m *KitArtifactClaimMutation) SetClaimVersionID(s string) {
+	m.claim_version_id = &s
+}
+
+// ClaimVersionID returns the value of the "claim_version_id" field in the mutation.
+func (m *KitArtifactClaimMutation) ClaimVersionID() (r string, exists bool) {
+	v := m.claim_version_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimVersionID returns the old "claim_version_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldClaimVersionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimVersionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimVersionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimVersionID: %w", err)
+	}
+	return oldValue.ClaimVersionID, nil
+}
+
+// ResetClaimVersionID resets all changes to the "claim_version_id" field.
+func (m *KitArtifactClaimMutation) ResetClaimVersionID() {
+	m.claim_version_id = nil
+}
+
+// SetSupportSetID sets the "support_set_id" field.
+func (m *KitArtifactClaimMutation) SetSupportSetID(s string) {
+	m.support_set_id = &s
+}
+
+// SupportSetID returns the value of the "support_set_id" field in the mutation.
+func (m *KitArtifactClaimMutation) SupportSetID() (r string, exists bool) {
+	v := m.support_set_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSupportSetID returns the old "support_set_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldSupportSetID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSupportSetID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSupportSetID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSupportSetID: %w", err)
+	}
+	return oldValue.SupportSetID, nil
+}
+
+// ClearSupportSetID clears the value of the "support_set_id" field.
+func (m *KitArtifactClaimMutation) ClearSupportSetID() {
+	m.support_set_id = nil
+	m.clearedFields[kitartifactclaim.FieldSupportSetID] = struct{}{}
+}
+
+// SupportSetIDCleared returns if the "support_set_id" field was cleared in this mutation.
+func (m *KitArtifactClaimMutation) SupportSetIDCleared() bool {
+	_, ok := m.clearedFields[kitartifactclaim.FieldSupportSetID]
+	return ok
+}
+
+// ResetSupportSetID resets all changes to the "support_set_id" field.
+func (m *KitArtifactClaimMutation) ResetSupportSetID() {
+	m.support_set_id = nil
+	delete(m.clearedFields, kitartifactclaim.FieldSupportSetID)
+}
+
+// SetVerificationID sets the "verification_id" field.
+func (m *KitArtifactClaimMutation) SetVerificationID(s string) {
+	m.verification_id = &s
+}
+
+// VerificationID returns the value of the "verification_id" field in the mutation.
+func (m *KitArtifactClaimMutation) VerificationID() (r string, exists bool) {
+	v := m.verification_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVerificationID returns the old "verification_id" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldVerificationID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVerificationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVerificationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVerificationID: %w", err)
+	}
+	return oldValue.VerificationID, nil
+}
+
+// ClearVerificationID clears the value of the "verification_id" field.
+func (m *KitArtifactClaimMutation) ClearVerificationID() {
+	m.verification_id = nil
+	m.clearedFields[kitartifactclaim.FieldVerificationID] = struct{}{}
+}
+
+// VerificationIDCleared returns if the "verification_id" field was cleared in this mutation.
+func (m *KitArtifactClaimMutation) VerificationIDCleared() bool {
+	_, ok := m.clearedFields[kitartifactclaim.FieldVerificationID]
+	return ok
+}
+
+// ResetVerificationID resets all changes to the "verification_id" field.
+func (m *KitArtifactClaimMutation) ResetVerificationID() {
+	m.verification_id = nil
+	delete(m.clearedFields, kitartifactclaim.FieldVerificationID)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitArtifactClaimMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitArtifactClaimMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitArtifactClaim entity.
+// If the KitArtifactClaim object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactClaimMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitArtifactClaimMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitArtifactClaimMutation builder.
+func (m *KitArtifactClaimMutation) Where(ps ...predicate.KitArtifactClaim) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitArtifactClaimMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitArtifactClaimMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitArtifactClaim, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitArtifactClaimMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitArtifactClaimMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitArtifactClaim).
+func (m *KitArtifactClaimMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitArtifactClaimMutation) Fields() []string {
+	fields := make([]string, 0, 9)
+	if m.organization_id != nil {
+		fields = append(fields, kitartifactclaim.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitartifactclaim.FieldReleaseID)
+	}
+	if m.artifact_revision_id != nil {
+		fields = append(fields, kitartifactclaim.FieldArtifactRevisionID)
+	}
+	if m.node_id != nil {
+		fields = append(fields, kitartifactclaim.FieldNodeID)
+	}
+	if m.claim_id != nil {
+		fields = append(fields, kitartifactclaim.FieldClaimID)
+	}
+	if m.claim_version_id != nil {
+		fields = append(fields, kitartifactclaim.FieldClaimVersionID)
+	}
+	if m.support_set_id != nil {
+		fields = append(fields, kitartifactclaim.FieldSupportSetID)
+	}
+	if m.verification_id != nil {
+		fields = append(fields, kitartifactclaim.FieldVerificationID)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitartifactclaim.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitArtifactClaimMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitartifactclaim.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitartifactclaim.FieldReleaseID:
+		return m.ReleaseID()
+	case kitartifactclaim.FieldArtifactRevisionID:
+		return m.ArtifactRevisionID()
+	case kitartifactclaim.FieldNodeID:
+		return m.NodeID()
+	case kitartifactclaim.FieldClaimID:
+		return m.ClaimID()
+	case kitartifactclaim.FieldClaimVersionID:
+		return m.ClaimVersionID()
+	case kitartifactclaim.FieldSupportSetID:
+		return m.SupportSetID()
+	case kitartifactclaim.FieldVerificationID:
+		return m.VerificationID()
+	case kitartifactclaim.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitArtifactClaimMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitartifactclaim.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitartifactclaim.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitartifactclaim.FieldArtifactRevisionID:
+		return m.OldArtifactRevisionID(ctx)
+	case kitartifactclaim.FieldNodeID:
+		return m.OldNodeID(ctx)
+	case kitartifactclaim.FieldClaimID:
+		return m.OldClaimID(ctx)
+	case kitartifactclaim.FieldClaimVersionID:
+		return m.OldClaimVersionID(ctx)
+	case kitartifactclaim.FieldSupportSetID:
+		return m.OldSupportSetID(ctx)
+	case kitartifactclaim.FieldVerificationID:
+		return m.OldVerificationID(ctx)
+	case kitartifactclaim.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitArtifactClaim field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitArtifactClaimMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitartifactclaim.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitartifactclaim.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitartifactclaim.FieldArtifactRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArtifactRevisionID(v)
+		return nil
+	case kitartifactclaim.FieldNodeID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNodeID(v)
+		return nil
+	case kitartifactclaim.FieldClaimID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimID(v)
+		return nil
+	case kitartifactclaim.FieldClaimVersionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimVersionID(v)
+		return nil
+	case kitartifactclaim.FieldSupportSetID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSupportSetID(v)
+		return nil
+	case kitartifactclaim.FieldVerificationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVerificationID(v)
+		return nil
+	case kitartifactclaim.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactClaim field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitArtifactClaimMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitArtifactClaimMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitArtifactClaimMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown KitArtifactClaim numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitArtifactClaimMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(kitartifactclaim.FieldSupportSetID) {
+		fields = append(fields, kitartifactclaim.FieldSupportSetID)
+	}
+	if m.FieldCleared(kitartifactclaim.FieldVerificationID) {
+		fields = append(fields, kitartifactclaim.FieldVerificationID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitArtifactClaimMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitArtifactClaimMutation) ClearField(name string) error {
+	switch name {
+	case kitartifactclaim.FieldSupportSetID:
+		m.ClearSupportSetID()
+		return nil
+	case kitartifactclaim.FieldVerificationID:
+		m.ClearVerificationID()
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactClaim nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitArtifactClaimMutation) ResetField(name string) error {
+	switch name {
+	case kitartifactclaim.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitartifactclaim.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitartifactclaim.FieldArtifactRevisionID:
+		m.ResetArtifactRevisionID()
+		return nil
+	case kitartifactclaim.FieldNodeID:
+		m.ResetNodeID()
+		return nil
+	case kitartifactclaim.FieldClaimID:
+		m.ResetClaimID()
+		return nil
+	case kitartifactclaim.FieldClaimVersionID:
+		m.ResetClaimVersionID()
+		return nil
+	case kitartifactclaim.FieldSupportSetID:
+		m.ResetSupportSetID()
+		return nil
+	case kitartifactclaim.FieldVerificationID:
+		m.ResetVerificationID()
+		return nil
+	case kitartifactclaim.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactClaim field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitArtifactClaimMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitArtifactClaimMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitArtifactClaimMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitArtifactClaimMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitArtifactClaimMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitArtifactClaimMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitArtifactClaimMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitArtifactClaim unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitArtifactClaimMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitArtifactClaim edge %s", name)
+}
+
+// KitArtifactRevisionMutation represents an operation that mutates the KitArtifactRevision nodes in the graph.
+type KitArtifactRevisionMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *string
+	organization_id   *string
+	release_id        *string
+	kind              *kitartifactrevision.Kind
+	audience_id       *string
+	classification    *kitartifactrevision.Classification
+	snapshot          *releasekits.NativeSnapshot
+	snapshot_sha256   *string
+	claim_links       *[]releasekits.ClaimLink
+	appendclaim_links []releasekits.ClaimLink
+	claim_map_sha256  *string
+	output_key        *string
+	output_sha256     *string
+	output_bytes      *int64
+	addoutput_bytes   *int64
+	media_type        *string
+	renderer_version  *string
+	prepared_at       *time.Time
+	created_at        *time.Time
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*KitArtifactRevision, error)
+	predicates        []predicate.KitArtifactRevision
+}
+
+var _ ent.Mutation = (*KitArtifactRevisionMutation)(nil)
+
+// kitartifactrevisionOption allows management of the mutation configuration using functional options.
+type kitartifactrevisionOption func(*KitArtifactRevisionMutation)
+
+// newKitArtifactRevisionMutation creates new mutation for the KitArtifactRevision entity.
+func newKitArtifactRevisionMutation(c config, op Op, opts ...kitartifactrevisionOption) *KitArtifactRevisionMutation {
+	m := &KitArtifactRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitArtifactRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitArtifactRevisionID sets the ID field of the mutation.
+func withKitArtifactRevisionID(id string) kitartifactrevisionOption {
+	return func(m *KitArtifactRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitArtifactRevision
+		)
+		m.oldValue = func(ctx context.Context) (*KitArtifactRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitArtifactRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitArtifactRevision sets the old KitArtifactRevision of the mutation.
+func withKitArtifactRevision(node *KitArtifactRevision) kitartifactrevisionOption {
+	return func(m *KitArtifactRevisionMutation) {
+		m.oldValue = func(context.Context) (*KitArtifactRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitArtifactRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitArtifactRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitArtifactRevision entities.
+func (m *KitArtifactRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitArtifactRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitArtifactRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitArtifactRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitArtifactRevisionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitArtifactRevisionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitArtifactRevisionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitArtifactRevisionMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitArtifactRevisionMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitArtifactRevisionMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKind sets the "kind" field.
+func (m *KitArtifactRevisionMutation) SetKind(k kitartifactrevision.Kind) {
+	m.kind = &k
+}
+
+// Kind returns the value of the "kind" field in the mutation.
+func (m *KitArtifactRevisionMutation) Kind() (r kitartifactrevision.Kind, exists bool) {
+	v := m.kind
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKind returns the old "kind" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldKind(ctx context.Context) (v kitartifactrevision.Kind, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKind is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKind requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKind: %w", err)
+	}
+	return oldValue.Kind, nil
+}
+
+// ResetKind resets all changes to the "kind" field.
+func (m *KitArtifactRevisionMutation) ResetKind() {
+	m.kind = nil
+}
+
+// SetAudienceID sets the "audience_id" field.
+func (m *KitArtifactRevisionMutation) SetAudienceID(s string) {
+	m.audience_id = &s
+}
+
+// AudienceID returns the value of the "audience_id" field in the mutation.
+func (m *KitArtifactRevisionMutation) AudienceID() (r string, exists bool) {
+	v := m.audience_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudienceID returns the old "audience_id" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldAudienceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudienceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudienceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudienceID: %w", err)
+	}
+	return oldValue.AudienceID, nil
+}
+
+// ResetAudienceID resets all changes to the "audience_id" field.
+func (m *KitArtifactRevisionMutation) ResetAudienceID() {
+	m.audience_id = nil
+}
+
+// SetClassification sets the "classification" field.
+func (m *KitArtifactRevisionMutation) SetClassification(k kitartifactrevision.Classification) {
+	m.classification = &k
+}
+
+// Classification returns the value of the "classification" field in the mutation.
+func (m *KitArtifactRevisionMutation) Classification() (r kitartifactrevision.Classification, exists bool) {
+	v := m.classification
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClassification returns the old "classification" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldClassification(ctx context.Context) (v kitartifactrevision.Classification, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClassification is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClassification requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClassification: %w", err)
+	}
+	return oldValue.Classification, nil
+}
+
+// ResetClassification resets all changes to the "classification" field.
+func (m *KitArtifactRevisionMutation) ResetClassification() {
+	m.classification = nil
+}
+
+// SetSnapshot sets the "snapshot" field.
+func (m *KitArtifactRevisionMutation) SetSnapshot(rs releasekits.NativeSnapshot) {
+	m.snapshot = &rs
+}
+
+// Snapshot returns the value of the "snapshot" field in the mutation.
+func (m *KitArtifactRevisionMutation) Snapshot() (r releasekits.NativeSnapshot, exists bool) {
+	v := m.snapshot
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshot returns the old "snapshot" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldSnapshot(ctx context.Context) (v releasekits.NativeSnapshot, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshot is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshot requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshot: %w", err)
+	}
+	return oldValue.Snapshot, nil
+}
+
+// ResetSnapshot resets all changes to the "snapshot" field.
+func (m *KitArtifactRevisionMutation) ResetSnapshot() {
+	m.snapshot = nil
+}
+
+// SetSnapshotSha256 sets the "snapshot_sha256" field.
+func (m *KitArtifactRevisionMutation) SetSnapshotSha256(s string) {
+	m.snapshot_sha256 = &s
+}
+
+// SnapshotSha256 returns the value of the "snapshot_sha256" field in the mutation.
+func (m *KitArtifactRevisionMutation) SnapshotSha256() (r string, exists bool) {
+	v := m.snapshot_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSnapshotSha256 returns the old "snapshot_sha256" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldSnapshotSha256(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSnapshotSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSnapshotSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSnapshotSha256: %w", err)
+	}
+	return oldValue.SnapshotSha256, nil
+}
+
+// ResetSnapshotSha256 resets all changes to the "snapshot_sha256" field.
+func (m *KitArtifactRevisionMutation) ResetSnapshotSha256() {
+	m.snapshot_sha256 = nil
+}
+
+// SetClaimLinks sets the "claim_links" field.
+func (m *KitArtifactRevisionMutation) SetClaimLinks(rl []releasekits.ClaimLink) {
+	m.claim_links = &rl
+	m.appendclaim_links = nil
+}
+
+// ClaimLinks returns the value of the "claim_links" field in the mutation.
+func (m *KitArtifactRevisionMutation) ClaimLinks() (r []releasekits.ClaimLink, exists bool) {
+	v := m.claim_links
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimLinks returns the old "claim_links" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldClaimLinks(ctx context.Context) (v []releasekits.ClaimLink, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimLinks is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimLinks requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimLinks: %w", err)
+	}
+	return oldValue.ClaimLinks, nil
+}
+
+// AppendClaimLinks adds rl to the "claim_links" field.
+func (m *KitArtifactRevisionMutation) AppendClaimLinks(rl []releasekits.ClaimLink) {
+	m.appendclaim_links = append(m.appendclaim_links, rl...)
+}
+
+// AppendedClaimLinks returns the list of values that were appended to the "claim_links" field in this mutation.
+func (m *KitArtifactRevisionMutation) AppendedClaimLinks() ([]releasekits.ClaimLink, bool) {
+	if len(m.appendclaim_links) == 0 {
+		return nil, false
+	}
+	return m.appendclaim_links, true
+}
+
+// ResetClaimLinks resets all changes to the "claim_links" field.
+func (m *KitArtifactRevisionMutation) ResetClaimLinks() {
+	m.claim_links = nil
+	m.appendclaim_links = nil
+}
+
+// SetClaimMapSha256 sets the "claim_map_sha256" field.
+func (m *KitArtifactRevisionMutation) SetClaimMapSha256(s string) {
+	m.claim_map_sha256 = &s
+}
+
+// ClaimMapSha256 returns the value of the "claim_map_sha256" field in the mutation.
+func (m *KitArtifactRevisionMutation) ClaimMapSha256() (r string, exists bool) {
+	v := m.claim_map_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldClaimMapSha256 returns the old "claim_map_sha256" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldClaimMapSha256(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldClaimMapSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldClaimMapSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldClaimMapSha256: %w", err)
+	}
+	return oldValue.ClaimMapSha256, nil
+}
+
+// ResetClaimMapSha256 resets all changes to the "claim_map_sha256" field.
+func (m *KitArtifactRevisionMutation) ResetClaimMapSha256() {
+	m.claim_map_sha256 = nil
+}
+
+// SetOutputKey sets the "output_key" field.
+func (m *KitArtifactRevisionMutation) SetOutputKey(s string) {
+	m.output_key = &s
+}
+
+// OutputKey returns the value of the "output_key" field in the mutation.
+func (m *KitArtifactRevisionMutation) OutputKey() (r string, exists bool) {
+	v := m.output_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputKey returns the old "output_key" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldOutputKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputKey: %w", err)
+	}
+	return oldValue.OutputKey, nil
+}
+
+// ClearOutputKey clears the value of the "output_key" field.
+func (m *KitArtifactRevisionMutation) ClearOutputKey() {
+	m.output_key = nil
+	m.clearedFields[kitartifactrevision.FieldOutputKey] = struct{}{}
+}
+
+// OutputKeyCleared returns if the "output_key" field was cleared in this mutation.
+func (m *KitArtifactRevisionMutation) OutputKeyCleared() bool {
+	_, ok := m.clearedFields[kitartifactrevision.FieldOutputKey]
+	return ok
+}
+
+// ResetOutputKey resets all changes to the "output_key" field.
+func (m *KitArtifactRevisionMutation) ResetOutputKey() {
+	m.output_key = nil
+	delete(m.clearedFields, kitartifactrevision.FieldOutputKey)
+}
+
+// SetOutputSha256 sets the "output_sha256" field.
+func (m *KitArtifactRevisionMutation) SetOutputSha256(s string) {
+	m.output_sha256 = &s
+}
+
+// OutputSha256 returns the value of the "output_sha256" field in the mutation.
+func (m *KitArtifactRevisionMutation) OutputSha256() (r string, exists bool) {
+	v := m.output_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputSha256 returns the old "output_sha256" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldOutputSha256(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputSha256: %w", err)
+	}
+	return oldValue.OutputSha256, nil
+}
+
+// ClearOutputSha256 clears the value of the "output_sha256" field.
+func (m *KitArtifactRevisionMutation) ClearOutputSha256() {
+	m.output_sha256 = nil
+	m.clearedFields[kitartifactrevision.FieldOutputSha256] = struct{}{}
+}
+
+// OutputSha256Cleared returns if the "output_sha256" field was cleared in this mutation.
+func (m *KitArtifactRevisionMutation) OutputSha256Cleared() bool {
+	_, ok := m.clearedFields[kitartifactrevision.FieldOutputSha256]
+	return ok
+}
+
+// ResetOutputSha256 resets all changes to the "output_sha256" field.
+func (m *KitArtifactRevisionMutation) ResetOutputSha256() {
+	m.output_sha256 = nil
+	delete(m.clearedFields, kitartifactrevision.FieldOutputSha256)
+}
+
+// SetOutputBytes sets the "output_bytes" field.
+func (m *KitArtifactRevisionMutation) SetOutputBytes(i int64) {
+	m.output_bytes = &i
+	m.addoutput_bytes = nil
+}
+
+// OutputBytes returns the value of the "output_bytes" field in the mutation.
+func (m *KitArtifactRevisionMutation) OutputBytes() (r int64, exists bool) {
+	v := m.output_bytes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOutputBytes returns the old "output_bytes" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldOutputBytes(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOutputBytes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOutputBytes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOutputBytes: %w", err)
+	}
+	return oldValue.OutputBytes, nil
+}
+
+// AddOutputBytes adds i to the "output_bytes" field.
+func (m *KitArtifactRevisionMutation) AddOutputBytes(i int64) {
+	if m.addoutput_bytes != nil {
+		*m.addoutput_bytes += i
+	} else {
+		m.addoutput_bytes = &i
+	}
+}
+
+// AddedOutputBytes returns the value that was added to the "output_bytes" field in this mutation.
+func (m *KitArtifactRevisionMutation) AddedOutputBytes() (r int64, exists bool) {
+	v := m.addoutput_bytes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOutputBytes resets all changes to the "output_bytes" field.
+func (m *KitArtifactRevisionMutation) ResetOutputBytes() {
+	m.output_bytes = nil
+	m.addoutput_bytes = nil
+}
+
+// SetMediaType sets the "media_type" field.
+func (m *KitArtifactRevisionMutation) SetMediaType(s string) {
+	m.media_type = &s
+}
+
+// MediaType returns the value of the "media_type" field in the mutation.
+func (m *KitArtifactRevisionMutation) MediaType() (r string, exists bool) {
+	v := m.media_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMediaType returns the old "media_type" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldMediaType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMediaType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMediaType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMediaType: %w", err)
+	}
+	return oldValue.MediaType, nil
+}
+
+// ResetMediaType resets all changes to the "media_type" field.
+func (m *KitArtifactRevisionMutation) ResetMediaType() {
+	m.media_type = nil
+}
+
+// SetRendererVersion sets the "renderer_version" field.
+func (m *KitArtifactRevisionMutation) SetRendererVersion(s string) {
+	m.renderer_version = &s
+}
+
+// RendererVersion returns the value of the "renderer_version" field in the mutation.
+func (m *KitArtifactRevisionMutation) RendererVersion() (r string, exists bool) {
+	v := m.renderer_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRendererVersion returns the old "renderer_version" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldRendererVersion(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRendererVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRendererVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRendererVersion: %w", err)
+	}
+	return oldValue.RendererVersion, nil
+}
+
+// ResetRendererVersion resets all changes to the "renderer_version" field.
+func (m *KitArtifactRevisionMutation) ResetRendererVersion() {
+	m.renderer_version = nil
+}
+
+// SetPreparedAt sets the "prepared_at" field.
+func (m *KitArtifactRevisionMutation) SetPreparedAt(t time.Time) {
+	m.prepared_at = &t
+}
+
+// PreparedAt returns the value of the "prepared_at" field in the mutation.
+func (m *KitArtifactRevisionMutation) PreparedAt() (r time.Time, exists bool) {
+	v := m.prepared_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreparedAt returns the old "prepared_at" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldPreparedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreparedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreparedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreparedAt: %w", err)
+	}
+	return oldValue.PreparedAt, nil
+}
+
+// ClearPreparedAt clears the value of the "prepared_at" field.
+func (m *KitArtifactRevisionMutation) ClearPreparedAt() {
+	m.prepared_at = nil
+	m.clearedFields[kitartifactrevision.FieldPreparedAt] = struct{}{}
+}
+
+// PreparedAtCleared returns if the "prepared_at" field was cleared in this mutation.
+func (m *KitArtifactRevisionMutation) PreparedAtCleared() bool {
+	_, ok := m.clearedFields[kitartifactrevision.FieldPreparedAt]
+	return ok
+}
+
+// ResetPreparedAt resets all changes to the "prepared_at" field.
+func (m *KitArtifactRevisionMutation) ResetPreparedAt() {
+	m.prepared_at = nil
+	delete(m.clearedFields, kitartifactrevision.FieldPreparedAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitArtifactRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitArtifactRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitArtifactRevision entity.
+// If the KitArtifactRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitArtifactRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitArtifactRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitArtifactRevisionMutation builder.
+func (m *KitArtifactRevisionMutation) Where(ps ...predicate.KitArtifactRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitArtifactRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitArtifactRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitArtifactRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitArtifactRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitArtifactRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitArtifactRevision).
+func (m *KitArtifactRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitArtifactRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 16)
+	if m.organization_id != nil {
+		fields = append(fields, kitartifactrevision.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitartifactrevision.FieldReleaseID)
+	}
+	if m.kind != nil {
+		fields = append(fields, kitartifactrevision.FieldKind)
+	}
+	if m.audience_id != nil {
+		fields = append(fields, kitartifactrevision.FieldAudienceID)
+	}
+	if m.classification != nil {
+		fields = append(fields, kitartifactrevision.FieldClassification)
+	}
+	if m.snapshot != nil {
+		fields = append(fields, kitartifactrevision.FieldSnapshot)
+	}
+	if m.snapshot_sha256 != nil {
+		fields = append(fields, kitartifactrevision.FieldSnapshotSha256)
+	}
+	if m.claim_links != nil {
+		fields = append(fields, kitartifactrevision.FieldClaimLinks)
+	}
+	if m.claim_map_sha256 != nil {
+		fields = append(fields, kitartifactrevision.FieldClaimMapSha256)
+	}
+	if m.output_key != nil {
+		fields = append(fields, kitartifactrevision.FieldOutputKey)
+	}
+	if m.output_sha256 != nil {
+		fields = append(fields, kitartifactrevision.FieldOutputSha256)
+	}
+	if m.output_bytes != nil {
+		fields = append(fields, kitartifactrevision.FieldOutputBytes)
+	}
+	if m.media_type != nil {
+		fields = append(fields, kitartifactrevision.FieldMediaType)
+	}
+	if m.renderer_version != nil {
+		fields = append(fields, kitartifactrevision.FieldRendererVersion)
+	}
+	if m.prepared_at != nil {
+		fields = append(fields, kitartifactrevision.FieldPreparedAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitartifactrevision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitArtifactRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitartifactrevision.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitartifactrevision.FieldReleaseID:
+		return m.ReleaseID()
+	case kitartifactrevision.FieldKind:
+		return m.Kind()
+	case kitartifactrevision.FieldAudienceID:
+		return m.AudienceID()
+	case kitartifactrevision.FieldClassification:
+		return m.Classification()
+	case kitartifactrevision.FieldSnapshot:
+		return m.Snapshot()
+	case kitartifactrevision.FieldSnapshotSha256:
+		return m.SnapshotSha256()
+	case kitartifactrevision.FieldClaimLinks:
+		return m.ClaimLinks()
+	case kitartifactrevision.FieldClaimMapSha256:
+		return m.ClaimMapSha256()
+	case kitartifactrevision.FieldOutputKey:
+		return m.OutputKey()
+	case kitartifactrevision.FieldOutputSha256:
+		return m.OutputSha256()
+	case kitartifactrevision.FieldOutputBytes:
+		return m.OutputBytes()
+	case kitartifactrevision.FieldMediaType:
+		return m.MediaType()
+	case kitartifactrevision.FieldRendererVersion:
+		return m.RendererVersion()
+	case kitartifactrevision.FieldPreparedAt:
+		return m.PreparedAt()
+	case kitartifactrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitArtifactRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitartifactrevision.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitartifactrevision.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitartifactrevision.FieldKind:
+		return m.OldKind(ctx)
+	case kitartifactrevision.FieldAudienceID:
+		return m.OldAudienceID(ctx)
+	case kitartifactrevision.FieldClassification:
+		return m.OldClassification(ctx)
+	case kitartifactrevision.FieldSnapshot:
+		return m.OldSnapshot(ctx)
+	case kitartifactrevision.FieldSnapshotSha256:
+		return m.OldSnapshotSha256(ctx)
+	case kitartifactrevision.FieldClaimLinks:
+		return m.OldClaimLinks(ctx)
+	case kitartifactrevision.FieldClaimMapSha256:
+		return m.OldClaimMapSha256(ctx)
+	case kitartifactrevision.FieldOutputKey:
+		return m.OldOutputKey(ctx)
+	case kitartifactrevision.FieldOutputSha256:
+		return m.OldOutputSha256(ctx)
+	case kitartifactrevision.FieldOutputBytes:
+		return m.OldOutputBytes(ctx)
+	case kitartifactrevision.FieldMediaType:
+		return m.OldMediaType(ctx)
+	case kitartifactrevision.FieldRendererVersion:
+		return m.OldRendererVersion(ctx)
+	case kitartifactrevision.FieldPreparedAt:
+		return m.OldPreparedAt(ctx)
+	case kitartifactrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitArtifactRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitArtifactRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitartifactrevision.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitartifactrevision.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitartifactrevision.FieldKind:
+		v, ok := value.(kitartifactrevision.Kind)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKind(v)
+		return nil
+	case kitartifactrevision.FieldAudienceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudienceID(v)
+		return nil
+	case kitartifactrevision.FieldClassification:
+		v, ok := value.(kitartifactrevision.Classification)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClassification(v)
+		return nil
+	case kitartifactrevision.FieldSnapshot:
+		v, ok := value.(releasekits.NativeSnapshot)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshot(v)
+		return nil
+	case kitartifactrevision.FieldSnapshotSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSnapshotSha256(v)
+		return nil
+	case kitartifactrevision.FieldClaimLinks:
+		v, ok := value.([]releasekits.ClaimLink)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimLinks(v)
+		return nil
+	case kitartifactrevision.FieldClaimMapSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetClaimMapSha256(v)
+		return nil
+	case kitartifactrevision.FieldOutputKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputKey(v)
+		return nil
+	case kitartifactrevision.FieldOutputSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputSha256(v)
+		return nil
+	case kitartifactrevision.FieldOutputBytes:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOutputBytes(v)
+		return nil
+	case kitartifactrevision.FieldMediaType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMediaType(v)
+		return nil
+	case kitartifactrevision.FieldRendererVersion:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRendererVersion(v)
+		return nil
+	case kitartifactrevision.FieldPreparedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreparedAt(v)
+		return nil
+	case kitartifactrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitArtifactRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addoutput_bytes != nil {
+		fields = append(fields, kitartifactrevision.FieldOutputBytes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitArtifactRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitartifactrevision.FieldOutputBytes:
+		return m.AddedOutputBytes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitArtifactRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitartifactrevision.FieldOutputBytes:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOutputBytes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitArtifactRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(kitartifactrevision.FieldOutputKey) {
+		fields = append(fields, kitartifactrevision.FieldOutputKey)
+	}
+	if m.FieldCleared(kitartifactrevision.FieldOutputSha256) {
+		fields = append(fields, kitartifactrevision.FieldOutputSha256)
+	}
+	if m.FieldCleared(kitartifactrevision.FieldPreparedAt) {
+		fields = append(fields, kitartifactrevision.FieldPreparedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitArtifactRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitArtifactRevisionMutation) ClearField(name string) error {
+	switch name {
+	case kitartifactrevision.FieldOutputKey:
+		m.ClearOutputKey()
+		return nil
+	case kitartifactrevision.FieldOutputSha256:
+		m.ClearOutputSha256()
+		return nil
+	case kitartifactrevision.FieldPreparedAt:
+		m.ClearPreparedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitArtifactRevisionMutation) ResetField(name string) error {
+	switch name {
+	case kitartifactrevision.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitartifactrevision.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitartifactrevision.FieldKind:
+		m.ResetKind()
+		return nil
+	case kitartifactrevision.FieldAudienceID:
+		m.ResetAudienceID()
+		return nil
+	case kitartifactrevision.FieldClassification:
+		m.ResetClassification()
+		return nil
+	case kitartifactrevision.FieldSnapshot:
+		m.ResetSnapshot()
+		return nil
+	case kitartifactrevision.FieldSnapshotSha256:
+		m.ResetSnapshotSha256()
+		return nil
+	case kitartifactrevision.FieldClaimLinks:
+		m.ResetClaimLinks()
+		return nil
+	case kitartifactrevision.FieldClaimMapSha256:
+		m.ResetClaimMapSha256()
+		return nil
+	case kitartifactrevision.FieldOutputKey:
+		m.ResetOutputKey()
+		return nil
+	case kitartifactrevision.FieldOutputSha256:
+		m.ResetOutputSha256()
+		return nil
+	case kitartifactrevision.FieldOutputBytes:
+		m.ResetOutputBytes()
+		return nil
+	case kitartifactrevision.FieldMediaType:
+		m.ResetMediaType()
+		return nil
+	case kitartifactrevision.FieldRendererVersion:
+		m.ResetRendererVersion()
+		return nil
+	case kitartifactrevision.FieldPreparedAt:
+		m.ResetPreparedAt()
+		return nil
+	case kitartifactrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitArtifactRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitArtifactRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitArtifactRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitArtifactRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitArtifactRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitArtifactRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitArtifactRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitArtifactRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitArtifactRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitArtifactRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitArtifactRevision edge %s", name)
+}
+
+// KitExportMutation represents an operation that mutates the KitExport nodes in the graph.
+type KitExportMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	organization_id      *string
+	release_id           *string
+	kit_revision_id      *string
+	audience_ids         *[]string
+	appendaudience_ids   []string
+	audience_scope       *string
+	export_version       *int
+	addexport_version    *int
+	requested_by_user_id *string
+	state                *kitexport.State
+	object_key           *string
+	sha256               *string
+	bytes                *int64
+	addbytes             *int64
+	file_index           *releasekits.PublicIndex
+	failure_code         *string
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*KitExport, error)
+	predicates           []predicate.KitExport
+}
+
+var _ ent.Mutation = (*KitExportMutation)(nil)
+
+// kitexportOption allows management of the mutation configuration using functional options.
+type kitexportOption func(*KitExportMutation)
+
+// newKitExportMutation creates new mutation for the KitExport entity.
+func newKitExportMutation(c config, op Op, opts ...kitexportOption) *KitExportMutation {
+	m := &KitExportMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitExport,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitExportID sets the ID field of the mutation.
+func withKitExportID(id string) kitexportOption {
+	return func(m *KitExportMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitExport
+		)
+		m.oldValue = func(ctx context.Context) (*KitExport, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitExport.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitExport sets the old KitExport of the mutation.
+func withKitExport(node *KitExport) kitexportOption {
+	return func(m *KitExportMutation) {
+		m.oldValue = func(context.Context) (*KitExport, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitExportMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitExportMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitExport entities.
+func (m *KitExportMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitExportMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitExportMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitExport.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitExportMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitExportMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitExportMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitExportMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitExportMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitExportMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKitRevisionID sets the "kit_revision_id" field.
+func (m *KitExportMutation) SetKitRevisionID(s string) {
+	m.kit_revision_id = &s
+}
+
+// KitRevisionID returns the value of the "kit_revision_id" field in the mutation.
+func (m *KitExportMutation) KitRevisionID() (r string, exists bool) {
+	v := m.kit_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitRevisionID returns the old "kit_revision_id" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldKitRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitRevisionID: %w", err)
+	}
+	return oldValue.KitRevisionID, nil
+}
+
+// ResetKitRevisionID resets all changes to the "kit_revision_id" field.
+func (m *KitExportMutation) ResetKitRevisionID() {
+	m.kit_revision_id = nil
+}
+
+// SetAudienceIds sets the "audience_ids" field.
+func (m *KitExportMutation) SetAudienceIds(s []string) {
+	m.audience_ids = &s
+	m.appendaudience_ids = nil
+}
+
+// AudienceIds returns the value of the "audience_ids" field in the mutation.
+func (m *KitExportMutation) AudienceIds() (r []string, exists bool) {
+	v := m.audience_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudienceIds returns the old "audience_ids" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldAudienceIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudienceIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudienceIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudienceIds: %w", err)
+	}
+	return oldValue.AudienceIds, nil
+}
+
+// AppendAudienceIds adds s to the "audience_ids" field.
+func (m *KitExportMutation) AppendAudienceIds(s []string) {
+	m.appendaudience_ids = append(m.appendaudience_ids, s...)
+}
+
+// AppendedAudienceIds returns the list of values that were appended to the "audience_ids" field in this mutation.
+func (m *KitExportMutation) AppendedAudienceIds() ([]string, bool) {
+	if len(m.appendaudience_ids) == 0 {
+		return nil, false
+	}
+	return m.appendaudience_ids, true
+}
+
+// ResetAudienceIds resets all changes to the "audience_ids" field.
+func (m *KitExportMutation) ResetAudienceIds() {
+	m.audience_ids = nil
+	m.appendaudience_ids = nil
+}
+
+// SetAudienceScope sets the "audience_scope" field.
+func (m *KitExportMutation) SetAudienceScope(s string) {
+	m.audience_scope = &s
+}
+
+// AudienceScope returns the value of the "audience_scope" field in the mutation.
+func (m *KitExportMutation) AudienceScope() (r string, exists bool) {
+	v := m.audience_scope
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudienceScope returns the old "audience_scope" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldAudienceScope(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudienceScope is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudienceScope requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudienceScope: %w", err)
+	}
+	return oldValue.AudienceScope, nil
+}
+
+// ResetAudienceScope resets all changes to the "audience_scope" field.
+func (m *KitExportMutation) ResetAudienceScope() {
+	m.audience_scope = nil
+}
+
+// SetExportVersion sets the "export_version" field.
+func (m *KitExportMutation) SetExportVersion(i int) {
+	m.export_version = &i
+	m.addexport_version = nil
+}
+
+// ExportVersion returns the value of the "export_version" field in the mutation.
+func (m *KitExportMutation) ExportVersion() (r int, exists bool) {
+	v := m.export_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldExportVersion returns the old "export_version" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldExportVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldExportVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldExportVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldExportVersion: %w", err)
+	}
+	return oldValue.ExportVersion, nil
+}
+
+// AddExportVersion adds i to the "export_version" field.
+func (m *KitExportMutation) AddExportVersion(i int) {
+	if m.addexport_version != nil {
+		*m.addexport_version += i
+	} else {
+		m.addexport_version = &i
+	}
+}
+
+// AddedExportVersion returns the value that was added to the "export_version" field in this mutation.
+func (m *KitExportMutation) AddedExportVersion() (r int, exists bool) {
+	v := m.addexport_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetExportVersion resets all changes to the "export_version" field.
+func (m *KitExportMutation) ResetExportVersion() {
+	m.export_version = nil
+	m.addexport_version = nil
+}
+
+// SetRequestedByUserID sets the "requested_by_user_id" field.
+func (m *KitExportMutation) SetRequestedByUserID(s string) {
+	m.requested_by_user_id = &s
+}
+
+// RequestedByUserID returns the value of the "requested_by_user_id" field in the mutation.
+func (m *KitExportMutation) RequestedByUserID() (r string, exists bool) {
+	v := m.requested_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestedByUserID returns the old "requested_by_user_id" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldRequestedByUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestedByUserID: %w", err)
+	}
+	return oldValue.RequestedByUserID, nil
+}
+
+// ResetRequestedByUserID resets all changes to the "requested_by_user_id" field.
+func (m *KitExportMutation) ResetRequestedByUserID() {
+	m.requested_by_user_id = nil
+}
+
+// SetState sets the "state" field.
+func (m *KitExportMutation) SetState(k kitexport.State) {
+	m.state = &k
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *KitExportMutation) State() (r kitexport.State, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldState(ctx context.Context) (v kitexport.State, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *KitExportMutation) ResetState() {
+	m.state = nil
+}
+
+// SetObjectKey sets the "object_key" field.
+func (m *KitExportMutation) SetObjectKey(s string) {
+	m.object_key = &s
+}
+
+// ObjectKey returns the value of the "object_key" field in the mutation.
+func (m *KitExportMutation) ObjectKey() (r string, exists bool) {
+	v := m.object_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldObjectKey returns the old "object_key" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldObjectKey(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldObjectKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldObjectKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldObjectKey: %w", err)
+	}
+	return oldValue.ObjectKey, nil
+}
+
+// ClearObjectKey clears the value of the "object_key" field.
+func (m *KitExportMutation) ClearObjectKey() {
+	m.object_key = nil
+	m.clearedFields[kitexport.FieldObjectKey] = struct{}{}
+}
+
+// ObjectKeyCleared returns if the "object_key" field was cleared in this mutation.
+func (m *KitExportMutation) ObjectKeyCleared() bool {
+	_, ok := m.clearedFields[kitexport.FieldObjectKey]
+	return ok
+}
+
+// ResetObjectKey resets all changes to the "object_key" field.
+func (m *KitExportMutation) ResetObjectKey() {
+	m.object_key = nil
+	delete(m.clearedFields, kitexport.FieldObjectKey)
+}
+
+// SetSha256 sets the "sha256" field.
+func (m *KitExportMutation) SetSha256(s string) {
+	m.sha256 = &s
+}
+
+// Sha256 returns the value of the "sha256" field in the mutation.
+func (m *KitExportMutation) Sha256() (r string, exists bool) {
+	v := m.sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSha256 returns the old "sha256" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldSha256(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSha256: %w", err)
+	}
+	return oldValue.Sha256, nil
+}
+
+// ClearSha256 clears the value of the "sha256" field.
+func (m *KitExportMutation) ClearSha256() {
+	m.sha256 = nil
+	m.clearedFields[kitexport.FieldSha256] = struct{}{}
+}
+
+// Sha256Cleared returns if the "sha256" field was cleared in this mutation.
+func (m *KitExportMutation) Sha256Cleared() bool {
+	_, ok := m.clearedFields[kitexport.FieldSha256]
+	return ok
+}
+
+// ResetSha256 resets all changes to the "sha256" field.
+func (m *KitExportMutation) ResetSha256() {
+	m.sha256 = nil
+	delete(m.clearedFields, kitexport.FieldSha256)
+}
+
+// SetBytes sets the "bytes" field.
+func (m *KitExportMutation) SetBytes(i int64) {
+	m.bytes = &i
+	m.addbytes = nil
+}
+
+// Bytes returns the value of the "bytes" field in the mutation.
+func (m *KitExportMutation) Bytes() (r int64, exists bool) {
+	v := m.bytes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBytes returns the old "bytes" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldBytes(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBytes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBytes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBytes: %w", err)
+	}
+	return oldValue.Bytes, nil
+}
+
+// AddBytes adds i to the "bytes" field.
+func (m *KitExportMutation) AddBytes(i int64) {
+	if m.addbytes != nil {
+		*m.addbytes += i
+	} else {
+		m.addbytes = &i
+	}
+}
+
+// AddedBytes returns the value that was added to the "bytes" field in this mutation.
+func (m *KitExportMutation) AddedBytes() (r int64, exists bool) {
+	v := m.addbytes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetBytes resets all changes to the "bytes" field.
+func (m *KitExportMutation) ResetBytes() {
+	m.bytes = nil
+	m.addbytes = nil
+}
+
+// SetFileIndex sets the "file_index" field.
+func (m *KitExportMutation) SetFileIndex(ri releasekits.PublicIndex) {
+	m.file_index = &ri
+}
+
+// FileIndex returns the value of the "file_index" field in the mutation.
+func (m *KitExportMutation) FileIndex() (r releasekits.PublicIndex, exists bool) {
+	v := m.file_index
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFileIndex returns the old "file_index" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldFileIndex(ctx context.Context) (v releasekits.PublicIndex, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFileIndex is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFileIndex requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFileIndex: %w", err)
+	}
+	return oldValue.FileIndex, nil
+}
+
+// ResetFileIndex resets all changes to the "file_index" field.
+func (m *KitExportMutation) ResetFileIndex() {
+	m.file_index = nil
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *KitExportMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *KitExportMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldFailureCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *KitExportMutation) ResetFailureCode() {
+	m.failure_code = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitExportMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitExportMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitExport entity.
+// If the KitExport object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitExportMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitExportMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitExportMutation builder.
+func (m *KitExportMutation) Where(ps ...predicate.KitExport) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitExportMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitExportMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitExport, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitExportMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitExportMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitExport).
+func (m *KitExportMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitExportMutation) Fields() []string {
+	fields := make([]string, 0, 14)
+	if m.organization_id != nil {
+		fields = append(fields, kitexport.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitexport.FieldReleaseID)
+	}
+	if m.kit_revision_id != nil {
+		fields = append(fields, kitexport.FieldKitRevisionID)
+	}
+	if m.audience_ids != nil {
+		fields = append(fields, kitexport.FieldAudienceIds)
+	}
+	if m.audience_scope != nil {
+		fields = append(fields, kitexport.FieldAudienceScope)
+	}
+	if m.export_version != nil {
+		fields = append(fields, kitexport.FieldExportVersion)
+	}
+	if m.requested_by_user_id != nil {
+		fields = append(fields, kitexport.FieldRequestedByUserID)
+	}
+	if m.state != nil {
+		fields = append(fields, kitexport.FieldState)
+	}
+	if m.object_key != nil {
+		fields = append(fields, kitexport.FieldObjectKey)
+	}
+	if m.sha256 != nil {
+		fields = append(fields, kitexport.FieldSha256)
+	}
+	if m.bytes != nil {
+		fields = append(fields, kitexport.FieldBytes)
+	}
+	if m.file_index != nil {
+		fields = append(fields, kitexport.FieldFileIndex)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, kitexport.FieldFailureCode)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitexport.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitExportMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitexport.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitexport.FieldReleaseID:
+		return m.ReleaseID()
+	case kitexport.FieldKitRevisionID:
+		return m.KitRevisionID()
+	case kitexport.FieldAudienceIds:
+		return m.AudienceIds()
+	case kitexport.FieldAudienceScope:
+		return m.AudienceScope()
+	case kitexport.FieldExportVersion:
+		return m.ExportVersion()
+	case kitexport.FieldRequestedByUserID:
+		return m.RequestedByUserID()
+	case kitexport.FieldState:
+		return m.State()
+	case kitexport.FieldObjectKey:
+		return m.ObjectKey()
+	case kitexport.FieldSha256:
+		return m.Sha256()
+	case kitexport.FieldBytes:
+		return m.Bytes()
+	case kitexport.FieldFileIndex:
+		return m.FileIndex()
+	case kitexport.FieldFailureCode:
+		return m.FailureCode()
+	case kitexport.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitExportMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitexport.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitexport.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitexport.FieldKitRevisionID:
+		return m.OldKitRevisionID(ctx)
+	case kitexport.FieldAudienceIds:
+		return m.OldAudienceIds(ctx)
+	case kitexport.FieldAudienceScope:
+		return m.OldAudienceScope(ctx)
+	case kitexport.FieldExportVersion:
+		return m.OldExportVersion(ctx)
+	case kitexport.FieldRequestedByUserID:
+		return m.OldRequestedByUserID(ctx)
+	case kitexport.FieldState:
+		return m.OldState(ctx)
+	case kitexport.FieldObjectKey:
+		return m.OldObjectKey(ctx)
+	case kitexport.FieldSha256:
+		return m.OldSha256(ctx)
+	case kitexport.FieldBytes:
+		return m.OldBytes(ctx)
+	case kitexport.FieldFileIndex:
+		return m.OldFileIndex(ctx)
+	case kitexport.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case kitexport.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitExport field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitExportMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitexport.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitexport.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitexport.FieldKitRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitRevisionID(v)
+		return nil
+	case kitexport.FieldAudienceIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudienceIds(v)
+		return nil
+	case kitexport.FieldAudienceScope:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudienceScope(v)
+		return nil
+	case kitexport.FieldExportVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetExportVersion(v)
+		return nil
+	case kitexport.FieldRequestedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestedByUserID(v)
+		return nil
+	case kitexport.FieldState:
+		v, ok := value.(kitexport.State)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case kitexport.FieldObjectKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetObjectKey(v)
+		return nil
+	case kitexport.FieldSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSha256(v)
+		return nil
+	case kitexport.FieldBytes:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBytes(v)
+		return nil
+	case kitexport.FieldFileIndex:
+		v, ok := value.(releasekits.PublicIndex)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFileIndex(v)
+		return nil
+	case kitexport.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case kitexport.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitExport field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitExportMutation) AddedFields() []string {
+	var fields []string
+	if m.addexport_version != nil {
+		fields = append(fields, kitexport.FieldExportVersion)
+	}
+	if m.addbytes != nil {
+		fields = append(fields, kitexport.FieldBytes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitExportMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitexport.FieldExportVersion:
+		return m.AddedExportVersion()
+	case kitexport.FieldBytes:
+		return m.AddedBytes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitExportMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitexport.FieldExportVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddExportVersion(v)
+		return nil
+	case kitexport.FieldBytes:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBytes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitExport numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitExportMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(kitexport.FieldObjectKey) {
+		fields = append(fields, kitexport.FieldObjectKey)
+	}
+	if m.FieldCleared(kitexport.FieldSha256) {
+		fields = append(fields, kitexport.FieldSha256)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitExportMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitExportMutation) ClearField(name string) error {
+	switch name {
+	case kitexport.FieldObjectKey:
+		m.ClearObjectKey()
+		return nil
+	case kitexport.FieldSha256:
+		m.ClearSha256()
+		return nil
+	}
+	return fmt.Errorf("unknown KitExport nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitExportMutation) ResetField(name string) error {
+	switch name {
+	case kitexport.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitexport.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitexport.FieldKitRevisionID:
+		m.ResetKitRevisionID()
+		return nil
+	case kitexport.FieldAudienceIds:
+		m.ResetAudienceIds()
+		return nil
+	case kitexport.FieldAudienceScope:
+		m.ResetAudienceScope()
+		return nil
+	case kitexport.FieldExportVersion:
+		m.ResetExportVersion()
+		return nil
+	case kitexport.FieldRequestedByUserID:
+		m.ResetRequestedByUserID()
+		return nil
+	case kitexport.FieldState:
+		m.ResetState()
+		return nil
+	case kitexport.FieldObjectKey:
+		m.ResetObjectKey()
+		return nil
+	case kitexport.FieldSha256:
+		m.ResetSha256()
+		return nil
+	case kitexport.FieldBytes:
+		m.ResetBytes()
+		return nil
+	case kitexport.FieldFileIndex:
+		m.ResetFileIndex()
+		return nil
+	case kitexport.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case kitexport.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitExport field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitExportMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitExportMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitExportMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitExportMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitExportMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitExportMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitExportMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitExport unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitExportMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitExport edge %s", name)
+}
+
+// KitMemberMutation represents an operation that mutates the KitMember nodes in the graph.
+type KitMemberMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	organization_id      *string
+	release_id           *string
+	kit_revision_id      *string
+	artifact_revision_id *string
+	audience_id          *string
+	requirement_id       *string
+	display_order        *int
+	adddisplay_order     *int
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*KitMember, error)
+	predicates           []predicate.KitMember
+}
+
+var _ ent.Mutation = (*KitMemberMutation)(nil)
+
+// kitmemberOption allows management of the mutation configuration using functional options.
+type kitmemberOption func(*KitMemberMutation)
+
+// newKitMemberMutation creates new mutation for the KitMember entity.
+func newKitMemberMutation(c config, op Op, opts ...kitmemberOption) *KitMemberMutation {
+	m := &KitMemberMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitMember,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitMemberID sets the ID field of the mutation.
+func withKitMemberID(id string) kitmemberOption {
+	return func(m *KitMemberMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitMember
+		)
+		m.oldValue = func(ctx context.Context) (*KitMember, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitMember.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitMember sets the old KitMember of the mutation.
+func withKitMember(node *KitMember) kitmemberOption {
+	return func(m *KitMemberMutation) {
+		m.oldValue = func(context.Context) (*KitMember, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitMemberMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitMemberMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitMember entities.
+func (m *KitMemberMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitMemberMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitMemberMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitMember.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitMemberMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitMemberMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitMemberMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitMemberMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitMemberMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitMemberMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKitRevisionID sets the "kit_revision_id" field.
+func (m *KitMemberMutation) SetKitRevisionID(s string) {
+	m.kit_revision_id = &s
+}
+
+// KitRevisionID returns the value of the "kit_revision_id" field in the mutation.
+func (m *KitMemberMutation) KitRevisionID() (r string, exists bool) {
+	v := m.kit_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitRevisionID returns the old "kit_revision_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldKitRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitRevisionID: %w", err)
+	}
+	return oldValue.KitRevisionID, nil
+}
+
+// ResetKitRevisionID resets all changes to the "kit_revision_id" field.
+func (m *KitMemberMutation) ResetKitRevisionID() {
+	m.kit_revision_id = nil
+}
+
+// SetArtifactRevisionID sets the "artifact_revision_id" field.
+func (m *KitMemberMutation) SetArtifactRevisionID(s string) {
+	m.artifact_revision_id = &s
+}
+
+// ArtifactRevisionID returns the value of the "artifact_revision_id" field in the mutation.
+func (m *KitMemberMutation) ArtifactRevisionID() (r string, exists bool) {
+	v := m.artifact_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldArtifactRevisionID returns the old "artifact_revision_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldArtifactRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldArtifactRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldArtifactRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldArtifactRevisionID: %w", err)
+	}
+	return oldValue.ArtifactRevisionID, nil
+}
+
+// ResetArtifactRevisionID resets all changes to the "artifact_revision_id" field.
+func (m *KitMemberMutation) ResetArtifactRevisionID() {
+	m.artifact_revision_id = nil
+}
+
+// SetAudienceID sets the "audience_id" field.
+func (m *KitMemberMutation) SetAudienceID(s string) {
+	m.audience_id = &s
+}
+
+// AudienceID returns the value of the "audience_id" field in the mutation.
+func (m *KitMemberMutation) AudienceID() (r string, exists bool) {
+	v := m.audience_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudienceID returns the old "audience_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldAudienceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudienceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudienceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudienceID: %w", err)
+	}
+	return oldValue.AudienceID, nil
+}
+
+// ResetAudienceID resets all changes to the "audience_id" field.
+func (m *KitMemberMutation) ResetAudienceID() {
+	m.audience_id = nil
+}
+
+// SetRequirementID sets the "requirement_id" field.
+func (m *KitMemberMutation) SetRequirementID(s string) {
+	m.requirement_id = &s
+}
+
+// RequirementID returns the value of the "requirement_id" field in the mutation.
+func (m *KitMemberMutation) RequirementID() (r string, exists bool) {
+	v := m.requirement_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequirementID returns the old "requirement_id" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldRequirementID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequirementID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequirementID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequirementID: %w", err)
+	}
+	return oldValue.RequirementID, nil
+}
+
+// ResetRequirementID resets all changes to the "requirement_id" field.
+func (m *KitMemberMutation) ResetRequirementID() {
+	m.requirement_id = nil
+}
+
+// SetDisplayOrder sets the "display_order" field.
+func (m *KitMemberMutation) SetDisplayOrder(i int) {
+	m.display_order = &i
+	m.adddisplay_order = nil
+}
+
+// DisplayOrder returns the value of the "display_order" field in the mutation.
+func (m *KitMemberMutation) DisplayOrder() (r int, exists bool) {
+	v := m.display_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDisplayOrder returns the old "display_order" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldDisplayOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDisplayOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDisplayOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDisplayOrder: %w", err)
+	}
+	return oldValue.DisplayOrder, nil
+}
+
+// AddDisplayOrder adds i to the "display_order" field.
+func (m *KitMemberMutation) AddDisplayOrder(i int) {
+	if m.adddisplay_order != nil {
+		*m.adddisplay_order += i
+	} else {
+		m.adddisplay_order = &i
+	}
+}
+
+// AddedDisplayOrder returns the value that was added to the "display_order" field in this mutation.
+func (m *KitMemberMutation) AddedDisplayOrder() (r int, exists bool) {
+	v := m.adddisplay_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetDisplayOrder resets all changes to the "display_order" field.
+func (m *KitMemberMutation) ResetDisplayOrder() {
+	m.display_order = nil
+	m.adddisplay_order = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitMemberMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitMemberMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitMember entity.
+// If the KitMember object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitMemberMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitMemberMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitMemberMutation builder.
+func (m *KitMemberMutation) Where(ps ...predicate.KitMember) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitMemberMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitMemberMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitMember, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitMemberMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitMemberMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitMember).
+func (m *KitMemberMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitMemberMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.organization_id != nil {
+		fields = append(fields, kitmember.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitmember.FieldReleaseID)
+	}
+	if m.kit_revision_id != nil {
+		fields = append(fields, kitmember.FieldKitRevisionID)
+	}
+	if m.artifact_revision_id != nil {
+		fields = append(fields, kitmember.FieldArtifactRevisionID)
+	}
+	if m.audience_id != nil {
+		fields = append(fields, kitmember.FieldAudienceID)
+	}
+	if m.requirement_id != nil {
+		fields = append(fields, kitmember.FieldRequirementID)
+	}
+	if m.display_order != nil {
+		fields = append(fields, kitmember.FieldDisplayOrder)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitmember.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitMemberMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitmember.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitmember.FieldReleaseID:
+		return m.ReleaseID()
+	case kitmember.FieldKitRevisionID:
+		return m.KitRevisionID()
+	case kitmember.FieldArtifactRevisionID:
+		return m.ArtifactRevisionID()
+	case kitmember.FieldAudienceID:
+		return m.AudienceID()
+	case kitmember.FieldRequirementID:
+		return m.RequirementID()
+	case kitmember.FieldDisplayOrder:
+		return m.DisplayOrder()
+	case kitmember.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitMemberMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitmember.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitmember.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitmember.FieldKitRevisionID:
+		return m.OldKitRevisionID(ctx)
+	case kitmember.FieldArtifactRevisionID:
+		return m.OldArtifactRevisionID(ctx)
+	case kitmember.FieldAudienceID:
+		return m.OldAudienceID(ctx)
+	case kitmember.FieldRequirementID:
+		return m.OldRequirementID(ctx)
+	case kitmember.FieldDisplayOrder:
+		return m.OldDisplayOrder(ctx)
+	case kitmember.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitMember field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitMemberMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitmember.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitmember.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitmember.FieldKitRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitRevisionID(v)
+		return nil
+	case kitmember.FieldArtifactRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetArtifactRevisionID(v)
+		return nil
+	case kitmember.FieldAudienceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudienceID(v)
+		return nil
+	case kitmember.FieldRequirementID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequirementID(v)
+		return nil
+	case kitmember.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDisplayOrder(v)
+		return nil
+	case kitmember.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitMember field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitMemberMutation) AddedFields() []string {
+	var fields []string
+	if m.adddisplay_order != nil {
+		fields = append(fields, kitmember.FieldDisplayOrder)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitMemberMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitmember.FieldDisplayOrder:
+		return m.AddedDisplayOrder()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitMemberMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitmember.FieldDisplayOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddDisplayOrder(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitMember numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitMemberMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitMemberMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitMemberMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown KitMember nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitMemberMutation) ResetField(name string) error {
+	switch name {
+	case kitmember.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitmember.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitmember.FieldKitRevisionID:
+		m.ResetKitRevisionID()
+		return nil
+	case kitmember.FieldArtifactRevisionID:
+		m.ResetArtifactRevisionID()
+		return nil
+	case kitmember.FieldAudienceID:
+		m.ResetAudienceID()
+		return nil
+	case kitmember.FieldRequirementID:
+		m.ResetRequirementID()
+		return nil
+	case kitmember.FieldDisplayOrder:
+		m.ResetDisplayOrder()
+		return nil
+	case kitmember.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitMember field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitMemberMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitMemberMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitMemberMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitMemberMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitMemberMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitMemberMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitMemberMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitMember unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitMemberMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitMember edge %s", name)
+}
+
+// KitReviewDecisionMutation represents an operation that mutates the KitReviewDecision nodes in the graph.
+type KitReviewDecisionMutation struct {
+	config
+	op                    Op
+	typ                   string
+	id                    *string
+	organization_id       *string
+	release_id            *string
+	kit_revision_id       *string
+	review_type           *kitreviewdecision.ReviewType
+	decision              *kitreviewdecision.Decision
+	manifest_sha256       *string
+	dependency_token      *string
+	policy_version        *int
+	addpolicy_version     *int
+	human_user_id         *string
+	session_id            *string
+	reason                *string
+	assertions_confirmed  *bool
+	screenshots_confirmed *bool
+	audience_confirmed    *bool
+	created_at            *time.Time
+	clearedFields         map[string]struct{}
+	done                  bool
+	oldValue              func(context.Context) (*KitReviewDecision, error)
+	predicates            []predicate.KitReviewDecision
+}
+
+var _ ent.Mutation = (*KitReviewDecisionMutation)(nil)
+
+// kitreviewdecisionOption allows management of the mutation configuration using functional options.
+type kitreviewdecisionOption func(*KitReviewDecisionMutation)
+
+// newKitReviewDecisionMutation creates new mutation for the KitReviewDecision entity.
+func newKitReviewDecisionMutation(c config, op Op, opts ...kitreviewdecisionOption) *KitReviewDecisionMutation {
+	m := &KitReviewDecisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitReviewDecision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitReviewDecisionID sets the ID field of the mutation.
+func withKitReviewDecisionID(id string) kitreviewdecisionOption {
+	return func(m *KitReviewDecisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitReviewDecision
+		)
+		m.oldValue = func(ctx context.Context) (*KitReviewDecision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitReviewDecision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitReviewDecision sets the old KitReviewDecision of the mutation.
+func withKitReviewDecision(node *KitReviewDecision) kitreviewdecisionOption {
+	return func(m *KitReviewDecisionMutation) {
+		m.oldValue = func(context.Context) (*KitReviewDecision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitReviewDecisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitReviewDecisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitReviewDecision entities.
+func (m *KitReviewDecisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitReviewDecisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitReviewDecisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitReviewDecision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitReviewDecisionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitReviewDecisionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitReviewDecisionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitReviewDecisionMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitReviewDecisionMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitReviewDecisionMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKitRevisionID sets the "kit_revision_id" field.
+func (m *KitReviewDecisionMutation) SetKitRevisionID(s string) {
+	m.kit_revision_id = &s
+}
+
+// KitRevisionID returns the value of the "kit_revision_id" field in the mutation.
+func (m *KitReviewDecisionMutation) KitRevisionID() (r string, exists bool) {
+	v := m.kit_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitRevisionID returns the old "kit_revision_id" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldKitRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitRevisionID: %w", err)
+	}
+	return oldValue.KitRevisionID, nil
+}
+
+// ResetKitRevisionID resets all changes to the "kit_revision_id" field.
+func (m *KitReviewDecisionMutation) ResetKitRevisionID() {
+	m.kit_revision_id = nil
+}
+
+// SetReviewType sets the "review_type" field.
+func (m *KitReviewDecisionMutation) SetReviewType(kt kitreviewdecision.ReviewType) {
+	m.review_type = &kt
+}
+
+// ReviewType returns the value of the "review_type" field in the mutation.
+func (m *KitReviewDecisionMutation) ReviewType() (r kitreviewdecision.ReviewType, exists bool) {
+	v := m.review_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReviewType returns the old "review_type" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldReviewType(ctx context.Context) (v kitreviewdecision.ReviewType, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReviewType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReviewType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReviewType: %w", err)
+	}
+	return oldValue.ReviewType, nil
+}
+
+// ResetReviewType resets all changes to the "review_type" field.
+func (m *KitReviewDecisionMutation) ResetReviewType() {
+	m.review_type = nil
+}
+
+// SetDecision sets the "decision" field.
+func (m *KitReviewDecisionMutation) SetDecision(k kitreviewdecision.Decision) {
+	m.decision = &k
+}
+
+// Decision returns the value of the "decision" field in the mutation.
+func (m *KitReviewDecisionMutation) Decision() (r kitreviewdecision.Decision, exists bool) {
+	v := m.decision
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDecision returns the old "decision" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldDecision(ctx context.Context) (v kitreviewdecision.Decision, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDecision is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDecision requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDecision: %w", err)
+	}
+	return oldValue.Decision, nil
+}
+
+// ResetDecision resets all changes to the "decision" field.
+func (m *KitReviewDecisionMutation) ResetDecision() {
+	m.decision = nil
+}
+
+// SetManifestSha256 sets the "manifest_sha256" field.
+func (m *KitReviewDecisionMutation) SetManifestSha256(s string) {
+	m.manifest_sha256 = &s
+}
+
+// ManifestSha256 returns the value of the "manifest_sha256" field in the mutation.
+func (m *KitReviewDecisionMutation) ManifestSha256() (r string, exists bool) {
+	v := m.manifest_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManifestSha256 returns the old "manifest_sha256" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldManifestSha256(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManifestSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManifestSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManifestSha256: %w", err)
+	}
+	return oldValue.ManifestSha256, nil
+}
+
+// ResetManifestSha256 resets all changes to the "manifest_sha256" field.
+func (m *KitReviewDecisionMutation) ResetManifestSha256() {
+	m.manifest_sha256 = nil
+}
+
+// SetDependencyToken sets the "dependency_token" field.
+func (m *KitReviewDecisionMutation) SetDependencyToken(s string) {
+	m.dependency_token = &s
+}
+
+// DependencyToken returns the value of the "dependency_token" field in the mutation.
+func (m *KitReviewDecisionMutation) DependencyToken() (r string, exists bool) {
+	v := m.dependency_token
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDependencyToken returns the old "dependency_token" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldDependencyToken(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDependencyToken is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDependencyToken requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDependencyToken: %w", err)
+	}
+	return oldValue.DependencyToken, nil
+}
+
+// ResetDependencyToken resets all changes to the "dependency_token" field.
+func (m *KitReviewDecisionMutation) ResetDependencyToken() {
+	m.dependency_token = nil
+}
+
+// SetPolicyVersion sets the "policy_version" field.
+func (m *KitReviewDecisionMutation) SetPolicyVersion(i int) {
+	m.policy_version = &i
+	m.addpolicy_version = nil
+}
+
+// PolicyVersion returns the value of the "policy_version" field in the mutation.
+func (m *KitReviewDecisionMutation) PolicyVersion() (r int, exists bool) {
+	v := m.policy_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPolicyVersion returns the old "policy_version" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldPolicyVersion(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPolicyVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPolicyVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPolicyVersion: %w", err)
+	}
+	return oldValue.PolicyVersion, nil
+}
+
+// AddPolicyVersion adds i to the "policy_version" field.
+func (m *KitReviewDecisionMutation) AddPolicyVersion(i int) {
+	if m.addpolicy_version != nil {
+		*m.addpolicy_version += i
+	} else {
+		m.addpolicy_version = &i
+	}
+}
+
+// AddedPolicyVersion returns the value that was added to the "policy_version" field in this mutation.
+func (m *KitReviewDecisionMutation) AddedPolicyVersion() (r int, exists bool) {
+	v := m.addpolicy_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPolicyVersion resets all changes to the "policy_version" field.
+func (m *KitReviewDecisionMutation) ResetPolicyVersion() {
+	m.policy_version = nil
+	m.addpolicy_version = nil
+}
+
+// SetHumanUserID sets the "human_user_id" field.
+func (m *KitReviewDecisionMutation) SetHumanUserID(s string) {
+	m.human_user_id = &s
+}
+
+// HumanUserID returns the value of the "human_user_id" field in the mutation.
+func (m *KitReviewDecisionMutation) HumanUserID() (r string, exists bool) {
+	v := m.human_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHumanUserID returns the old "human_user_id" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldHumanUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHumanUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHumanUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHumanUserID: %w", err)
+	}
+	return oldValue.HumanUserID, nil
+}
+
+// ResetHumanUserID resets all changes to the "human_user_id" field.
+func (m *KitReviewDecisionMutation) ResetHumanUserID() {
+	m.human_user_id = nil
+}
+
+// SetSessionID sets the "session_id" field.
+func (m *KitReviewDecisionMutation) SetSessionID(s string) {
+	m.session_id = &s
+}
+
+// SessionID returns the value of the "session_id" field in the mutation.
+func (m *KitReviewDecisionMutation) SessionID() (r string, exists bool) {
+	v := m.session_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSessionID returns the old "session_id" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldSessionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSessionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSessionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSessionID: %w", err)
+	}
+	return oldValue.SessionID, nil
+}
+
+// ResetSessionID resets all changes to the "session_id" field.
+func (m *KitReviewDecisionMutation) ResetSessionID() {
+	m.session_id = nil
+}
+
+// SetReason sets the "reason" field.
+func (m *KitReviewDecisionMutation) SetReason(s string) {
+	m.reason = &s
+}
+
+// Reason returns the value of the "reason" field in the mutation.
+func (m *KitReviewDecisionMutation) Reason() (r string, exists bool) {
+	v := m.reason
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReason returns the old "reason" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldReason(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReason is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReason requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReason: %w", err)
+	}
+	return oldValue.Reason, nil
+}
+
+// ResetReason resets all changes to the "reason" field.
+func (m *KitReviewDecisionMutation) ResetReason() {
+	m.reason = nil
+}
+
+// SetAssertionsConfirmed sets the "assertions_confirmed" field.
+func (m *KitReviewDecisionMutation) SetAssertionsConfirmed(b bool) {
+	m.assertions_confirmed = &b
+}
+
+// AssertionsConfirmed returns the value of the "assertions_confirmed" field in the mutation.
+func (m *KitReviewDecisionMutation) AssertionsConfirmed() (r bool, exists bool) {
+	v := m.assertions_confirmed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAssertionsConfirmed returns the old "assertions_confirmed" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldAssertionsConfirmed(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAssertionsConfirmed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAssertionsConfirmed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAssertionsConfirmed: %w", err)
+	}
+	return oldValue.AssertionsConfirmed, nil
+}
+
+// ResetAssertionsConfirmed resets all changes to the "assertions_confirmed" field.
+func (m *KitReviewDecisionMutation) ResetAssertionsConfirmed() {
+	m.assertions_confirmed = nil
+}
+
+// SetScreenshotsConfirmed sets the "screenshots_confirmed" field.
+func (m *KitReviewDecisionMutation) SetScreenshotsConfirmed(b bool) {
+	m.screenshots_confirmed = &b
+}
+
+// ScreenshotsConfirmed returns the value of the "screenshots_confirmed" field in the mutation.
+func (m *KitReviewDecisionMutation) ScreenshotsConfirmed() (r bool, exists bool) {
+	v := m.screenshots_confirmed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldScreenshotsConfirmed returns the old "screenshots_confirmed" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldScreenshotsConfirmed(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldScreenshotsConfirmed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldScreenshotsConfirmed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldScreenshotsConfirmed: %w", err)
+	}
+	return oldValue.ScreenshotsConfirmed, nil
+}
+
+// ResetScreenshotsConfirmed resets all changes to the "screenshots_confirmed" field.
+func (m *KitReviewDecisionMutation) ResetScreenshotsConfirmed() {
+	m.screenshots_confirmed = nil
+}
+
+// SetAudienceConfirmed sets the "audience_confirmed" field.
+func (m *KitReviewDecisionMutation) SetAudienceConfirmed(b bool) {
+	m.audience_confirmed = &b
+}
+
+// AudienceConfirmed returns the value of the "audience_confirmed" field in the mutation.
+func (m *KitReviewDecisionMutation) AudienceConfirmed() (r bool, exists bool) {
+	v := m.audience_confirmed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAudienceConfirmed returns the old "audience_confirmed" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldAudienceConfirmed(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAudienceConfirmed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAudienceConfirmed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAudienceConfirmed: %w", err)
+	}
+	return oldValue.AudienceConfirmed, nil
+}
+
+// ResetAudienceConfirmed resets all changes to the "audience_confirmed" field.
+func (m *KitReviewDecisionMutation) ResetAudienceConfirmed() {
+	m.audience_confirmed = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitReviewDecisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitReviewDecisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitReviewDecision entity.
+// If the KitReviewDecision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitReviewDecisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitReviewDecisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitReviewDecisionMutation builder.
+func (m *KitReviewDecisionMutation) Where(ps ...predicate.KitReviewDecision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitReviewDecisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitReviewDecisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitReviewDecision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitReviewDecisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitReviewDecisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitReviewDecision).
+func (m *KitReviewDecisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitReviewDecisionMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.organization_id != nil {
+		fields = append(fields, kitreviewdecision.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitreviewdecision.FieldReleaseID)
+	}
+	if m.kit_revision_id != nil {
+		fields = append(fields, kitreviewdecision.FieldKitRevisionID)
+	}
+	if m.review_type != nil {
+		fields = append(fields, kitreviewdecision.FieldReviewType)
+	}
+	if m.decision != nil {
+		fields = append(fields, kitreviewdecision.FieldDecision)
+	}
+	if m.manifest_sha256 != nil {
+		fields = append(fields, kitreviewdecision.FieldManifestSha256)
+	}
+	if m.dependency_token != nil {
+		fields = append(fields, kitreviewdecision.FieldDependencyToken)
+	}
+	if m.policy_version != nil {
+		fields = append(fields, kitreviewdecision.FieldPolicyVersion)
+	}
+	if m.human_user_id != nil {
+		fields = append(fields, kitreviewdecision.FieldHumanUserID)
+	}
+	if m.session_id != nil {
+		fields = append(fields, kitreviewdecision.FieldSessionID)
+	}
+	if m.reason != nil {
+		fields = append(fields, kitreviewdecision.FieldReason)
+	}
+	if m.assertions_confirmed != nil {
+		fields = append(fields, kitreviewdecision.FieldAssertionsConfirmed)
+	}
+	if m.screenshots_confirmed != nil {
+		fields = append(fields, kitreviewdecision.FieldScreenshotsConfirmed)
+	}
+	if m.audience_confirmed != nil {
+		fields = append(fields, kitreviewdecision.FieldAudienceConfirmed)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitreviewdecision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitReviewDecisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitreviewdecision.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitreviewdecision.FieldReleaseID:
+		return m.ReleaseID()
+	case kitreviewdecision.FieldKitRevisionID:
+		return m.KitRevisionID()
+	case kitreviewdecision.FieldReviewType:
+		return m.ReviewType()
+	case kitreviewdecision.FieldDecision:
+		return m.Decision()
+	case kitreviewdecision.FieldManifestSha256:
+		return m.ManifestSha256()
+	case kitreviewdecision.FieldDependencyToken:
+		return m.DependencyToken()
+	case kitreviewdecision.FieldPolicyVersion:
+		return m.PolicyVersion()
+	case kitreviewdecision.FieldHumanUserID:
+		return m.HumanUserID()
+	case kitreviewdecision.FieldSessionID:
+		return m.SessionID()
+	case kitreviewdecision.FieldReason:
+		return m.Reason()
+	case kitreviewdecision.FieldAssertionsConfirmed:
+		return m.AssertionsConfirmed()
+	case kitreviewdecision.FieldScreenshotsConfirmed:
+		return m.ScreenshotsConfirmed()
+	case kitreviewdecision.FieldAudienceConfirmed:
+		return m.AudienceConfirmed()
+	case kitreviewdecision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitReviewDecisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitreviewdecision.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitreviewdecision.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitreviewdecision.FieldKitRevisionID:
+		return m.OldKitRevisionID(ctx)
+	case kitreviewdecision.FieldReviewType:
+		return m.OldReviewType(ctx)
+	case kitreviewdecision.FieldDecision:
+		return m.OldDecision(ctx)
+	case kitreviewdecision.FieldManifestSha256:
+		return m.OldManifestSha256(ctx)
+	case kitreviewdecision.FieldDependencyToken:
+		return m.OldDependencyToken(ctx)
+	case kitreviewdecision.FieldPolicyVersion:
+		return m.OldPolicyVersion(ctx)
+	case kitreviewdecision.FieldHumanUserID:
+		return m.OldHumanUserID(ctx)
+	case kitreviewdecision.FieldSessionID:
+		return m.OldSessionID(ctx)
+	case kitreviewdecision.FieldReason:
+		return m.OldReason(ctx)
+	case kitreviewdecision.FieldAssertionsConfirmed:
+		return m.OldAssertionsConfirmed(ctx)
+	case kitreviewdecision.FieldScreenshotsConfirmed:
+		return m.OldScreenshotsConfirmed(ctx)
+	case kitreviewdecision.FieldAudienceConfirmed:
+		return m.OldAudienceConfirmed(ctx)
+	case kitreviewdecision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitReviewDecision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitReviewDecisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitreviewdecision.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitreviewdecision.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitreviewdecision.FieldKitRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitRevisionID(v)
+		return nil
+	case kitreviewdecision.FieldReviewType:
+		v, ok := value.(kitreviewdecision.ReviewType)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReviewType(v)
+		return nil
+	case kitreviewdecision.FieldDecision:
+		v, ok := value.(kitreviewdecision.Decision)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDecision(v)
+		return nil
+	case kitreviewdecision.FieldManifestSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManifestSha256(v)
+		return nil
+	case kitreviewdecision.FieldDependencyToken:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDependencyToken(v)
+		return nil
+	case kitreviewdecision.FieldPolicyVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPolicyVersion(v)
+		return nil
+	case kitreviewdecision.FieldHumanUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHumanUserID(v)
+		return nil
+	case kitreviewdecision.FieldSessionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSessionID(v)
+		return nil
+	case kitreviewdecision.FieldReason:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReason(v)
+		return nil
+	case kitreviewdecision.FieldAssertionsConfirmed:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAssertionsConfirmed(v)
+		return nil
+	case kitreviewdecision.FieldScreenshotsConfirmed:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetScreenshotsConfirmed(v)
+		return nil
+	case kitreviewdecision.FieldAudienceConfirmed:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAudienceConfirmed(v)
+		return nil
+	case kitreviewdecision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitReviewDecision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitReviewDecisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addpolicy_version != nil {
+		fields = append(fields, kitreviewdecision.FieldPolicyVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitReviewDecisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitreviewdecision.FieldPolicyVersion:
+		return m.AddedPolicyVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitReviewDecisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitreviewdecision.FieldPolicyVersion:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPolicyVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitReviewDecision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitReviewDecisionMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitReviewDecisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitReviewDecisionMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown KitReviewDecision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitReviewDecisionMutation) ResetField(name string) error {
+	switch name {
+	case kitreviewdecision.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitreviewdecision.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitreviewdecision.FieldKitRevisionID:
+		m.ResetKitRevisionID()
+		return nil
+	case kitreviewdecision.FieldReviewType:
+		m.ResetReviewType()
+		return nil
+	case kitreviewdecision.FieldDecision:
+		m.ResetDecision()
+		return nil
+	case kitreviewdecision.FieldManifestSha256:
+		m.ResetManifestSha256()
+		return nil
+	case kitreviewdecision.FieldDependencyToken:
+		m.ResetDependencyToken()
+		return nil
+	case kitreviewdecision.FieldPolicyVersion:
+		m.ResetPolicyVersion()
+		return nil
+	case kitreviewdecision.FieldHumanUserID:
+		m.ResetHumanUserID()
+		return nil
+	case kitreviewdecision.FieldSessionID:
+		m.ResetSessionID()
+		return nil
+	case kitreviewdecision.FieldReason:
+		m.ResetReason()
+		return nil
+	case kitreviewdecision.FieldAssertionsConfirmed:
+		m.ResetAssertionsConfirmed()
+		return nil
+	case kitreviewdecision.FieldScreenshotsConfirmed:
+		m.ResetScreenshotsConfirmed()
+		return nil
+	case kitreviewdecision.FieldAudienceConfirmed:
+		m.ResetAudienceConfirmed()
+		return nil
+	case kitreviewdecision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitReviewDecision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitReviewDecisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitReviewDecisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitReviewDecisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitReviewDecisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitReviewDecisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitReviewDecisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitReviewDecisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitReviewDecision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitReviewDecisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitReviewDecision edge %s", name)
+}
+
+// KitRevisionMutation represents an operation that mutates the KitRevision nodes in the graph.
+type KitRevisionMutation struct {
+	config
+	op                        Op
+	typ                       string
+	id                        *string
+	organization_id           *string
+	release_id                *string
+	kit_id                    *string
+	version                   *int64
+	addversion                *int64
+	qualification_revision_id *string
+	approver_user_id          *string
+	requested_by_user_id      *string
+	state                     *kitrevision.State
+	manifest                  *releasekits.Manifest
+	manifest_sha256           *string
+	manifest_canonical        *string
+	preparation_job_id        *string
+	failure_code              *string
+	prepared_at               *time.Time
+	created_at                *time.Time
+	clearedFields             map[string]struct{}
+	done                      bool
+	oldValue                  func(context.Context) (*KitRevision, error)
+	predicates                []predicate.KitRevision
+}
+
+var _ ent.Mutation = (*KitRevisionMutation)(nil)
+
+// kitrevisionOption allows management of the mutation configuration using functional options.
+type kitrevisionOption func(*KitRevisionMutation)
+
+// newKitRevisionMutation creates new mutation for the KitRevision entity.
+func newKitRevisionMutation(c config, op Op, opts ...kitrevisionOption) *KitRevisionMutation {
+	m := &KitRevisionMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitRevision,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitRevisionID sets the ID field of the mutation.
+func withKitRevisionID(id string) kitrevisionOption {
+	return func(m *KitRevisionMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitRevision
+		)
+		m.oldValue = func(ctx context.Context) (*KitRevision, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitRevision.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitRevision sets the old KitRevision of the mutation.
+func withKitRevision(node *KitRevision) kitrevisionOption {
+	return func(m *KitRevisionMutation) {
+		m.oldValue = func(context.Context) (*KitRevision, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitRevisionMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitRevisionMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitRevision entities.
+func (m *KitRevisionMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitRevisionMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitRevisionMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitRevision.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitRevisionMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitRevisionMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitRevisionMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitRevisionMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitRevisionMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitRevisionMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKitID sets the "kit_id" field.
+func (m *KitRevisionMutation) SetKitID(s string) {
+	m.kit_id = &s
+}
+
+// KitID returns the value of the "kit_id" field in the mutation.
+func (m *KitRevisionMutation) KitID() (r string, exists bool) {
+	v := m.kit_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitID returns the old "kit_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldKitID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitID: %w", err)
+	}
+	return oldValue.KitID, nil
+}
+
+// ResetKitID resets all changes to the "kit_id" field.
+func (m *KitRevisionMutation) ResetKitID() {
+	m.kit_id = nil
+}
+
+// SetVersion sets the "version" field.
+func (m *KitRevisionMutation) SetVersion(i int64) {
+	m.version = &i
+	m.addversion = nil
+}
+
+// Version returns the value of the "version" field in the mutation.
+func (m *KitRevisionMutation) Version() (r int64, exists bool) {
+	v := m.version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVersion returns the old "version" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldVersion(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVersion: %w", err)
+	}
+	return oldValue.Version, nil
+}
+
+// AddVersion adds i to the "version" field.
+func (m *KitRevisionMutation) AddVersion(i int64) {
+	if m.addversion != nil {
+		*m.addversion += i
+	} else {
+		m.addversion = &i
+	}
+}
+
+// AddedVersion returns the value that was added to the "version" field in this mutation.
+func (m *KitRevisionMutation) AddedVersion() (r int64, exists bool) {
+	v := m.addversion
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetVersion resets all changes to the "version" field.
+func (m *KitRevisionMutation) ResetVersion() {
+	m.version = nil
+	m.addversion = nil
+}
+
+// SetQualificationRevisionID sets the "qualification_revision_id" field.
+func (m *KitRevisionMutation) SetQualificationRevisionID(s string) {
+	m.qualification_revision_id = &s
+}
+
+// QualificationRevisionID returns the value of the "qualification_revision_id" field in the mutation.
+func (m *KitRevisionMutation) QualificationRevisionID() (r string, exists bool) {
+	v := m.qualification_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQualificationRevisionID returns the old "qualification_revision_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldQualificationRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQualificationRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQualificationRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQualificationRevisionID: %w", err)
+	}
+	return oldValue.QualificationRevisionID, nil
+}
+
+// ResetQualificationRevisionID resets all changes to the "qualification_revision_id" field.
+func (m *KitRevisionMutation) ResetQualificationRevisionID() {
+	m.qualification_revision_id = nil
+}
+
+// SetApproverUserID sets the "approver_user_id" field.
+func (m *KitRevisionMutation) SetApproverUserID(s string) {
+	m.approver_user_id = &s
+}
+
+// ApproverUserID returns the value of the "approver_user_id" field in the mutation.
+func (m *KitRevisionMutation) ApproverUserID() (r string, exists bool) {
+	v := m.approver_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApproverUserID returns the old "approver_user_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldApproverUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApproverUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApproverUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApproverUserID: %w", err)
+	}
+	return oldValue.ApproverUserID, nil
+}
+
+// ResetApproverUserID resets all changes to the "approver_user_id" field.
+func (m *KitRevisionMutation) ResetApproverUserID() {
+	m.approver_user_id = nil
+}
+
+// SetRequestedByUserID sets the "requested_by_user_id" field.
+func (m *KitRevisionMutation) SetRequestedByUserID(s string) {
+	m.requested_by_user_id = &s
+}
+
+// RequestedByUserID returns the value of the "requested_by_user_id" field in the mutation.
+func (m *KitRevisionMutation) RequestedByUserID() (r string, exists bool) {
+	v := m.requested_by_user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRequestedByUserID returns the old "requested_by_user_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldRequestedByUserID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRequestedByUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRequestedByUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRequestedByUserID: %w", err)
+	}
+	return oldValue.RequestedByUserID, nil
+}
+
+// ResetRequestedByUserID resets all changes to the "requested_by_user_id" field.
+func (m *KitRevisionMutation) ResetRequestedByUserID() {
+	m.requested_by_user_id = nil
+}
+
+// SetState sets the "state" field.
+func (m *KitRevisionMutation) SetState(k kitrevision.State) {
+	m.state = &k
+}
+
+// State returns the value of the "state" field in the mutation.
+func (m *KitRevisionMutation) State() (r kitrevision.State, exists bool) {
+	v := m.state
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldState returns the old "state" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldState(ctx context.Context) (v kitrevision.State, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldState is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldState requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldState: %w", err)
+	}
+	return oldValue.State, nil
+}
+
+// ResetState resets all changes to the "state" field.
+func (m *KitRevisionMutation) ResetState() {
+	m.state = nil
+}
+
+// SetManifest sets the "manifest" field.
+func (m *KitRevisionMutation) SetManifest(r releasekits.Manifest) {
+	m.manifest = &r
+}
+
+// Manifest returns the value of the "manifest" field in the mutation.
+func (m *KitRevisionMutation) Manifest() (r releasekits.Manifest, exists bool) {
+	v := m.manifest
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManifest returns the old "manifest" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldManifest(ctx context.Context) (v releasekits.Manifest, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManifest is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManifest requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManifest: %w", err)
+	}
+	return oldValue.Manifest, nil
+}
+
+// ResetManifest resets all changes to the "manifest" field.
+func (m *KitRevisionMutation) ResetManifest() {
+	m.manifest = nil
+}
+
+// SetManifestSha256 sets the "manifest_sha256" field.
+func (m *KitRevisionMutation) SetManifestSha256(s string) {
+	m.manifest_sha256 = &s
+}
+
+// ManifestSha256 returns the value of the "manifest_sha256" field in the mutation.
+func (m *KitRevisionMutation) ManifestSha256() (r string, exists bool) {
+	v := m.manifest_sha256
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManifestSha256 returns the old "manifest_sha256" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldManifestSha256(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManifestSha256 is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManifestSha256 requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManifestSha256: %w", err)
+	}
+	return oldValue.ManifestSha256, nil
+}
+
+// ResetManifestSha256 resets all changes to the "manifest_sha256" field.
+func (m *KitRevisionMutation) ResetManifestSha256() {
+	m.manifest_sha256 = nil
+}
+
+// SetManifestCanonical sets the "manifest_canonical" field.
+func (m *KitRevisionMutation) SetManifestCanonical(s string) {
+	m.manifest_canonical = &s
+}
+
+// ManifestCanonical returns the value of the "manifest_canonical" field in the mutation.
+func (m *KitRevisionMutation) ManifestCanonical() (r string, exists bool) {
+	v := m.manifest_canonical
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldManifestCanonical returns the old "manifest_canonical" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldManifestCanonical(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldManifestCanonical is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldManifestCanonical requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldManifestCanonical: %w", err)
+	}
+	return oldValue.ManifestCanonical, nil
+}
+
+// ResetManifestCanonical resets all changes to the "manifest_canonical" field.
+func (m *KitRevisionMutation) ResetManifestCanonical() {
+	m.manifest_canonical = nil
+}
+
+// SetPreparationJobID sets the "preparation_job_id" field.
+func (m *KitRevisionMutation) SetPreparationJobID(s string) {
+	m.preparation_job_id = &s
+}
+
+// PreparationJobID returns the value of the "preparation_job_id" field in the mutation.
+func (m *KitRevisionMutation) PreparationJobID() (r string, exists bool) {
+	v := m.preparation_job_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreparationJobID returns the old "preparation_job_id" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldPreparationJobID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreparationJobID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreparationJobID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreparationJobID: %w", err)
+	}
+	return oldValue.PreparationJobID, nil
+}
+
+// ClearPreparationJobID clears the value of the "preparation_job_id" field.
+func (m *KitRevisionMutation) ClearPreparationJobID() {
+	m.preparation_job_id = nil
+	m.clearedFields[kitrevision.FieldPreparationJobID] = struct{}{}
+}
+
+// PreparationJobIDCleared returns if the "preparation_job_id" field was cleared in this mutation.
+func (m *KitRevisionMutation) PreparationJobIDCleared() bool {
+	_, ok := m.clearedFields[kitrevision.FieldPreparationJobID]
+	return ok
+}
+
+// ResetPreparationJobID resets all changes to the "preparation_job_id" field.
+func (m *KitRevisionMutation) ResetPreparationJobID() {
+	m.preparation_job_id = nil
+	delete(m.clearedFields, kitrevision.FieldPreparationJobID)
+}
+
+// SetFailureCode sets the "failure_code" field.
+func (m *KitRevisionMutation) SetFailureCode(s string) {
+	m.failure_code = &s
+}
+
+// FailureCode returns the value of the "failure_code" field in the mutation.
+func (m *KitRevisionMutation) FailureCode() (r string, exists bool) {
+	v := m.failure_code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFailureCode returns the old "failure_code" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldFailureCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFailureCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFailureCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFailureCode: %w", err)
+	}
+	return oldValue.FailureCode, nil
+}
+
+// ResetFailureCode resets all changes to the "failure_code" field.
+func (m *KitRevisionMutation) ResetFailureCode() {
+	m.failure_code = nil
+}
+
+// SetPreparedAt sets the "prepared_at" field.
+func (m *KitRevisionMutation) SetPreparedAt(t time.Time) {
+	m.prepared_at = &t
+}
+
+// PreparedAt returns the value of the "prepared_at" field in the mutation.
+func (m *KitRevisionMutation) PreparedAt() (r time.Time, exists bool) {
+	v := m.prepared_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPreparedAt returns the old "prepared_at" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldPreparedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPreparedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPreparedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPreparedAt: %w", err)
+	}
+	return oldValue.PreparedAt, nil
+}
+
+// ClearPreparedAt clears the value of the "prepared_at" field.
+func (m *KitRevisionMutation) ClearPreparedAt() {
+	m.prepared_at = nil
+	m.clearedFields[kitrevision.FieldPreparedAt] = struct{}{}
+}
+
+// PreparedAtCleared returns if the "prepared_at" field was cleared in this mutation.
+func (m *KitRevisionMutation) PreparedAtCleared() bool {
+	_, ok := m.clearedFields[kitrevision.FieldPreparedAt]
+	return ok
+}
+
+// ResetPreparedAt resets all changes to the "prepared_at" field.
+func (m *KitRevisionMutation) ResetPreparedAt() {
+	m.prepared_at = nil
+	delete(m.clearedFields, kitrevision.FieldPreparedAt)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitRevisionMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitRevisionMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitRevision entity.
+// If the KitRevision object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitRevisionMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitRevisionMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitRevisionMutation builder.
+func (m *KitRevisionMutation) Where(ps ...predicate.KitRevision) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitRevisionMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitRevisionMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitRevision, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitRevisionMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitRevisionMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitRevision).
+func (m *KitRevisionMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitRevisionMutation) Fields() []string {
+	fields := make([]string, 0, 15)
+	if m.organization_id != nil {
+		fields = append(fields, kitrevision.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitrevision.FieldReleaseID)
+	}
+	if m.kit_id != nil {
+		fields = append(fields, kitrevision.FieldKitID)
+	}
+	if m.version != nil {
+		fields = append(fields, kitrevision.FieldVersion)
+	}
+	if m.qualification_revision_id != nil {
+		fields = append(fields, kitrevision.FieldQualificationRevisionID)
+	}
+	if m.approver_user_id != nil {
+		fields = append(fields, kitrevision.FieldApproverUserID)
+	}
+	if m.requested_by_user_id != nil {
+		fields = append(fields, kitrevision.FieldRequestedByUserID)
+	}
+	if m.state != nil {
+		fields = append(fields, kitrevision.FieldState)
+	}
+	if m.manifest != nil {
+		fields = append(fields, kitrevision.FieldManifest)
+	}
+	if m.manifest_sha256 != nil {
+		fields = append(fields, kitrevision.FieldManifestSha256)
+	}
+	if m.manifest_canonical != nil {
+		fields = append(fields, kitrevision.FieldManifestCanonical)
+	}
+	if m.preparation_job_id != nil {
+		fields = append(fields, kitrevision.FieldPreparationJobID)
+	}
+	if m.failure_code != nil {
+		fields = append(fields, kitrevision.FieldFailureCode)
+	}
+	if m.prepared_at != nil {
+		fields = append(fields, kitrevision.FieldPreparedAt)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitrevision.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitRevisionMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitrevision.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitrevision.FieldReleaseID:
+		return m.ReleaseID()
+	case kitrevision.FieldKitID:
+		return m.KitID()
+	case kitrevision.FieldVersion:
+		return m.Version()
+	case kitrevision.FieldQualificationRevisionID:
+		return m.QualificationRevisionID()
+	case kitrevision.FieldApproverUserID:
+		return m.ApproverUserID()
+	case kitrevision.FieldRequestedByUserID:
+		return m.RequestedByUserID()
+	case kitrevision.FieldState:
+		return m.State()
+	case kitrevision.FieldManifest:
+		return m.Manifest()
+	case kitrevision.FieldManifestSha256:
+		return m.ManifestSha256()
+	case kitrevision.FieldManifestCanonical:
+		return m.ManifestCanonical()
+	case kitrevision.FieldPreparationJobID:
+		return m.PreparationJobID()
+	case kitrevision.FieldFailureCode:
+		return m.FailureCode()
+	case kitrevision.FieldPreparedAt:
+		return m.PreparedAt()
+	case kitrevision.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitRevisionMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitrevision.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitrevision.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitrevision.FieldKitID:
+		return m.OldKitID(ctx)
+	case kitrevision.FieldVersion:
+		return m.OldVersion(ctx)
+	case kitrevision.FieldQualificationRevisionID:
+		return m.OldQualificationRevisionID(ctx)
+	case kitrevision.FieldApproverUserID:
+		return m.OldApproverUserID(ctx)
+	case kitrevision.FieldRequestedByUserID:
+		return m.OldRequestedByUserID(ctx)
+	case kitrevision.FieldState:
+		return m.OldState(ctx)
+	case kitrevision.FieldManifest:
+		return m.OldManifest(ctx)
+	case kitrevision.FieldManifestSha256:
+		return m.OldManifestSha256(ctx)
+	case kitrevision.FieldManifestCanonical:
+		return m.OldManifestCanonical(ctx)
+	case kitrevision.FieldPreparationJobID:
+		return m.OldPreparationJobID(ctx)
+	case kitrevision.FieldFailureCode:
+		return m.OldFailureCode(ctx)
+	case kitrevision.FieldPreparedAt:
+		return m.OldPreparedAt(ctx)
+	case kitrevision.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitRevisionMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitrevision.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitrevision.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitrevision.FieldKitID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitID(v)
+		return nil
+	case kitrevision.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVersion(v)
+		return nil
+	case kitrevision.FieldQualificationRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQualificationRevisionID(v)
+		return nil
+	case kitrevision.FieldApproverUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApproverUserID(v)
+		return nil
+	case kitrevision.FieldRequestedByUserID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRequestedByUserID(v)
+		return nil
+	case kitrevision.FieldState:
+		v, ok := value.(kitrevision.State)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetState(v)
+		return nil
+	case kitrevision.FieldManifest:
+		v, ok := value.(releasekits.Manifest)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManifest(v)
+		return nil
+	case kitrevision.FieldManifestSha256:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManifestSha256(v)
+		return nil
+	case kitrevision.FieldManifestCanonical:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetManifestCanonical(v)
+		return nil
+	case kitrevision.FieldPreparationJobID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreparationJobID(v)
+		return nil
+	case kitrevision.FieldFailureCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFailureCode(v)
+		return nil
+	case kitrevision.FieldPreparedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPreparedAt(v)
+		return nil
+	case kitrevision.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitRevisionMutation) AddedFields() []string {
+	var fields []string
+	if m.addversion != nil {
+		fields = append(fields, kitrevision.FieldVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitRevisionMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitrevision.FieldVersion:
+		return m.AddedVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitRevisionMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitrevision.FieldVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitRevisionMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(kitrevision.FieldPreparationJobID) {
+		fields = append(fields, kitrevision.FieldPreparationJobID)
+	}
+	if m.FieldCleared(kitrevision.FieldPreparedAt) {
+		fields = append(fields, kitrevision.FieldPreparedAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitRevisionMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitRevisionMutation) ClearField(name string) error {
+	switch name {
+	case kitrevision.FieldPreparationJobID:
+		m.ClearPreparationJobID()
+		return nil
+	case kitrevision.FieldPreparedAt:
+		m.ClearPreparedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitRevisionMutation) ResetField(name string) error {
+	switch name {
+	case kitrevision.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitrevision.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitrevision.FieldKitID:
+		m.ResetKitID()
+		return nil
+	case kitrevision.FieldVersion:
+		m.ResetVersion()
+		return nil
+	case kitrevision.FieldQualificationRevisionID:
+		m.ResetQualificationRevisionID()
+		return nil
+	case kitrevision.FieldApproverUserID:
+		m.ResetApproverUserID()
+		return nil
+	case kitrevision.FieldRequestedByUserID:
+		m.ResetRequestedByUserID()
+		return nil
+	case kitrevision.FieldState:
+		m.ResetState()
+		return nil
+	case kitrevision.FieldManifest:
+		m.ResetManifest()
+		return nil
+	case kitrevision.FieldManifestSha256:
+		m.ResetManifestSha256()
+		return nil
+	case kitrevision.FieldManifestCanonical:
+		m.ResetManifestCanonical()
+		return nil
+	case kitrevision.FieldPreparationJobID:
+		m.ResetPreparationJobID()
+		return nil
+	case kitrevision.FieldFailureCode:
+		m.ResetFailureCode()
+		return nil
+	case kitrevision.FieldPreparedAt:
+		m.ResetPreparedAt()
+		return nil
+	case kitrevision.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitRevision field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitRevisionMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitRevisionMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitRevisionMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitRevisionMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitRevisionMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitRevisionMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitRevisionMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitRevision unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitRevisionMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitRevision edge %s", name)
+}
+
+// KitSourcePinMutation represents an operation that mutates the KitSourcePin nodes in the graph.
+type KitSourcePinMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *string
+	organization_id            *string
+	release_id                 *string
+	kit_revision_id            *string
+	source_id                  *string
+	acknowledged_sequence      *int64
+	addacknowledged_sequence   *int64
+	evidence_version_ids       *[]string
+	appendevidence_version_ids []string
+	created_at                 *time.Time
+	clearedFields              map[string]struct{}
+	done                       bool
+	oldValue                   func(context.Context) (*KitSourcePin, error)
+	predicates                 []predicate.KitSourcePin
+}
+
+var _ ent.Mutation = (*KitSourcePinMutation)(nil)
+
+// kitsourcepinOption allows management of the mutation configuration using functional options.
+type kitsourcepinOption func(*KitSourcePinMutation)
+
+// newKitSourcePinMutation creates new mutation for the KitSourcePin entity.
+func newKitSourcePinMutation(c config, op Op, opts ...kitsourcepinOption) *KitSourcePinMutation {
+	m := &KitSourcePinMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeKitSourcePin,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withKitSourcePinID sets the ID field of the mutation.
+func withKitSourcePinID(id string) kitsourcepinOption {
+	return func(m *KitSourcePinMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *KitSourcePin
+		)
+		m.oldValue = func(ctx context.Context) (*KitSourcePin, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().KitSourcePin.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withKitSourcePin sets the old KitSourcePin of the mutation.
+func withKitSourcePin(node *KitSourcePin) kitsourcepinOption {
+	return func(m *KitSourcePinMutation) {
+		m.oldValue = func(context.Context) (*KitSourcePin, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m KitSourcePinMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m KitSourcePinMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of KitSourcePin entities.
+func (m *KitSourcePinMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *KitSourcePinMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *KitSourcePinMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().KitSourcePin.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *KitSourcePinMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *KitSourcePinMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *KitSourcePinMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *KitSourcePinMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *KitSourcePinMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *KitSourcePinMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetKitRevisionID sets the "kit_revision_id" field.
+func (m *KitSourcePinMutation) SetKitRevisionID(s string) {
+	m.kit_revision_id = &s
+}
+
+// KitRevisionID returns the value of the "kit_revision_id" field in the mutation.
+func (m *KitSourcePinMutation) KitRevisionID() (r string, exists bool) {
+	v := m.kit_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldKitRevisionID returns the old "kit_revision_id" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldKitRevisionID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldKitRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldKitRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldKitRevisionID: %w", err)
+	}
+	return oldValue.KitRevisionID, nil
+}
+
+// ResetKitRevisionID resets all changes to the "kit_revision_id" field.
+func (m *KitSourcePinMutation) ResetKitRevisionID() {
+	m.kit_revision_id = nil
+}
+
+// SetSourceID sets the "source_id" field.
+func (m *KitSourcePinMutation) SetSourceID(s string) {
+	m.source_id = &s
+}
+
+// SourceID returns the value of the "source_id" field in the mutation.
+func (m *KitSourcePinMutation) SourceID() (r string, exists bool) {
+	v := m.source_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSourceID returns the old "source_id" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldSourceID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSourceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSourceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSourceID: %w", err)
+	}
+	return oldValue.SourceID, nil
+}
+
+// ResetSourceID resets all changes to the "source_id" field.
+func (m *KitSourcePinMutation) ResetSourceID() {
+	m.source_id = nil
+}
+
+// SetAcknowledgedSequence sets the "acknowledged_sequence" field.
+func (m *KitSourcePinMutation) SetAcknowledgedSequence(i int64) {
+	m.acknowledged_sequence = &i
+	m.addacknowledged_sequence = nil
+}
+
+// AcknowledgedSequence returns the value of the "acknowledged_sequence" field in the mutation.
+func (m *KitSourcePinMutation) AcknowledgedSequence() (r int64, exists bool) {
+	v := m.acknowledged_sequence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAcknowledgedSequence returns the old "acknowledged_sequence" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldAcknowledgedSequence(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAcknowledgedSequence is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAcknowledgedSequence requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAcknowledgedSequence: %w", err)
+	}
+	return oldValue.AcknowledgedSequence, nil
+}
+
+// AddAcknowledgedSequence adds i to the "acknowledged_sequence" field.
+func (m *KitSourcePinMutation) AddAcknowledgedSequence(i int64) {
+	if m.addacknowledged_sequence != nil {
+		*m.addacknowledged_sequence += i
+	} else {
+		m.addacknowledged_sequence = &i
+	}
+}
+
+// AddedAcknowledgedSequence returns the value that was added to the "acknowledged_sequence" field in this mutation.
+func (m *KitSourcePinMutation) AddedAcknowledgedSequence() (r int64, exists bool) {
+	v := m.addacknowledged_sequence
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAcknowledgedSequence resets all changes to the "acknowledged_sequence" field.
+func (m *KitSourcePinMutation) ResetAcknowledgedSequence() {
+	m.acknowledged_sequence = nil
+	m.addacknowledged_sequence = nil
+}
+
+// SetEvidenceVersionIds sets the "evidence_version_ids" field.
+func (m *KitSourcePinMutation) SetEvidenceVersionIds(s []string) {
+	m.evidence_version_ids = &s
+	m.appendevidence_version_ids = nil
+}
+
+// EvidenceVersionIds returns the value of the "evidence_version_ids" field in the mutation.
+func (m *KitSourcePinMutation) EvidenceVersionIds() (r []string, exists bool) {
+	v := m.evidence_version_ids
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEvidenceVersionIds returns the old "evidence_version_ids" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldEvidenceVersionIds(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEvidenceVersionIds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEvidenceVersionIds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEvidenceVersionIds: %w", err)
+	}
+	return oldValue.EvidenceVersionIds, nil
+}
+
+// AppendEvidenceVersionIds adds s to the "evidence_version_ids" field.
+func (m *KitSourcePinMutation) AppendEvidenceVersionIds(s []string) {
+	m.appendevidence_version_ids = append(m.appendevidence_version_ids, s...)
+}
+
+// AppendedEvidenceVersionIds returns the list of values that were appended to the "evidence_version_ids" field in this mutation.
+func (m *KitSourcePinMutation) AppendedEvidenceVersionIds() ([]string, bool) {
+	if len(m.appendevidence_version_ids) == 0 {
+		return nil, false
+	}
+	return m.appendevidence_version_ids, true
+}
+
+// ResetEvidenceVersionIds resets all changes to the "evidence_version_ids" field.
+func (m *KitSourcePinMutation) ResetEvidenceVersionIds() {
+	m.evidence_version_ids = nil
+	m.appendevidence_version_ids = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *KitSourcePinMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *KitSourcePinMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the KitSourcePin entity.
+// If the KitSourcePin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *KitSourcePinMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *KitSourcePinMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the KitSourcePinMutation builder.
+func (m *KitSourcePinMutation) Where(ps ...predicate.KitSourcePin) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the KitSourcePinMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *KitSourcePinMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.KitSourcePin, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *KitSourcePinMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *KitSourcePinMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (KitSourcePin).
+func (m *KitSourcePinMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *KitSourcePinMutation) Fields() []string {
+	fields := make([]string, 0, 7)
+	if m.organization_id != nil {
+		fields = append(fields, kitsourcepin.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, kitsourcepin.FieldReleaseID)
+	}
+	if m.kit_revision_id != nil {
+		fields = append(fields, kitsourcepin.FieldKitRevisionID)
+	}
+	if m.source_id != nil {
+		fields = append(fields, kitsourcepin.FieldSourceID)
+	}
+	if m.acknowledged_sequence != nil {
+		fields = append(fields, kitsourcepin.FieldAcknowledgedSequence)
+	}
+	if m.evidence_version_ids != nil {
+		fields = append(fields, kitsourcepin.FieldEvidenceVersionIds)
+	}
+	if m.created_at != nil {
+		fields = append(fields, kitsourcepin.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *KitSourcePinMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case kitsourcepin.FieldOrganizationID:
+		return m.OrganizationID()
+	case kitsourcepin.FieldReleaseID:
+		return m.ReleaseID()
+	case kitsourcepin.FieldKitRevisionID:
+		return m.KitRevisionID()
+	case kitsourcepin.FieldSourceID:
+		return m.SourceID()
+	case kitsourcepin.FieldAcknowledgedSequence:
+		return m.AcknowledgedSequence()
+	case kitsourcepin.FieldEvidenceVersionIds:
+		return m.EvidenceVersionIds()
+	case kitsourcepin.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *KitSourcePinMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case kitsourcepin.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case kitsourcepin.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case kitsourcepin.FieldKitRevisionID:
+		return m.OldKitRevisionID(ctx)
+	case kitsourcepin.FieldSourceID:
+		return m.OldSourceID(ctx)
+	case kitsourcepin.FieldAcknowledgedSequence:
+		return m.OldAcknowledgedSequence(ctx)
+	case kitsourcepin.FieldEvidenceVersionIds:
+		return m.OldEvidenceVersionIds(ctx)
+	case kitsourcepin.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown KitSourcePin field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitSourcePinMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case kitsourcepin.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case kitsourcepin.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case kitsourcepin.FieldKitRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetKitRevisionID(v)
+		return nil
+	case kitsourcepin.FieldSourceID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSourceID(v)
+		return nil
+	case kitsourcepin.FieldAcknowledgedSequence:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAcknowledgedSequence(v)
+		return nil
+	case kitsourcepin.FieldEvidenceVersionIds:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEvidenceVersionIds(v)
+		return nil
+	case kitsourcepin.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitSourcePin field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *KitSourcePinMutation) AddedFields() []string {
+	var fields []string
+	if m.addacknowledged_sequence != nil {
+		fields = append(fields, kitsourcepin.FieldAcknowledgedSequence)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *KitSourcePinMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case kitsourcepin.FieldAcknowledgedSequence:
+		return m.AddedAcknowledgedSequence()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *KitSourcePinMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case kitsourcepin.FieldAcknowledgedSequence:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAcknowledgedSequence(v)
+		return nil
+	}
+	return fmt.Errorf("unknown KitSourcePin numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *KitSourcePinMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *KitSourcePinMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *KitSourcePinMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown KitSourcePin nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *KitSourcePinMutation) ResetField(name string) error {
+	switch name {
+	case kitsourcepin.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case kitsourcepin.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case kitsourcepin.FieldKitRevisionID:
+		m.ResetKitRevisionID()
+		return nil
+	case kitsourcepin.FieldSourceID:
+		m.ResetSourceID()
+		return nil
+	case kitsourcepin.FieldAcknowledgedSequence:
+		m.ResetAcknowledgedSequence()
+		return nil
+	case kitsourcepin.FieldEvidenceVersionIds:
+		m.ResetEvidenceVersionIds()
+		return nil
+	case kitsourcepin.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown KitSourcePin field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *KitSourcePinMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *KitSourcePinMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *KitSourcePinMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *KitSourcePinMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *KitSourcePinMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *KitSourcePinMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *KitSourcePinMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown KitSourcePin unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *KitSourcePinMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown KitSourcePin edge %s", name)
+}
+
 // LaunchRunMutation represents an operation that mutates the LaunchRun nodes in the graph.
 type LaunchRunMutation struct {
 	config
@@ -117082,6 +124061,685 @@ func (m *ReleaseEvidenceMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *ReleaseEvidenceMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown ReleaseEvidence edge %s", name)
+}
+
+// ReleaseKitMutation represents an operation that mutates the ReleaseKit nodes in the graph.
+type ReleaseKitMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *string
+	organization_id      *string
+	release_id           *string
+	current_revision_id  *string
+	approved_revision_id *string
+	last_version         *int64
+	addlast_version      *int64
+	created_at           *time.Time
+	clearedFields        map[string]struct{}
+	done                 bool
+	oldValue             func(context.Context) (*ReleaseKit, error)
+	predicates           []predicate.ReleaseKit
+}
+
+var _ ent.Mutation = (*ReleaseKitMutation)(nil)
+
+// releasekitOption allows management of the mutation configuration using functional options.
+type releasekitOption func(*ReleaseKitMutation)
+
+// newReleaseKitMutation creates new mutation for the ReleaseKit entity.
+func newReleaseKitMutation(c config, op Op, opts ...releasekitOption) *ReleaseKitMutation {
+	m := &ReleaseKitMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeReleaseKit,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withReleaseKitID sets the ID field of the mutation.
+func withReleaseKitID(id string) releasekitOption {
+	return func(m *ReleaseKitMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *ReleaseKit
+		)
+		m.oldValue = func(ctx context.Context) (*ReleaseKit, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().ReleaseKit.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withReleaseKit sets the old ReleaseKit of the mutation.
+func withReleaseKit(node *ReleaseKit) releasekitOption {
+	return func(m *ReleaseKitMutation) {
+		m.oldValue = func(context.Context) (*ReleaseKit, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ReleaseKitMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ReleaseKitMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of ReleaseKit entities.
+func (m *ReleaseKitMutation) SetID(id string) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ReleaseKitMutation) ID() (id string, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ReleaseKitMutation) IDs(ctx context.Context) ([]string, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []string{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().ReleaseKit.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetOrganizationID sets the "organization_id" field.
+func (m *ReleaseKitMutation) SetOrganizationID(s string) {
+	m.organization_id = &s
+}
+
+// OrganizationID returns the value of the "organization_id" field in the mutation.
+func (m *ReleaseKitMutation) OrganizationID() (r string, exists bool) {
+	v := m.organization_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOrganizationID returns the old "organization_id" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldOrganizationID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOrganizationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOrganizationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOrganizationID: %w", err)
+	}
+	return oldValue.OrganizationID, nil
+}
+
+// ResetOrganizationID resets all changes to the "organization_id" field.
+func (m *ReleaseKitMutation) ResetOrganizationID() {
+	m.organization_id = nil
+}
+
+// SetReleaseID sets the "release_id" field.
+func (m *ReleaseKitMutation) SetReleaseID(s string) {
+	m.release_id = &s
+}
+
+// ReleaseID returns the value of the "release_id" field in the mutation.
+func (m *ReleaseKitMutation) ReleaseID() (r string, exists bool) {
+	v := m.release_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldReleaseID returns the old "release_id" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldReleaseID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldReleaseID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldReleaseID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldReleaseID: %w", err)
+	}
+	return oldValue.ReleaseID, nil
+}
+
+// ResetReleaseID resets all changes to the "release_id" field.
+func (m *ReleaseKitMutation) ResetReleaseID() {
+	m.release_id = nil
+}
+
+// SetCurrentRevisionID sets the "current_revision_id" field.
+func (m *ReleaseKitMutation) SetCurrentRevisionID(s string) {
+	m.current_revision_id = &s
+}
+
+// CurrentRevisionID returns the value of the "current_revision_id" field in the mutation.
+func (m *ReleaseKitMutation) CurrentRevisionID() (r string, exists bool) {
+	v := m.current_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCurrentRevisionID returns the old "current_revision_id" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldCurrentRevisionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCurrentRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCurrentRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCurrentRevisionID: %w", err)
+	}
+	return oldValue.CurrentRevisionID, nil
+}
+
+// ClearCurrentRevisionID clears the value of the "current_revision_id" field.
+func (m *ReleaseKitMutation) ClearCurrentRevisionID() {
+	m.current_revision_id = nil
+	m.clearedFields[releasekit.FieldCurrentRevisionID] = struct{}{}
+}
+
+// CurrentRevisionIDCleared returns if the "current_revision_id" field was cleared in this mutation.
+func (m *ReleaseKitMutation) CurrentRevisionIDCleared() bool {
+	_, ok := m.clearedFields[releasekit.FieldCurrentRevisionID]
+	return ok
+}
+
+// ResetCurrentRevisionID resets all changes to the "current_revision_id" field.
+func (m *ReleaseKitMutation) ResetCurrentRevisionID() {
+	m.current_revision_id = nil
+	delete(m.clearedFields, releasekit.FieldCurrentRevisionID)
+}
+
+// SetApprovedRevisionID sets the "approved_revision_id" field.
+func (m *ReleaseKitMutation) SetApprovedRevisionID(s string) {
+	m.approved_revision_id = &s
+}
+
+// ApprovedRevisionID returns the value of the "approved_revision_id" field in the mutation.
+func (m *ReleaseKitMutation) ApprovedRevisionID() (r string, exists bool) {
+	v := m.approved_revision_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldApprovedRevisionID returns the old "approved_revision_id" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldApprovedRevisionID(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldApprovedRevisionID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldApprovedRevisionID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldApprovedRevisionID: %w", err)
+	}
+	return oldValue.ApprovedRevisionID, nil
+}
+
+// ClearApprovedRevisionID clears the value of the "approved_revision_id" field.
+func (m *ReleaseKitMutation) ClearApprovedRevisionID() {
+	m.approved_revision_id = nil
+	m.clearedFields[releasekit.FieldApprovedRevisionID] = struct{}{}
+}
+
+// ApprovedRevisionIDCleared returns if the "approved_revision_id" field was cleared in this mutation.
+func (m *ReleaseKitMutation) ApprovedRevisionIDCleared() bool {
+	_, ok := m.clearedFields[releasekit.FieldApprovedRevisionID]
+	return ok
+}
+
+// ResetApprovedRevisionID resets all changes to the "approved_revision_id" field.
+func (m *ReleaseKitMutation) ResetApprovedRevisionID() {
+	m.approved_revision_id = nil
+	delete(m.clearedFields, releasekit.FieldApprovedRevisionID)
+}
+
+// SetLastVersion sets the "last_version" field.
+func (m *ReleaseKitMutation) SetLastVersion(i int64) {
+	m.last_version = &i
+	m.addlast_version = nil
+}
+
+// LastVersion returns the value of the "last_version" field in the mutation.
+func (m *ReleaseKitMutation) LastVersion() (r int64, exists bool) {
+	v := m.last_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastVersion returns the old "last_version" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldLastVersion(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastVersion is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastVersion requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastVersion: %w", err)
+	}
+	return oldValue.LastVersion, nil
+}
+
+// AddLastVersion adds i to the "last_version" field.
+func (m *ReleaseKitMutation) AddLastVersion(i int64) {
+	if m.addlast_version != nil {
+		*m.addlast_version += i
+	} else {
+		m.addlast_version = &i
+	}
+}
+
+// AddedLastVersion returns the value that was added to the "last_version" field in this mutation.
+func (m *ReleaseKitMutation) AddedLastVersion() (r int64, exists bool) {
+	v := m.addlast_version
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetLastVersion resets all changes to the "last_version" field.
+func (m *ReleaseKitMutation) ResetLastVersion() {
+	m.last_version = nil
+	m.addlast_version = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *ReleaseKitMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *ReleaseKitMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the ReleaseKit entity.
+// If the ReleaseKit object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReleaseKitMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *ReleaseKitMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the ReleaseKitMutation builder.
+func (m *ReleaseKitMutation) Where(ps ...predicate.ReleaseKit) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ReleaseKitMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ReleaseKitMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.ReleaseKit, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ReleaseKitMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ReleaseKitMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (ReleaseKit).
+func (m *ReleaseKitMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ReleaseKitMutation) Fields() []string {
+	fields := make([]string, 0, 6)
+	if m.organization_id != nil {
+		fields = append(fields, releasekit.FieldOrganizationID)
+	}
+	if m.release_id != nil {
+		fields = append(fields, releasekit.FieldReleaseID)
+	}
+	if m.current_revision_id != nil {
+		fields = append(fields, releasekit.FieldCurrentRevisionID)
+	}
+	if m.approved_revision_id != nil {
+		fields = append(fields, releasekit.FieldApprovedRevisionID)
+	}
+	if m.last_version != nil {
+		fields = append(fields, releasekit.FieldLastVersion)
+	}
+	if m.created_at != nil {
+		fields = append(fields, releasekit.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ReleaseKitMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case releasekit.FieldOrganizationID:
+		return m.OrganizationID()
+	case releasekit.FieldReleaseID:
+		return m.ReleaseID()
+	case releasekit.FieldCurrentRevisionID:
+		return m.CurrentRevisionID()
+	case releasekit.FieldApprovedRevisionID:
+		return m.ApprovedRevisionID()
+	case releasekit.FieldLastVersion:
+		return m.LastVersion()
+	case releasekit.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ReleaseKitMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case releasekit.FieldOrganizationID:
+		return m.OldOrganizationID(ctx)
+	case releasekit.FieldReleaseID:
+		return m.OldReleaseID(ctx)
+	case releasekit.FieldCurrentRevisionID:
+		return m.OldCurrentRevisionID(ctx)
+	case releasekit.FieldApprovedRevisionID:
+		return m.OldApprovedRevisionID(ctx)
+	case releasekit.FieldLastVersion:
+		return m.OldLastVersion(ctx)
+	case releasekit.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown ReleaseKit field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseKitMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case releasekit.FieldOrganizationID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOrganizationID(v)
+		return nil
+	case releasekit.FieldReleaseID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetReleaseID(v)
+		return nil
+	case releasekit.FieldCurrentRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCurrentRevisionID(v)
+		return nil
+	case releasekit.FieldApprovedRevisionID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetApprovedRevisionID(v)
+		return nil
+	case releasekit.FieldLastVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastVersion(v)
+		return nil
+	case releasekit.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseKit field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ReleaseKitMutation) AddedFields() []string {
+	var fields []string
+	if m.addlast_version != nil {
+		fields = append(fields, releasekit.FieldLastVersion)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ReleaseKitMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case releasekit.FieldLastVersion:
+		return m.AddedLastVersion()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ReleaseKitMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case releasekit.FieldLastVersion:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLastVersion(v)
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseKit numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ReleaseKitMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(releasekit.FieldCurrentRevisionID) {
+		fields = append(fields, releasekit.FieldCurrentRevisionID)
+	}
+	if m.FieldCleared(releasekit.FieldApprovedRevisionID) {
+		fields = append(fields, releasekit.FieldApprovedRevisionID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ReleaseKitMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ReleaseKitMutation) ClearField(name string) error {
+	switch name {
+	case releasekit.FieldCurrentRevisionID:
+		m.ClearCurrentRevisionID()
+		return nil
+	case releasekit.FieldApprovedRevisionID:
+		m.ClearApprovedRevisionID()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseKit nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ReleaseKitMutation) ResetField(name string) error {
+	switch name {
+	case releasekit.FieldOrganizationID:
+		m.ResetOrganizationID()
+		return nil
+	case releasekit.FieldReleaseID:
+		m.ResetReleaseID()
+		return nil
+	case releasekit.FieldCurrentRevisionID:
+		m.ResetCurrentRevisionID()
+		return nil
+	case releasekit.FieldApprovedRevisionID:
+		m.ResetApprovedRevisionID()
+		return nil
+	case releasekit.FieldLastVersion:
+		m.ResetLastVersion()
+		return nil
+	case releasekit.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown ReleaseKit field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ReleaseKitMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ReleaseKitMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ReleaseKitMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ReleaseKitMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ReleaseKitMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ReleaseKitMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ReleaseKitMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseKit unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ReleaseKitMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown ReleaseKit edge %s", name)
 }
 
 // ReleaseLineageMutation represents an operation that mutates the ReleaseLineage nodes in the graph.

@@ -75,6 +75,10 @@ var ErrNotEligible = errors.New("tenant resource is no longer eligible for dispa
 // an event it does not own. Each handler is safe to run again after a crash.
 func (c *Configuration) HandleOutboxEvent(ctx context.Context, eventID, organizationID, eventType, aggregateID string) (bool, error) {
 	switch eventType {
+	case EventKitPrepare:
+		return true, c.processKitPreparation(ctx, organizationID, aggregateID)
+	case EventKitExport:
+		return true, c.processKitExport(ctx, organizationID, aggregateID)
 	case EventGitHubObservation:
 		return true, c.processGitHubObservation(ctx, organizationID, aggregateID)
 	case EventReleaseAutomationDispatch:

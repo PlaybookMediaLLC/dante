@@ -72,6 +72,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactclaim"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitexport"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitmember"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitreviewdecision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitsourcepin"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -122,6 +129,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseclaimversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseevidence"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasekit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaselineage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasequalification"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasequalificationasset"
@@ -1153,6 +1161,118 @@ func init() {
 	invitationDescCreatedAt := invitationFields[6].Descriptor()
 	// invitation.DefaultCreatedAt holds the default value on creation for the created_at field.
 	invitation.DefaultCreatedAt = invitationDescCreatedAt.Default.(func() time.Time)
+	kitartifactclaimFields := schema.KitArtifactClaim{}.Fields()
+	_ = kitartifactclaimFields
+	// kitartifactclaimDescCreatedAt is the schema descriptor for created_at field.
+	kitartifactclaimDescCreatedAt := kitartifactclaimFields[9].Descriptor()
+	// kitartifactclaim.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitartifactclaim.DefaultCreatedAt = kitartifactclaimDescCreatedAt.Default.(func() time.Time)
+	kitartifactrevisionFields := schema.KitArtifactRevision{}.Fields()
+	_ = kitartifactrevisionFields
+	// kitartifactrevisionDescOutputBytes is the schema descriptor for output_bytes field.
+	kitartifactrevisionDescOutputBytes := kitartifactrevisionFields[12].Descriptor()
+	// kitartifactrevision.DefaultOutputBytes holds the default value on creation for the output_bytes field.
+	kitartifactrevision.DefaultOutputBytes = kitartifactrevisionDescOutputBytes.Default.(int64)
+	// kitartifactrevision.OutputBytesValidator is a validator for the "output_bytes" field. It is called by the builders before save.
+	kitartifactrevision.OutputBytesValidator = kitartifactrevisionDescOutputBytes.Validators[0].(func(int64) error)
+	// kitartifactrevisionDescMediaType is the schema descriptor for media_type field.
+	kitartifactrevisionDescMediaType := kitartifactrevisionFields[13].Descriptor()
+	// kitartifactrevision.DefaultMediaType holds the default value on creation for the media_type field.
+	kitartifactrevision.DefaultMediaType = kitartifactrevisionDescMediaType.Default.(string)
+	// kitartifactrevisionDescRendererVersion is the schema descriptor for renderer_version field.
+	kitartifactrevisionDescRendererVersion := kitartifactrevisionFields[14].Descriptor()
+	// kitartifactrevision.DefaultRendererVersion holds the default value on creation for the renderer_version field.
+	kitartifactrevision.DefaultRendererVersion = kitartifactrevisionDescRendererVersion.Default.(string)
+	// kitartifactrevisionDescCreatedAt is the schema descriptor for created_at field.
+	kitartifactrevisionDescCreatedAt := kitartifactrevisionFields[16].Descriptor()
+	// kitartifactrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitartifactrevision.DefaultCreatedAt = kitartifactrevisionDescCreatedAt.Default.(func() time.Time)
+	kitexportFields := schema.KitExport{}.Fields()
+	_ = kitexportFields
+	// kitexportDescExportVersion is the schema descriptor for export_version field.
+	kitexportDescExportVersion := kitexportFields[6].Descriptor()
+	// kitexport.DefaultExportVersion holds the default value on creation for the export_version field.
+	kitexport.DefaultExportVersion = kitexportDescExportVersion.Default.(int)
+	// kitexport.ExportVersionValidator is a validator for the "export_version" field. It is called by the builders before save.
+	kitexport.ExportVersionValidator = kitexportDescExportVersion.Validators[0].(func(int) error)
+	// kitexportDescBytes is the schema descriptor for bytes field.
+	kitexportDescBytes := kitexportFields[11].Descriptor()
+	// kitexport.DefaultBytes holds the default value on creation for the bytes field.
+	kitexport.DefaultBytes = kitexportDescBytes.Default.(int64)
+	// kitexport.BytesValidator is a validator for the "bytes" field. It is called by the builders before save.
+	kitexport.BytesValidator = kitexportDescBytes.Validators[0].(func(int64) error)
+	// kitexportDescFailureCode is the schema descriptor for failure_code field.
+	kitexportDescFailureCode := kitexportFields[13].Descriptor()
+	// kitexport.DefaultFailureCode holds the default value on creation for the failure_code field.
+	kitexport.DefaultFailureCode = kitexportDescFailureCode.Default.(string)
+	// kitexportDescCreatedAt is the schema descriptor for created_at field.
+	kitexportDescCreatedAt := kitexportFields[14].Descriptor()
+	// kitexport.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitexport.DefaultCreatedAt = kitexportDescCreatedAt.Default.(func() time.Time)
+	kitmemberFields := schema.KitMember{}.Fields()
+	_ = kitmemberFields
+	// kitmemberDescDisplayOrder is the schema descriptor for display_order field.
+	kitmemberDescDisplayOrder := kitmemberFields[7].Descriptor()
+	// kitmember.DisplayOrderValidator is a validator for the "display_order" field. It is called by the builders before save.
+	kitmember.DisplayOrderValidator = kitmemberDescDisplayOrder.Validators[0].(func(int) error)
+	// kitmemberDescCreatedAt is the schema descriptor for created_at field.
+	kitmemberDescCreatedAt := kitmemberFields[8].Descriptor()
+	// kitmember.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitmember.DefaultCreatedAt = kitmemberDescCreatedAt.Default.(func() time.Time)
+	kitreviewdecisionFields := schema.KitReviewDecision{}.Fields()
+	_ = kitreviewdecisionFields
+	// kitreviewdecisionDescPolicyVersion is the schema descriptor for policy_version field.
+	kitreviewdecisionDescPolicyVersion := kitreviewdecisionFields[8].Descriptor()
+	// kitreviewdecision.PolicyVersionValidator is a validator for the "policy_version" field. It is called by the builders before save.
+	kitreviewdecision.PolicyVersionValidator = kitreviewdecisionDescPolicyVersion.Validators[0].(func(int) error)
+	// kitreviewdecisionDescAssertionsConfirmed is the schema descriptor for assertions_confirmed field.
+	kitreviewdecisionDescAssertionsConfirmed := kitreviewdecisionFields[12].Descriptor()
+	// kitreviewdecision.DefaultAssertionsConfirmed holds the default value on creation for the assertions_confirmed field.
+	kitreviewdecision.DefaultAssertionsConfirmed = kitreviewdecisionDescAssertionsConfirmed.Default.(bool)
+	// kitreviewdecisionDescScreenshotsConfirmed is the schema descriptor for screenshots_confirmed field.
+	kitreviewdecisionDescScreenshotsConfirmed := kitreviewdecisionFields[13].Descriptor()
+	// kitreviewdecision.DefaultScreenshotsConfirmed holds the default value on creation for the screenshots_confirmed field.
+	kitreviewdecision.DefaultScreenshotsConfirmed = kitreviewdecisionDescScreenshotsConfirmed.Default.(bool)
+	// kitreviewdecisionDescAudienceConfirmed is the schema descriptor for audience_confirmed field.
+	kitreviewdecisionDescAudienceConfirmed := kitreviewdecisionFields[14].Descriptor()
+	// kitreviewdecision.DefaultAudienceConfirmed holds the default value on creation for the audience_confirmed field.
+	kitreviewdecision.DefaultAudienceConfirmed = kitreviewdecisionDescAudienceConfirmed.Default.(bool)
+	// kitreviewdecisionDescCreatedAt is the schema descriptor for created_at field.
+	kitreviewdecisionDescCreatedAt := kitreviewdecisionFields[15].Descriptor()
+	// kitreviewdecision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitreviewdecision.DefaultCreatedAt = kitreviewdecisionDescCreatedAt.Default.(func() time.Time)
+	kitrevisionFields := schema.KitRevision{}.Fields()
+	_ = kitrevisionFields
+	// kitrevisionDescVersion is the schema descriptor for version field.
+	kitrevisionDescVersion := kitrevisionFields[4].Descriptor()
+	// kitrevision.VersionValidator is a validator for the "version" field. It is called by the builders before save.
+	kitrevision.VersionValidator = kitrevisionDescVersion.Validators[0].(func(int64) error)
+	// kitrevisionDescManifestSha256 is the schema descriptor for manifest_sha256 field.
+	kitrevisionDescManifestSha256 := kitrevisionFields[10].Descriptor()
+	// kitrevision.DefaultManifestSha256 holds the default value on creation for the manifest_sha256 field.
+	kitrevision.DefaultManifestSha256 = kitrevisionDescManifestSha256.Default.(string)
+	// kitrevisionDescManifestCanonical is the schema descriptor for manifest_canonical field.
+	kitrevisionDescManifestCanonical := kitrevisionFields[11].Descriptor()
+	// kitrevision.DefaultManifestCanonical holds the default value on creation for the manifest_canonical field.
+	kitrevision.DefaultManifestCanonical = kitrevisionDescManifestCanonical.Default.(string)
+	// kitrevisionDescFailureCode is the schema descriptor for failure_code field.
+	kitrevisionDescFailureCode := kitrevisionFields[13].Descriptor()
+	// kitrevision.DefaultFailureCode holds the default value on creation for the failure_code field.
+	kitrevision.DefaultFailureCode = kitrevisionDescFailureCode.Default.(string)
+	// kitrevisionDescCreatedAt is the schema descriptor for created_at field.
+	kitrevisionDescCreatedAt := kitrevisionFields[15].Descriptor()
+	// kitrevision.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitrevision.DefaultCreatedAt = kitrevisionDescCreatedAt.Default.(func() time.Time)
+	kitsourcepinFields := schema.KitSourcePin{}.Fields()
+	_ = kitsourcepinFields
+	// kitsourcepinDescAcknowledgedSequence is the schema descriptor for acknowledged_sequence field.
+	kitsourcepinDescAcknowledgedSequence := kitsourcepinFields[5].Descriptor()
+	// kitsourcepin.AcknowledgedSequenceValidator is a validator for the "acknowledged_sequence" field. It is called by the builders before save.
+	kitsourcepin.AcknowledgedSequenceValidator = kitsourcepinDescAcknowledgedSequence.Validators[0].(func(int64) error)
+	// kitsourcepinDescCreatedAt is the schema descriptor for created_at field.
+	kitsourcepinDescCreatedAt := kitsourcepinFields[7].Descriptor()
+	// kitsourcepin.DefaultCreatedAt holds the default value on creation for the created_at field.
+	kitsourcepin.DefaultCreatedAt = kitsourcepinDescCreatedAt.Default.(func() time.Time)
 	launchrunFields := schema.LaunchRun{}.Fields()
 	_ = launchrunFields
 	// launchrunDescStartedAt is the schema descriptor for started_at field.
@@ -2041,6 +2161,18 @@ func init() {
 	releaseevidenceDescCreatedAt := releaseevidenceFields[6].Descriptor()
 	// releaseevidence.DefaultCreatedAt holds the default value on creation for the created_at field.
 	releaseevidence.DefaultCreatedAt = releaseevidenceDescCreatedAt.Default.(func() time.Time)
+	releasekitFields := schema.ReleaseKit{}.Fields()
+	_ = releasekitFields
+	// releasekitDescLastVersion is the schema descriptor for last_version field.
+	releasekitDescLastVersion := releasekitFields[5].Descriptor()
+	// releasekit.DefaultLastVersion holds the default value on creation for the last_version field.
+	releasekit.DefaultLastVersion = releasekitDescLastVersion.Default.(int64)
+	// releasekit.LastVersionValidator is a validator for the "last_version" field. It is called by the builders before save.
+	releasekit.LastVersionValidator = releasekitDescLastVersion.Validators[0].(func(int64) error)
+	// releasekitDescCreatedAt is the schema descriptor for created_at field.
+	releasekitDescCreatedAt := releasekitFields[6].Descriptor()
+	// releasekit.DefaultCreatedAt holds the default value on creation for the created_at field.
+	releasekit.DefaultCreatedAt = releasekitDescCreatedAt.Default.(func() time.Time)
 	releaselineageFields := schema.ReleaseLineage{}.Fields()
 	_ = releaselineageFields
 	// releaselineageDescSourceRevision is the schema descriptor for source_revision field.

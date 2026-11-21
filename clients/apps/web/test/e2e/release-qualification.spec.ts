@@ -1,6 +1,9 @@
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import {
   releaseQualificationSchema,
+  releaseKitSchema,
+  kitExportSchema,
   releaseClaimsPageSchema,
   releaseEvidencePageSchema,
   releaseSourceSelectionSchema,
@@ -21,6 +24,7 @@ import {
   signUpViaApi,
   test,
   trpcMutation,
+  triggerTenantOutbox,
   waitForHydration,
   type Page,
 } from './framework'
@@ -1251,6 +1255,8 @@ test(
       ).status
     ).toBe(403)
 
+    const kitExportId = await reviewKitJourney(page, base, identity.name)
+
     const evidence = releaseEvidencePageSchema.parse(
       (await browserRequest(page, `${base}/evidence`)).body
     ).items[0]!
@@ -1276,6 +1282,12 @@ test(
       (await requestJson(page, `${base}/evidence`, command, 'POST', { 'idempotency-key': key }))
         .status
     ).toBe(200)
+    const blockedExport = await browserRequest(
+      page,
+      `${base}/kit-exports/${kitExportId}?download=true`
+    )
+    expect(blockedExport.status).toBe(409)
+    expect(JSON.stringify(blockedExport.body)).toContain('SOURCE_CHANGED')
     await page.getByRole('button', { name: 'Reload review' }).click()
     await expect(page.getByText('Needs review', { exact: true })).toBeVisible()
     await expect(page.getByText('Source changed since capture', { exact: false })).toBeVisible()
@@ -1296,3 +1308,184 @@ test(
     expect(imported.items[0]!.state).toBe('UNRESOLVED')
   }
 )
+
+// The same real tenant journey continues through preparation, two human reviews,
+// rejection/replacement and stored export. No social account or AI is involved.
+async function reviewKitJourney(page: Page, base: string, reviewerName: string): Promise<string> {
+  let qualification = releaseQualificationSchema.parse(
+    (await browserRequest(page, `${base}/qualification`)).body
+  )
+  const facts = qualification.current!.facts
+  expect(
+    (
+      await requestJson(
+        page,
+        `${base}/qualification/revisions`,
+        {
+          expectedRevision: qualification.revision,
+          facts: {
+            ...facts,
+            rationale: 'A checked release is ready for the sales team.',
+            rollout: 'GENERAL',
+            availability: 'Available now.',
+            eligibility: 'Paid plans.',
+            exclusions: 'No trial accounts.',
+            readyAt: new Date().toISOString(),
+            requirements: [
+              {
+                id: 'sales',
+                kind: 'SALES',
+                label: 'Sales',
+                materials: ['FACT_SHEET', 'SALES_NOTES'],
+                omissions: [],
+              },
+            ],
+          },
+        },
+        'POST',
+        { 'idempotency-key': crypto.randomUUID() }
+      )
+    ).status
+  ).toBe(201)
+  qualification = releaseQualificationSchema.parse(
+    (await browserRequest(page, `${base}/qualification`)).body
+  )
+  expect(
+    (
+      await requestJson(
+        page,
+        `${base}/qualification/decisions`,
+        {
+          expectedRevision: qualification.revision,
+          qualificationRevisionId: qualification.current!.id,
+          decision: 'QUALIFIED',
+          reason: 'Confirmed availability, eligibility and audience requirements.',
+        },
+        'POST',
+        { 'idempotency-key': crypto.randomUUID() }
+      )
+    ).status
+  ).toBe(201)
+  await page.reload()
+  await page.getByRole('button', { name: 'Assemble release kit', exact: true }).click()
+  const composer = page.getByRole('group', { name: 'Add material', exact: true })
+  await composer.getByLabel('Exports retain international names.', { exact: true }).check()
+  await composer.getByRole('button', { name: 'Add to candidate', exact: true }).click()
+  await chooseOption(composer.getByLabel('Material', { exact: true }), 'SALES NOTES')
+  await composer.getByLabel('Exports retain international names.', { exact: true }).check()
+  await composer.getByRole('button', { name: 'Add to candidate', exact: true }).click()
+  await chooseOption(page.getByLabel('Kit approver', { exact: true }), new RegExp(reviewerName))
+  const requests: { key: string; body: unknown }[] = []
+  await page.route(`**${base}/kits`, async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    requests.push({
+      key: route.request().headers()['idempotency-key'],
+      body: route.request().postDataJSON(),
+    })
+    const response = await route.fetch()
+    expect(response.status()).toBe(requests.length === 1 ? 201 : 200)
+    if (requests.length === 1) return route.abort('failed')
+    return route.fulfill({ response })
+  })
+  await page.getByRole('button', { name: 'Save kit candidate', exact: true }).click()
+  await page.getByRole('button', { name: 'Retry same kit request', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Freeze and prepare outputs', exact: true })
+  ).toBeEnabled()
+  expect(requests).toHaveLength(2)
+  expect(requests[1]).toEqual(requests[0])
+  await page.unroute(`**${base}/kits`)
+  await prepareKitOutputs(page)
+  await expect(page.getByRole('button', { name: 'Review prepared content' }).first()).toBeEnabled({
+    timeout: 60_000,
+  })
+  await page.getByRole('button', { name: 'Review prepared content' }).first().click()
+  await expect(
+    page.getByRole('dialog').getByText('Preview — not approved for distribution', { exact: true })
+  ).toBeVisible()
+  await expect(page.getByRole('dialog').locator('pre')).toContainText(
+    'Exports retain international names.'
+  )
+  await page.keyboard.press('Escape')
+  await page
+    .getByLabel('Review note', { exact: true })
+    .fill('Please prepare a replacement fact sheet.')
+  await page.getByRole('button', { name: 'Request changes', exact: true }).click()
+  await expect(
+    page.getByRole('paragraph').filter({ hasText: /^Revision 1 · rejected$/ })
+  ).toBeVisible()
+  const first = releaseKitSchema.parse((await browserRequest(page, `${base}/kits`)).body)
+  await page.getByRole('button', { name: 'Create replacement revision', exact: true }).click()
+  await page.getByRole('button', { name: 'Remove', exact: true }).first().click()
+  await composer.getByLabel('Exports retain international names.', { exact: true }).check()
+  await composer.getByRole('button', { name: 'Add to candidate', exact: true }).click()
+  await page.getByRole('button', { name: 'Save kit candidate', exact: true }).click()
+  await prepareKitOutputs(page)
+  await expect(page.getByRole('button', { name: 'Review prepared content' }).last()).toBeEnabled({
+    timeout: 60_000,
+  })
+  for (const text of [
+    'Every factual assertion is mapped',
+    'Screenshots match the qualified behavior',
+    'Each artifact is suitable',
+  ])
+    await page.getByLabel(new RegExp(text)).check()
+  await page
+    .getByLabel('Review note', { exact: true })
+    .fill('Every claim and qualifier has retained evidence. Sales material is internal.')
+  await page.getByRole('button', { name: 'Confirm content coverage', exact: true }).click()
+  await expect(page.getByLabel('Review note', { exact: true })).toHaveValue('')
+  await page.getByLabel('Review note', { exact: true }).fill('I approve the exact prepared kit.')
+  await page.getByRole('button', { name: 'Approve kit', exact: true }).click()
+  await expect(
+    page.getByRole('button', { name: 'Prepare approved ZIP', exact: true })
+  ).toBeVisible()
+  const approved = releaseKitSchema.parse((await browserRequest(page, `${base}/kits`)).body)
+  expect(approved.artifacts.some((artifact) => artifact.id === first.artifacts[1].id)).toBe(true)
+  expect(approved.readiness.canExportApproved).toBe(true)
+  expect(approved.history.find((revision) => revision.id === first.id)?.state).toBe('SUPERSEDED')
+  await page.locator('#kit-export-sales').check()
+  const [exportResponse] = await Promise.all([
+    page.waitForResponse(
+      (response) => response.request().method() === 'POST' && response.url().endsWith('/exports')
+    ),
+    page.getByRole('button', { name: 'Prepare approved ZIP', exact: true }).click(),
+  ])
+  expect(exportResponse.status()).toBe(202)
+  await triggerTenantOutbox()
+  await expect(
+    page.getByRole('button', { name: 'Download approved ZIP', exact: true })
+  ).toBeEnabled({ timeout: 60_000 })
+  const current = releaseKitSchema.parse((await browserRequest(page, `${base}/kits`)).body)
+  const exportId = current.exportIds[0]
+  const one = kitExportSchema.parse(
+    (await browserRequest(page, `${base}/kit-exports/${exportId}?download=true`)).body
+  )
+  const two = kitExportSchema.parse(
+    (await browserRequest(page, `${base}/kit-exports/${exportId}?download=true`)).body
+  )
+  expect(one.sha256).toBe(two.sha256)
+  expect(one.fileIndex.files).toHaveLength(2)
+  expect(one.downloadUrl).toBeTruthy()
+  const download = await page.request.get(one.downloadUrl!)
+  expect(download.status()).toBe(200)
+  expect(download.headers()['cache-control']).toBe('private, no-store')
+  expect(
+    createHash('sha256')
+      .update(await download.body())
+      .digest('hex')
+  ).toBe(one.sha256)
+  expect(JSON.stringify(one.fileIndex)).not.toContain('sourceUrl')
+  return exportId
+}
+
+async function prepareKitOutputs(page: Page): Promise<void> {
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (reply) => reply.request().method() === 'POST' && reply.url().endsWith('/prepare')
+    ),
+    page.getByRole('button', { name: 'Freeze and prepare outputs', exact: true }).click(),
+  ])
+  expect(response.status()).toBe(202)
+  await triggerTenantOutbox()
+}

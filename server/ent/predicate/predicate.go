@@ -204,6 +204,27 @@ type IntegrationConnection func(*sql.Selector)
 // Invitation is the predicate function for invitation builders.
 type Invitation func(*sql.Selector)
 
+// KitArtifactClaim is the predicate function for kitartifactclaim builders.
+type KitArtifactClaim func(*sql.Selector)
+
+// KitArtifactRevision is the predicate function for kitartifactrevision builders.
+type KitArtifactRevision func(*sql.Selector)
+
+// KitExport is the predicate function for kitexport builders.
+type KitExport func(*sql.Selector)
+
+// KitMember is the predicate function for kitmember builders.
+type KitMember func(*sql.Selector)
+
+// KitReviewDecision is the predicate function for kitreviewdecision builders.
+type KitReviewDecision func(*sql.Selector)
+
+// KitRevision is the predicate function for kitrevision builders.
+type KitRevision func(*sql.Selector)
+
+// KitSourcePin is the predicate function for kitsourcepin builders.
+type KitSourcePin func(*sql.Selector)
+
 // LaunchRun is the predicate function for launchrun builders.
 type LaunchRun func(*sql.Selector)
 
@@ -386,6 +407,9 @@ type ReleaseDocument func(*sql.Selector)
 
 // ReleaseEvidence is the predicate function for releaseevidence builders.
 type ReleaseEvidence func(*sql.Selector)
+
+// ReleaseKit is the predicate function for releasekit builders.
+type ReleaseKit func(*sql.Selector)
 
 // ReleaseLineage is the predicate function for releaselineage builders.
 type ReleaseLineage func(*sql.Selector)

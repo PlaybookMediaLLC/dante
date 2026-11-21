@@ -240,6 +240,130 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/releases/{id}/kits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read release kit readiness
+         * @description Read a kit revision, human review history and deterministic current blockers. Machine responses omit native content and private lineage.
+         */
+        get: operations["getReleaseKit"];
+        put?: never;
+        /**
+         * Assemble or replace a release kit
+         * @description Assemble or replace a release kit. The Go domain checks the aggregate revision, exact dependencies and current authority.
+         */
+        post: operations["createReleaseKitRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/kits/{revisionId}/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record a human kit review
+         * @description Record a human kit review. The Go domain checks the aggregate revision, exact dependencies and current authority.
+         */
+        post: operations["decideReleaseKit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/kits/{revisionId}/artifacts/{artifactId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview a release kit artifact privately
+         * @description A private watermarked preview grants no export or distribution authority.
+         */
+        get: operations["getKitArtifactPreview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/kit-exports/{exportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read an approved kit export
+         * @description Read persisted export metadata. A download URL requires a new live readiness and authority check; downloaded files cannot be recalled.
+         */
+        get: operations["getKitExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/kits/{revisionId}/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Prepare immutable kit outputs
+         * @description Prepare immutable kit outputs. The Go domain checks the aggregate revision, exact dependencies and current authority.
+         */
+        post: operations["prepareReleaseKit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/releases/{id}/kits/{revisionId}/exports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request an approved ZIP export
+         * @description Request an approved ZIP export. The Go domain checks the aggregate revision, exact dependencies and current authority.
+         */
+        post: operations["requestKitExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/github/sources/{sourceId}/production": {
         parameters: {
             query?: never;
@@ -2627,6 +2751,165 @@ export interface components {
             /** @enum {string} */
             decision: "SUPPORTED" | "CONTRADICTED" | "UNRESOLVED" | "WITHDRAWN";
             reason: string;
+        };
+        CreateReleaseKitRevisionRequest: {
+            expectedRevision: string;
+            expectedKitRevisionId: string | null;
+            qualificationRevisionId: string;
+            approverUserId: string;
+            artifacts: ({
+                existingArtifactId: string;
+            } | {
+                /** @default null */
+                existingArtifactId: null;
+                /** @enum {string} */
+                kind: "FACT_SHEET" | "SALES_NOTES" | "CS_NOTES" | "ANNOUNCEMENT" | "FAQ" | "SCREENSHOT";
+                audienceId: string;
+                /** @enum {string} */
+                classification: "INTERNAL_MATERIAL" | "CUSTOMER_CLEARED";
+                /** @enum {string} */
+                sourceKind: "TEMPLATE" | "DRAFT" | "ASSET" | "CREATIVE";
+                /** @default  */
+                sourceId: string;
+                /** @default  */
+                expectedNativeRevision: string;
+                /** @default  */
+                outputId: string;
+                claims: {
+                    nodeId: string;
+                    claimVersionId: string;
+                }[];
+            })[];
+        };
+        DecideReleaseKitRequest: {
+            expectedRevision: string;
+            manifestSha256: string;
+            dependencyToken: string;
+            /** @enum {string} */
+            reviewType: "CONTENT_COVERAGE" | "FINAL_APPROVAL";
+            /** @enum {string} */
+            decision: "APPROVE" | "REJECT" | "WITHDRAW";
+            reason: string;
+            assertionsConfirmed: boolean;
+            screenshotsConfirmed: boolean;
+            audienceConfirmed: boolean;
+        };
+        KitPreview: {
+            /** @enum {string} */
+            kind: "image" | "text";
+            content: string;
+            /** @constant */
+            watermark: "PREVIEW — NOT APPROVED FOR DISTRIBUTION";
+        };
+        KitExport: {
+            id: string;
+            /** @enum {string} */
+            state: "BUILDING" | "READY" | "FAILED";
+            sha256: string | null;
+            failureCode: string;
+            fileIndex: {
+                /** @constant */
+                schemaVersion: 1;
+                releaseId: string;
+                kitRevisionId: string;
+                audienceIds: string[];
+                files: {
+                    name: string;
+                    sha256: string;
+                    byteLength: number;
+                }[];
+            };
+            downloadUrl: string | null;
+        };
+        ReleaseKit: {
+            id: string;
+            kitId: string;
+            history: {
+                id: string;
+                version: string;
+                state: string;
+            }[];
+            exportIds: string[];
+            version: string;
+            /** @enum {string} */
+            state: "DRAFT" | "BUILDING" | "REVIEWABLE" | "APPROVED" | "REJECTED" | "SUPERSEDED" | "WITHDRAWN" | "FAILED";
+            approverUserId: string;
+            qualificationRevisionId: string;
+            failureCode: string;
+            artifacts: {
+                id: string;
+                /** @enum {string} */
+                kind: "FACT_SHEET" | "SALES_NOTES" | "CS_NOTES" | "ANNOUNCEMENT" | "FAQ" | "SCREENSHOT";
+                audienceId: string;
+                /** @enum {string} */
+                classification: "INTERNAL_MATERIAL" | "CUSTOMER_CLEARED";
+                /** @enum {string} */
+                sourceKind: "TEMPLATE" | "DRAFT" | "ASSET" | "CREATIVE";
+                sourceId: string;
+                sourceRevision: string;
+                snapshotSha256: string;
+                outputSha256: string | null;
+                claims: {
+                    nodeId: string;
+                    claimId: string;
+                    claimVersionId: string;
+                    supportSetId: string;
+                    verificationId: string;
+                }[];
+                prepared: boolean;
+                document: unknown[] | {
+                    [key: string]: unknown;
+                } | null;
+                markdown: string | null;
+            }[];
+            omissions: {
+                audienceId: string;
+                /** @enum {string} */
+                material: "FACT_SHEET" | "SALES_NOTES" | "CS_NOTES" | "ANNOUNCEMENT" | "FAQ" | "SCREENSHOT";
+                ownerId: string;
+                reason: string;
+            }[];
+            decisions: {
+                id: string;
+                /** @enum {string} */
+                reviewType: "CONTENT_COVERAGE" | "FINAL_APPROVAL";
+                /** @enum {string} */
+                decision: "APPROVE" | "REJECT" | "WITHDRAW";
+                humanUserId: string;
+                reason: string;
+                manifestSha256: string;
+                /** Format: date-time */
+                createdAt: string;
+            }[];
+            readiness: {
+                canApprove: boolean;
+                canExportApproved: boolean;
+                canRequestHandoff: boolean;
+                manifestHash: string | null;
+                aggregateRevision: string;
+                dependencyToken: string;
+                policyVersion: number;
+                blockers: {
+                    /** @enum {string} */
+                    code: "QUALIFICATION_REQUIRED" | "AVAILABILITY_UNCONFIRMED" | "CLAIM_UNVERIFIED" | "EVIDENCE_UNAVAILABLE" | "SOURCE_CHANGED" | "MATERIAL_MISSING" | "COVERAGE_UNREVIEWED" | "SCREENSHOT_UNREVIEWED" | "AUDIENCE_LEAK" | "OUTPUT_INCOMPLETE" | "APPROVAL_REQUIRED" | "APPROVER_REVOKED" | "REVISION_SUPERSEDED";
+                    objectId: string;
+                    audienceId: string | null;
+                    ownerId: string | null;
+                    repairAction: string;
+                }[];
+            };
+        };
+        PrepareReleaseKitRequest: {
+            expectedRevision: string;
+            snapshots: {
+                artifactRevisionId: string;
+                snapshotSha256: string;
+            }[];
+        };
+        RequestKitExportRequest: {
+            expectedRevision: string;
+            manifestSha256: string;
+            audienceIds: string[];
         };
         CalendarResult: {
             drafts: {
@@ -6026,7 +6309,19 @@ export interface components {
             /** @description Release qualification or source selection conflict and repair details. */
             details?: {
                 /** @enum {string} */
-                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST";
+                reason: "KIT_NOT_READY" | "SOURCE_CHANGED";
+                currentRevision: string;
+                blockers: {
+                    /** @enum {string} */
+                    code: "QUALIFICATION_REQUIRED" | "AVAILABILITY_UNCONFIRMED" | "CLAIM_UNVERIFIED" | "EVIDENCE_UNAVAILABLE" | "SOURCE_CHANGED" | "MATERIAL_MISSING" | "COVERAGE_UNREVIEWED" | "SCREENSHOT_UNREVIEWED" | "AUDIENCE_LEAK" | "OUTPUT_INCOMPLETE" | "APPROVAL_REQUIRED" | "APPROVER_REVOKED" | "REVISION_SUPERSEDED";
+                    objectId: string;
+                    audienceId: string | null;
+                    ownerId: string | null;
+                    repairAction: string;
+                }[];
+            } | {
+                /** @enum {string} */
+                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST" | "NATIVE_REVISION_CONFLICT" | "OUTPUT_INCOMPLETE" | "CLAIM_UNVERIFIED";
                 currentRevision: string;
                 blockers: {
                     field: string;
@@ -6070,7 +6365,19 @@ export interface components {
             /** @description Release qualification or source selection conflict and repair details. */
             details?: {
                 /** @enum {string} */
-                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST";
+                reason: "KIT_NOT_READY" | "SOURCE_CHANGED";
+                currentRevision: string;
+                blockers: {
+                    /** @enum {string} */
+                    code: "QUALIFICATION_REQUIRED" | "AVAILABILITY_UNCONFIRMED" | "CLAIM_UNVERIFIED" | "EVIDENCE_UNAVAILABLE" | "SOURCE_CHANGED" | "MATERIAL_MISSING" | "COVERAGE_UNREVIEWED" | "SCREENSHOT_UNREVIEWED" | "AUDIENCE_LEAK" | "OUTPUT_INCOMPLETE" | "APPROVAL_REQUIRED" | "APPROVER_REVOKED" | "REVISION_SUPERSEDED";
+                    objectId: string;
+                    audienceId: string | null;
+                    ownerId: string | null;
+                    repairAction: string;
+                }[];
+            } | {
+                /** @enum {string} */
+                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST" | "NATIVE_REVISION_CONFLICT" | "OUTPUT_INCOMPLETE" | "CLAIM_UNVERIFIED";
                 currentRevision: string;
                 blockers: {
                     field: string;
@@ -6120,7 +6427,19 @@ export interface components {
             /** @description Release qualification or source selection conflict and repair details. */
             details?: {
                 /** @enum {string} */
-                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST";
+                reason: "KIT_NOT_READY" | "SOURCE_CHANGED";
+                currentRevision: string;
+                blockers: {
+                    /** @enum {string} */
+                    code: "QUALIFICATION_REQUIRED" | "AVAILABILITY_UNCONFIRMED" | "CLAIM_UNVERIFIED" | "EVIDENCE_UNAVAILABLE" | "SOURCE_CHANGED" | "MATERIAL_MISSING" | "COVERAGE_UNREVIEWED" | "SCREENSHOT_UNREVIEWED" | "AUDIENCE_LEAK" | "OUTPUT_INCOMPLETE" | "APPROVAL_REQUIRED" | "APPROVER_REVOKED" | "REVISION_SUPERSEDED";
+                    objectId: string;
+                    audienceId: string | null;
+                    ownerId: string | null;
+                    repairAction: string;
+                }[];
+            } | {
+                /** @enum {string} */
+                reason: "MISSING_FACTS" | "READINESS_DISABLED" | "COMMAND_KEY_REUSED" | "CANONICAL_RELEASE_CHANGED" | "RELEASE_INACTIVE" | "QUALIFICATION_UNAVAILABLE" | "REVISION_CONFLICT" | "SOURCE_CHANGED" | "SOURCE_SELECTION_CHANGED" | "RELEASE_ALREADY_QUALIFIED" | "RELEASE_HAS_REVIEWED_WORK" | "CLAIM_LIMIT" | "CLAIM_CHANGED" | "CONTRADICTION_NOT_REVIEWED" | "CLAIM_QUALIFIERS_MISSING" | "EVIDENCE_UNAVAILABLE" | "AI_EVIDENCE_UNCONFIRMED" | "ATTESTATION_UNCONFIRMED" | "SUPPORT_MISSING" | "EVIDENCE_ALREADY_ATTACHED" | "QUALIFICATION_REQUIRED" | "DELETE_SOURCE_ASSET_FIRST" | "NATIVE_REVISION_CONFLICT" | "OUTPUT_INCOMPLETE" | "CLAIM_UNVERIFIED";
                 currentRevision: string;
                 blockers: {
                     field: string;
@@ -7239,6 +7558,473 @@ export interface operations {
                 };
             };
             /** @description Revision or evidence changed; reload before deciding. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getReleaseKit: {
+        parameters: {
+            query?: {
+                revisionId?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Kit revision and current readiness. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReleaseKit"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The API key lacks the required workspace scope. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Kit not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createReleaseKitRevision: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateReleaseKitRevisionRequest"];
+            };
+        };
+        responses: {
+            /** @description Original result on retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description Request recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Human authority required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Current readiness or revision blocks this action. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    decideReleaseKit: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideReleaseKitRequest"];
+            };
+        };
+        responses: {
+            /** @description Original result on retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description Request recorded. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Human authority required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Current readiness or revision blocks this action. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getKitArtifactPreview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                revisionId: string;
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Watermarked preview. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitPreview"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Current human membership required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getKitExport: {
+        parameters: {
+            query?: {
+                download?: "true" | "false";
+            };
+            header?: never;
+            path: {
+                id: string;
+                exportId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Export metadata and an optional short-lived URL. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KitExport"];
+                };
+            };
+            /** @description Authentication is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No current authority. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Readiness changed. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    prepareReleaseKit: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareReleaseKitRequest"];
+            };
+        };
+        responses: {
+            /** @description Original result on retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description Request recorded. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Human authority required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Current readiness or revision blocks this action. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A required dependency is unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    requestKitExport: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+                revisionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestKitExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Original result on retry. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description Request recorded. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessMutation"];
+                };
+            };
+            /** @description A signed-in workspace session is required. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Human authority required. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Current readiness or revision blocks this action. */
             409: {
                 headers: {
                     [name: string]: unknown;

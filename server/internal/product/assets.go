@@ -34,6 +34,7 @@ func isVideoPoster(objectKey string) bool {
 }
 
 type AssetListItem struct {
+	SHA256         *string   `json:"sha256"`
 	FileName       string    `json:"fileName"`
 	PosterAssetID  string    `json:"posterAssetId,omitempty"`
 	Classification string    `json:"classification"`
@@ -177,7 +178,7 @@ func (c *Configuration) ListAssets(ctx context.Context, actor Actor, options Ass
 		}
 	}
 	for _, row := range rows {
-		item := AssetListItem{PosterAssetID: posters[row.ID], ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt, Height: row.Height, MediaType: row.MediaType, Width: row.Width, FileName: path.Base(row.ObjectKey)}
+		item := AssetListItem{SHA256: row.Sha256, PosterAssetID: posters[row.ID], ID: row.ID, Bytes: row.Bytes, CreatedAt: row.CreatedAt, Height: row.Height, MediaType: row.MediaType, Width: row.Width, FileName: path.Base(row.ObjectKey)}
 		parts := strings.Split(row.ObjectKey, "/")
 		if len(parts) >= 3 {
 			item.Classification = parts[2]

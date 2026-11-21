@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import {
   qualificationErrorDetailsSchema,
+  kitReadinessErrorDetailsSchema,
   sourceSelectionErrorDetailsSchema,
 } from 'screenshot-studio-backend-sdk'
 import { debugLog, redactPath } from '@/lib/debug-log'
@@ -10,6 +11,7 @@ import { isPlanRefusal, PLAN_REFUSAL_MESSAGE } from '@/lib/api/platform-errors'
 import { workspaceScopeHeaders, type WorkspaceRequestScope } from '@/lib/auth/request-scope'
 
 const releaseErrorDetailsSchema = z.union([
+  kitReadinessErrorDetailsSchema,
   qualificationErrorDetailsSchema,
   sourceSelectionErrorDetailsSchema,
 ])

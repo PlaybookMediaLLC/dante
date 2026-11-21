@@ -1617,6 +1617,778 @@
         ]
       }
     },
+    "/api/v1/releases/{id}/kits": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "release:create",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Assemble or replace a release kit. The Go domain checks the aggregate revision, exact dependencies and current authority.",
+        "operationId": "createReleaseKitRevision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReleaseKitRevisionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original result on retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Request recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Human authority required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current readiness or revision blocks this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Assemble or replace a release kit",
+        "tags": [
+          "Workspace"
+        ]
+      },
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "pro"
+        },
+        "description": "Read a kit revision, human review history and deterministic current blockers. Machine responses omit native content and private lineage.",
+        "operationId": "getReleaseKit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "revisionId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Kit revision and current readiness.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseKit"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The API key lacks the required workspace scope.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kit not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Read release kit readiness",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/releases/{id}/kits/{revisionId}/decisions": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "release:create",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Record a human kit review. The Go domain checks the aggregate revision, exact dependencies and current authority.",
+        "operationId": "decideReleaseKit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revisionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideReleaseKitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original result on retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Request recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Human authority required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current readiness or revision blocks this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Record a human kit review",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/releases/{id}/kits/{revisionId}/artifacts/{artifactId}/preview": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "pro"
+        },
+        "description": "A private watermarked preview grants no export or distribution authority.",
+        "operationId": "getKitArtifactPreview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revisionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "artifactId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watermarked preview.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Current human membership required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Preview a release kit artifact privately",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/releases/{id}/kit-exports/{exportId}": {
+      "get": {
+        "x-shots-entitlement": {
+          "feature": "workspace:use",
+          "minimumPlan": "pro"
+        },
+        "description": "Read persisted export metadata. A download URL requires a new live readiness and authority check; downloaded files cannot be recalled.",
+        "operationId": "getKitExport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exportId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "download",
+            "required": false,
+            "schema": {
+              "default": "false",
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Export metadata and an optional short-lived URL.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitExport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "No current authority.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Readiness changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceApiKey": [
+              "artifact:read"
+            ]
+          },
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Read an approved kit export",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/releases/{id}/kits/{revisionId}/prepare": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "release:create",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Prepare immutable kit outputs. The Go domain checks the aggregate revision, exact dependencies and current authority.",
+        "operationId": "prepareReleaseKit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revisionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareReleaseKitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original result on retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Request recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Human authority required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current readiness or revision blocks this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Prepare immutable kit outputs",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
+    "/api/v1/releases/{id}/kits/{revisionId}/exports": {
+      "post": {
+        "x-shots-entitlement": {
+          "feature": "release:create",
+          "minimumPlan": "pro",
+          "quota": "api:write:minute"
+        },
+        "description": "Request an approved ZIP export. The Go domain checks the aggregate revision, exact dependencies and current authority.",
+        "operationId": "requestKitExport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "revisionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestKitExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Original result on retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Request recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessMutation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "A signed-in workspace session is required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Human authority required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current readiness or revision blocks this action.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspaceSession": []
+          }
+        ],
+        "summary": "Request an approved ZIP export",
+        "tags": [
+          "Workspace"
+        ]
+      }
+    },
     "/api/v1/github/sources/{sourceId}/production": {
       "get": {
         "x-shots-entitlement": {
@@ -26626,6 +27398,825 @@
         ],
         "additionalProperties": false
       },
+      "CreateReleaseKitRevisionRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "expectedKitRevisionId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "qualificationRevisionId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "approverUserId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "artifacts": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "existingArtifactId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                    }
+                  },
+                  "required": [
+                    "existingArtifactId"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "existingArtifactId": {
+                      "default": null,
+                      "type": "null"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "FACT_SHEET",
+                        "SALES_NOTES",
+                        "CS_NOTES",
+                        "ANNOUNCEMENT",
+                        "FAQ",
+                        "SCREENSHOT"
+                      ]
+                    },
+                    "audienceId": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                    },
+                    "classification": {
+                      "type": "string",
+                      "enum": [
+                        "INTERNAL_MATERIAL",
+                        "CUSTOMER_CLEARED"
+                      ]
+                    },
+                    "sourceKind": {
+                      "type": "string",
+                      "enum": [
+                        "TEMPLATE",
+                        "DRAFT",
+                        "ASSET",
+                        "CREATIVE"
+                      ]
+                    },
+                    "sourceId": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "expectedNativeRevision": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 64
+                    },
+                    "outputId": {
+                      "default": "",
+                      "type": "string",
+                      "maxLength": 128
+                    },
+                    "claims": {
+                      "maxItems": 100,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "nodeId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 128
+                          },
+                          "claimVersionId": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                          }
+                        },
+                        "required": [
+                          "nodeId",
+                          "claimVersionId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "audienceId",
+                    "classification",
+                    "sourceKind",
+                    "claims"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "expectedKitRevisionId",
+          "qualificationRevisionId",
+          "approverUserId",
+          "artifacts"
+        ],
+        "additionalProperties": false
+      },
+      "DecideReleaseKitRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "manifestSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "dependencyToken": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "reviewType": {
+            "type": "string",
+            "enum": [
+              "CONTENT_COVERAGE",
+              "FINAL_APPROVAL"
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT",
+              "WITHDRAW"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "assertionsConfirmed": {
+            "type": "boolean"
+          },
+          "screenshotsConfirmed": {
+            "type": "boolean"
+          },
+          "audienceConfirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "manifestSha256",
+          "dependencyToken",
+          "reviewType",
+          "decision",
+          "reason",
+          "assertionsConfirmed",
+          "screenshotsConfirmed",
+          "audienceConfirmed"
+        ],
+        "additionalProperties": false
+      },
+      "KitPreview": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "text"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "watermark": {
+            "type": "string",
+            "const": "PREVIEW — NOT APPROVED FOR DISTRIBUTION"
+          }
+        },
+        "required": [
+          "kind",
+          "content",
+          "watermark"
+        ],
+        "additionalProperties": false
+      },
+      "KitExport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "BUILDING",
+              "READY",
+              "FAILED"
+            ]
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failureCode": {
+            "type": "string"
+          },
+          "fileIndex": {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "type": "number",
+                "const": 1
+              },
+              "releaseId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "kitRevisionId": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,128}$"
+              },
+              "audienceIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                }
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    "byteLength": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "sha256",
+                    "byteLength"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "releaseId",
+              "kitRevisionId",
+              "audienceIds",
+              "files"
+            ],
+            "additionalProperties": false
+          },
+          "downloadUrl": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "sha256",
+          "failureCode",
+          "fileIndex",
+          "downloadUrl"
+        ],
+        "additionalProperties": false
+      },
+      "ReleaseKit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "kitId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "version": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,18})$"
+                },
+                "state": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "version",
+                "state"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "exportIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "BUILDING",
+              "REVIEWABLE",
+              "APPROVED",
+              "REJECTED",
+              "SUPERSEDED",
+              "WITHDRAWN",
+              "FAILED"
+            ]
+          },
+          "approverUserId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "qualificationRevisionId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+          },
+          "failureCode": {
+            "type": "string"
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "FACT_SHEET",
+                    "SALES_NOTES",
+                    "CS_NOTES",
+                    "ANNOUNCEMENT",
+                    "FAQ",
+                    "SCREENSHOT"
+                  ]
+                },
+                "audienceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "classification": {
+                  "type": "string",
+                  "enum": [
+                    "INTERNAL_MATERIAL",
+                    "CUSTOMER_CLEARED"
+                  ]
+                },
+                "sourceKind": {
+                  "type": "string",
+                  "enum": [
+                    "TEMPLATE",
+                    "DRAFT",
+                    "ASSET",
+                    "CREATIVE"
+                  ]
+                },
+                "sourceId": {
+                  "type": "string"
+                },
+                "sourceRevision": {
+                  "type": "string"
+                },
+                "snapshotSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "outputSha256": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "claims": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "nodeId": {
+                        "type": "string"
+                      },
+                      "claimId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                      },
+                      "claimVersionId": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                      },
+                      "supportSetId": {
+                        "type": "string"
+                      },
+                      "verificationId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "nodeId",
+                      "claimId",
+                      "claimVersionId",
+                      "supportSetId",
+                      "verificationId"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "prepared": {
+                  "type": "boolean"
+                },
+                "document": {
+                  "anyOf": [
+                    {
+                      "type": "array",
+                      "items": {}
+                    },
+                    {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string"
+                      },
+                      "additionalProperties": {}
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "markdown": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "audienceId",
+                "classification",
+                "sourceKind",
+                "sourceId",
+                "sourceRevision",
+                "snapshotSha256",
+                "outputSha256",
+                "claims",
+                "prepared",
+                "document",
+                "markdown"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "omissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "audienceId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "material": {
+                  "type": "string",
+                  "enum": [
+                    "FACT_SHEET",
+                    "SALES_NOTES",
+                    "CS_NOTES",
+                    "ANNOUNCEMENT",
+                    "FAQ",
+                    "SCREENSHOT"
+                  ]
+                },
+                "ownerId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "audienceId",
+                "material",
+                "ownerId",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "reviewType": {
+                  "type": "string",
+                  "enum": [
+                    "CONTENT_COVERAGE",
+                    "FINAL_APPROVAL"
+                  ]
+                },
+                "decision": {
+                  "type": "string",
+                  "enum": [
+                    "APPROVE",
+                    "REJECT",
+                    "WITHDRAW"
+                  ]
+                },
+                "humanUserId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "manifestSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                }
+              },
+              "required": [
+                "id",
+                "reviewType",
+                "decision",
+                "humanUserId",
+                "reason",
+                "manifestSha256",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "readiness": {
+            "type": "object",
+            "properties": {
+              "canApprove": {
+                "type": "boolean"
+              },
+              "canExportApproved": {
+                "type": "boolean"
+              },
+              "canRequestHandoff": {
+                "type": "boolean"
+              },
+              "manifestHash": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "aggregateRevision": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]{0,18})$"
+              },
+              "dependencyToken": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "policyVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "QUALIFICATION_REQUIRED",
+                        "AVAILABILITY_UNCONFIRMED",
+                        "CLAIM_UNVERIFIED",
+                        "EVIDENCE_UNAVAILABLE",
+                        "SOURCE_CHANGED",
+                        "MATERIAL_MISSING",
+                        "COVERAGE_UNREVIEWED",
+                        "SCREENSHOT_UNREVIEWED",
+                        "AUDIENCE_LEAK",
+                        "OUTPUT_INCOMPLETE",
+                        "APPROVAL_REQUIRED",
+                        "APPROVER_REVOKED",
+                        "REVISION_SUPERSEDED"
+                      ]
+                    },
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "audienceId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ownerId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "repairAction": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "objectId",
+                    "audienceId",
+                    "ownerId",
+                    "repairAction"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "canApprove",
+              "canExportApproved",
+              "canRequestHandoff",
+              "manifestHash",
+              "aggregateRevision",
+              "dependencyToken",
+              "policyVersion",
+              "blockers"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "kitId",
+          "history",
+          "exportIds",
+          "version",
+          "state",
+          "approverUserId",
+          "qualificationRevisionId",
+          "failureCode",
+          "artifacts",
+          "omissions",
+          "decisions",
+          "readiness"
+        ],
+        "additionalProperties": false
+      },
+      "PrepareReleaseKitRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "snapshots": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "artifactRevisionId": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,128}$"
+                },
+                "snapshotSha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "required": [
+                "artifactRevisionId",
+                "snapshotSha256"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "snapshots"
+        ],
+        "additionalProperties": false
+      },
+      "RequestKitExportRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "string",
+            "pattern": "^(0|[1-9][0-9]{0,18})$"
+          },
+          "manifestSha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "audienceIds": {
+            "minItems": 1,
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,128}$"
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "manifestSha256",
+          "audienceIds"
+        ],
+        "additionalProperties": false
+      },
       "CalendarResult": {
         "type": "object",
         "properties": {
@@ -42670,6 +44261,80 @@
                   "reason": {
                     "type": "string",
                     "enum": [
+                      "KIT_NOT_READY",
+                      "SOURCE_CHANGED"
+                    ]
+                  },
+                  "currentRevision": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]{0,18})$"
+                  },
+                  "blockers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "QUALIFICATION_REQUIRED",
+                            "AVAILABILITY_UNCONFIRMED",
+                            "CLAIM_UNVERIFIED",
+                            "EVIDENCE_UNAVAILABLE",
+                            "SOURCE_CHANGED",
+                            "MATERIAL_MISSING",
+                            "COVERAGE_UNREVIEWED",
+                            "SCREENSHOT_UNREVIEWED",
+                            "AUDIENCE_LEAK",
+                            "OUTPUT_INCOMPLETE",
+                            "APPROVAL_REQUIRED",
+                            "APPROVER_REVOKED",
+                            "REVISION_SUPERSEDED"
+                          ]
+                        },
+                        "objectId": {
+                          "type": "string"
+                        },
+                        "audienceId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "ownerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "repairAction": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "objectId",
+                        "audienceId",
+                        "ownerId",
+                        "repairAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "reason",
+                  "currentRevision",
+                  "blockers"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "enum": [
                       "MISSING_FACTS",
                       "READINESS_DISABLED",
                       "COMMAND_KEY_REUSED",
@@ -42691,7 +44356,10 @@
                       "SUPPORT_MISSING",
                       "EVIDENCE_ALREADY_ATTACHED",
                       "QUALIFICATION_REQUIRED",
-                      "DELETE_SOURCE_ASSET_FIRST"
+                      "DELETE_SOURCE_ASSET_FIRST",
+                      "NATIVE_REVISION_CONFLICT",
+                      "OUTPUT_INCOMPLETE",
+                      "CLAIM_UNVERIFIED"
                     ]
                   },
                   "currentRevision": {
@@ -42890,6 +44558,80 @@
                   "reason": {
                     "type": "string",
                     "enum": [
+                      "KIT_NOT_READY",
+                      "SOURCE_CHANGED"
+                    ]
+                  },
+                  "currentRevision": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]{0,18})$"
+                  },
+                  "blockers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "QUALIFICATION_REQUIRED",
+                            "AVAILABILITY_UNCONFIRMED",
+                            "CLAIM_UNVERIFIED",
+                            "EVIDENCE_UNAVAILABLE",
+                            "SOURCE_CHANGED",
+                            "MATERIAL_MISSING",
+                            "COVERAGE_UNREVIEWED",
+                            "SCREENSHOT_UNREVIEWED",
+                            "AUDIENCE_LEAK",
+                            "OUTPUT_INCOMPLETE",
+                            "APPROVAL_REQUIRED",
+                            "APPROVER_REVOKED",
+                            "REVISION_SUPERSEDED"
+                          ]
+                        },
+                        "objectId": {
+                          "type": "string"
+                        },
+                        "audienceId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "ownerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "repairAction": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "objectId",
+                        "audienceId",
+                        "ownerId",
+                        "repairAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "reason",
+                  "currentRevision",
+                  "blockers"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "enum": [
                       "MISSING_FACTS",
                       "READINESS_DISABLED",
                       "COMMAND_KEY_REUSED",
@@ -42911,7 +44653,10 @@
                       "SUPPORT_MISSING",
                       "EVIDENCE_ALREADY_ATTACHED",
                       "QUALIFICATION_REQUIRED",
-                      "DELETE_SOURCE_ASSET_FIRST"
+                      "DELETE_SOURCE_ASSET_FIRST",
+                      "NATIVE_REVISION_CONFLICT",
+                      "OUTPUT_INCOMPLETE",
+                      "CLAIM_UNVERIFIED"
                     ]
                   },
                   "currentRevision": {
@@ -43152,6 +44897,80 @@
                   "reason": {
                     "type": "string",
                     "enum": [
+                      "KIT_NOT_READY",
+                      "SOURCE_CHANGED"
+                    ]
+                  },
+                  "currentRevision": {
+                    "type": "string",
+                    "pattern": "^(0|[1-9][0-9]{0,18})$"
+                  },
+                  "blockers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "enum": [
+                            "QUALIFICATION_REQUIRED",
+                            "AVAILABILITY_UNCONFIRMED",
+                            "CLAIM_UNVERIFIED",
+                            "EVIDENCE_UNAVAILABLE",
+                            "SOURCE_CHANGED",
+                            "MATERIAL_MISSING",
+                            "COVERAGE_UNREVIEWED",
+                            "SCREENSHOT_UNREVIEWED",
+                            "AUDIENCE_LEAK",
+                            "OUTPUT_INCOMPLETE",
+                            "APPROVAL_REQUIRED",
+                            "APPROVER_REVOKED",
+                            "REVISION_SUPERSEDED"
+                          ]
+                        },
+                        "objectId": {
+                          "type": "string"
+                        },
+                        "audienceId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "ownerId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "repairAction": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "objectId",
+                        "audienceId",
+                        "ownerId",
+                        "repairAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "reason",
+                  "currentRevision",
+                  "blockers"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "enum": [
                       "MISSING_FACTS",
                       "READINESS_DISABLED",
                       "COMMAND_KEY_REUSED",
@@ -43173,7 +44992,10 @@
                       "SUPPORT_MISSING",
                       "EVIDENCE_ALREADY_ATTACHED",
                       "QUALIFICATION_REQUIRED",
-                      "DELETE_SOURCE_ASSET_FIRST"
+                      "DELETE_SOURCE_ASSET_FIRST",
+                      "NATIVE_REVISION_CONFLICT",
+                      "OUTPUT_INCOMPLETE",
+                      "CLAIM_UNVERIFIED"
                     ]
                   },
                   "currentRevision": {

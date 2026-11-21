@@ -261,6 +261,14 @@ type ConfigurationStore interface {
 	ImportReleaseSpecClaims(context.Context, product.Actor, string, string, product.ImportReleaseSpecInput) (*product.ReadinessMutation, error)
 	ListReleaseEvidence(context.Context, product.Actor, string, string) (*product.ReleaseEvidencePage, error)
 	ListReleaseClaims(context.Context, product.Actor, string, string) (*product.ReleaseClaimsPage, error)
+	CreateReleaseKitRevision(context.Context, product.Actor, string, string, product.CreateReleaseKitInput) (*product.ReadinessMutation, error)
+	PrepareReleaseKit(context.Context, product.Actor, string, string, string, product.PrepareReleaseKitInput) (*product.ReadinessMutation, error)
+	DecideReleaseKit(context.Context, product.Actor, string, string, string, product.DecideReleaseKitInput) (*product.ReadinessMutation, error)
+	RequestKitExport(context.Context, product.Actor, string, string, string, product.RequestKitExportInput) (*product.ReadinessMutation, error)
+	GetReleaseKit(context.Context, product.Actor, string, string) (*product.ReleaseKitDetail, error)
+	ReadKitExportDownload(context.Context, string, string, string, string) ([]byte, error)
+	GetKitArtifactPreview(context.Context, product.Actor, string, string, string) (*product.KitArtifactPreview, error)
+	GetKitExport(context.Context, product.Actor, string, string, bool) (*product.KitExportRecord, error)
 	GetReleaseQualification(context.Context, product.Actor, string) (*product.ReleaseQualificationDetail, error)
 	GetQualificationRevision(context.Context, product.Actor, string, string) (*product.QualificationRevision, error)
 	CreateQualificationRevision(context.Context, product.Actor, string, string, product.CreateQualificationInput) (*releasefacts.Result, error)
@@ -865,8 +873,11 @@ func writeStoreError(w http.ResponseWriter, err error) {
 	var atLimit *product.PlanLimitError
 	var provider *socialapi.Error
 	var qualification *product.QualificationError
+	var kitReadiness *product.KitReadinessError
 	var sourceSelection *product.SourceSelectionError
 	switch {
+	case errors.As(err, &kitReadiness):
+		writeJSON(w, http.StatusConflict, map[string]any{"code": "conflict", "error": err.Error(), "message": err.Error(), "status": http.StatusConflict, "details": kitReadiness})
 	case errors.As(err, &sourceSelection):
 		status, code := http.StatusConflict, "conflict"
 		if errors.Is(err, publishing.ErrForbidden) {

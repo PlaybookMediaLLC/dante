@@ -78,6 +78,13 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/idealcustomerprofile"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/integrationconnection"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/invitation"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactclaim"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitartifactrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitexport"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitmember"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitreviewdecision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitrevision"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitsourcepin"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrun"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/launchrunstep"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/member"
@@ -140,6 +147,7 @@ import (
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseclaimversion"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasedocument"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaseevidence"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasekit"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaselineage"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releaselineagebinding"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/releasequalification"
@@ -308,6 +316,13 @@ func checkColumn(t, c string) error {
 			idealcustomerprofile.Table:            idealcustomerprofile.ValidColumn,
 			integrationconnection.Table:           integrationconnection.ValidColumn,
 			invitation.Table:                      invitation.ValidColumn,
+			kitartifactclaim.Table:                kitartifactclaim.ValidColumn,
+			kitartifactrevision.Table:             kitartifactrevision.ValidColumn,
+			kitexport.Table:                       kitexport.ValidColumn,
+			kitmember.Table:                       kitmember.ValidColumn,
+			kitreviewdecision.Table:               kitreviewdecision.ValidColumn,
+			kitrevision.Table:                     kitrevision.ValidColumn,
+			kitsourcepin.Table:                    kitsourcepin.ValidColumn,
 			launchrun.Table:                       launchrun.ValidColumn,
 			launchrunstep.Table:                   launchrunstep.ValidColumn,
 			member.Table:                          member.ValidColumn,
@@ -369,6 +384,7 @@ func checkColumn(t, c string) error {
 			releaseclaimversion.Table:             releaseclaimversion.ValidColumn,
 			releasedocument.Table:                 releasedocument.ValidColumn,
 			releaseevidence.Table:                 releaseevidence.ValidColumn,
+			releasekit.Table:                      releasekit.ValidColumn,
 			releaselineage.Table:                  releaselineage.ValidColumn,
 			releaselineagebinding.Table:           releaselineagebinding.ValidColumn,
 			releasequalification.Table:            releasequalification.ValidColumn,

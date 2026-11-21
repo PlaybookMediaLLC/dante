@@ -1,3 +1,5 @@
+import { kitArtifactPreviewSchema, createReleaseKitSchema, prepareReleaseKitSchema, decideReleaseKitSchema, requestKitExportSchema, releaseKitSchema, kitExportSchema, type CreateReleaseKitInput, type PrepareReleaseKitInput, type DecideReleaseKitInput, type RequestKitExportInput } from './release-kits.ts'
+export * from './release-kits.ts'
 import { readinessMutationSchema, releaseEvidencePageSchema, releaseClaimsPageSchema, type CreateReleaseEvidenceInput, createReleaseEvidenceSchema, type LinkReleaseEvidenceInput, linkReleaseEvidenceSchema, type ChangeEvidenceAccessInput, changeEvidenceAccessSchema, type SaveReleaseClaimInput, saveReleaseClaimSchema, type SetClaimSupportsInput, setClaimSupportsSchema, type VerifyReleaseClaimInput, verifyReleaseClaimSchema, type ImportReleaseSpecClaimsInput, importReleaseSpecClaimsSchema } from './release-evidence.ts'
 export * from './release-evidence.ts'
 import type {
@@ -738,6 +740,8 @@ export type BackendAsset = {
 }
 
 export type BackendAssetListItem = {
+  /** Retained upload digest; absent on older backends. */
+  sha256?: string | null
   fileName?: string
   /** A stored opening frame of a video, shown instead of downloading it. */
   posterAssetId?: string
@@ -3143,6 +3147,40 @@ export class ScreenshotStudioBackendSDK {
     const params = new URLSearchParams()
     if (cursor) params.set('cursor', cursor)
     return releaseClaimsPageSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/claims?${params}`))
+  }
+
+  async createReleaseKitRevision(id: string, key: string, input: CreateReleaseKitInput) {
+    return readinessMutationSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits`, { body: createReleaseKitSchema.parse(input), headers: { 'Idempotency-Key': readinessCommandKeySchema.parse(key) }, method: 'POST' }))
+  }
+
+  async prepareReleaseKit(id: string, revisionId: string, key: string, input: PrepareReleaseKitInput) {
+    return readinessMutationSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits/${encodeURIComponent(revisionId)}/prepare`, { body: prepareReleaseKitSchema.parse(input), headers: { 'Idempotency-Key': readinessCommandKeySchema.parse(key) }, method: 'POST' }))
+  }
+
+  async decideReleaseKit(id: string, revisionId: string, key: string, input: DecideReleaseKitInput) {
+    return readinessMutationSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits/${encodeURIComponent(revisionId)}/decisions`, { body: decideReleaseKitSchema.parse(input), headers: { 'Idempotency-Key': readinessCommandKeySchema.parse(key) }, method: 'POST' }))
+  }
+
+  async requestKitExport(id: string, revisionId: string, key: string, input: RequestKitExportInput) {
+    return readinessMutationSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits/${encodeURIComponent(revisionId)}/exports`, { body: requestKitExportSchema.parse(input), headers: { 'Idempotency-Key': readinessCommandKeySchema.parse(key) }, method: 'POST' }))
+  }
+
+  /** Private pinned output for a watermarked preview, with current session authority. */
+  async readKitExportDownload(id: string, exportId: string, token: string) {
+    return this.request<Response>(`v1/internal/releases/${encodeURIComponent(id)}/kit-exports/${encodeURIComponent(exportId)}/download`, { body: { token }, method: 'POST', responseType: 'response' })
+  }
+
+  /** Private bytes for a watermarked kit preview. */
+  async getKitArtifactPreview(id: string, revisionId: string, artifactId: string) {
+    return kitArtifactPreviewSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits/${encodeURIComponent(revisionId)}/artifacts/${encodeURIComponent(artifactId)}/preview`))
+  }
+  async getReleaseKit(id: string, revisionId?: string) {
+    const query = new URLSearchParams()
+    if (revisionId) query.set('revisionId', revisionId)
+    return releaseKitSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kits?${query}`))
+  }
+  async getKitExport(id: string, exportId: string, download = false) {
+    return kitExportSchema.parse(await this.request<unknown>(`v1/releases/${encodeURIComponent(id)}/kit-exports/${encodeURIComponent(exportId)}?download=${download}`))
   }
 
   async getReleaseQualification(id: string) {

@@ -1,3 +1,4 @@
+import * as releaseKitContracts from '@/lib/api/contracts/release-kits'
 import * as releaseEvidenceContracts from '@/lib/api/contracts/release-evidence'
 import {
   getGitHubProductionContract,
@@ -166,6 +167,7 @@ import {
 /** Every contract in the public OpenAPI spec, in the order the spec lists them. */
 export const documentedContracts = [
   ...Object.values(releaseEvidenceContracts),
+  ...Object.values(releaseKitContracts),
   getGitHubProductionContract,
   saveGitHubProductionContract,
   previewGitHubProductionContract,

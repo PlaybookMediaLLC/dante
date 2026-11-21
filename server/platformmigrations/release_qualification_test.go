@@ -40,6 +40,9 @@ func TestReleaseQualificationMigrationFreshAndUpgrade(t *testing.T) {
 		t.Fatal(err)
 	}
 	exec(string(previous)[strings.Index(string(previous), "CREATE OR REPLACE FUNCTION platform_asset_in_use_v1"):])
+	exec(`DROP TABLE platform_kit_export, platform_kit_review_decision, platform_kit_source_pin, platform_kit_member, platform_kit_artifact_claim, platform_kit_artifact_revision, platform_release_kit_revision, platform_release_kit`)
+	exec(`DROP FUNCTION platform_kit_revision_update_guard(), platform_kit_artifact_update_guard(), platform_kit_child_insert_guard(), platform_kit_export_update_guard()`)
+	exec(`DELETE FROM "_screenshot_studio_go_migrations" WHERE name='20261120130000_release_kits.sql'`)
 	exec(`DROP TRIGGER evidence_installation_access_fence ON github_installation`)
 	exec(`DROP TRIGGER evidence_source_access_fence ON source_app`)
 	exec(`DROP TRIGGER evidence_binding_fence ON platform_release_source_binding`)

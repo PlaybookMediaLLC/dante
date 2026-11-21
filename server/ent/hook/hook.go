@@ -801,6 +801,90 @@ func (f InvitationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InvitationMutation", m)
 }
 
+// The KitArtifactClaimFunc type is an adapter to allow the use of ordinary
+// function as KitArtifactClaim mutator.
+type KitArtifactClaimFunc func(context.Context, *ent.KitArtifactClaimMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitArtifactClaimFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitArtifactClaimMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitArtifactClaimMutation", m)
+}
+
+// The KitArtifactRevisionFunc type is an adapter to allow the use of ordinary
+// function as KitArtifactRevision mutator.
+type KitArtifactRevisionFunc func(context.Context, *ent.KitArtifactRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitArtifactRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitArtifactRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitArtifactRevisionMutation", m)
+}
+
+// The KitExportFunc type is an adapter to allow the use of ordinary
+// function as KitExport mutator.
+type KitExportFunc func(context.Context, *ent.KitExportMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitExportFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitExportMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitExportMutation", m)
+}
+
+// The KitMemberFunc type is an adapter to allow the use of ordinary
+// function as KitMember mutator.
+type KitMemberFunc func(context.Context, *ent.KitMemberMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitMemberFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitMemberMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitMemberMutation", m)
+}
+
+// The KitReviewDecisionFunc type is an adapter to allow the use of ordinary
+// function as KitReviewDecision mutator.
+type KitReviewDecisionFunc func(context.Context, *ent.KitReviewDecisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitReviewDecisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitReviewDecisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitReviewDecisionMutation", m)
+}
+
+// The KitRevisionFunc type is an adapter to allow the use of ordinary
+// function as KitRevision mutator.
+type KitRevisionFunc func(context.Context, *ent.KitRevisionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitRevisionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitRevisionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitRevisionMutation", m)
+}
+
+// The KitSourcePinFunc type is an adapter to allow the use of ordinary
+// function as KitSourcePin mutator.
+type KitSourcePinFunc func(context.Context, *ent.KitSourcePinMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f KitSourcePinFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.KitSourcePinMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.KitSourcePinMutation", m)
+}
+
 // The LaunchRunFunc type is an adapter to allow the use of ordinary
 // function as LaunchRun mutator.
 type LaunchRunFunc func(context.Context, *ent.LaunchRunMutation) (ent.Value, error)
@@ -1531,6 +1615,18 @@ func (f ReleaseEvidenceFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Va
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseEvidenceMutation", m)
+}
+
+// The ReleaseKitFunc type is an adapter to allow the use of ordinary
+// function as ReleaseKit mutator.
+type ReleaseKitFunc func(context.Context, *ent.ReleaseKitMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ReleaseKitFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ReleaseKitMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ReleaseKitMutation", m)
 }
 
 // The ReleaseLineageFunc type is an adapter to allow the use of ordinary

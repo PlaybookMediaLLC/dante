@@ -1,3 +1,4 @@
+import * as releaseKits from '../lib/api/contracts/release-kits'
 import assert from 'node:assert/strict'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -112,6 +113,7 @@ const contracts = new Map<string, RouteContract>(
     releaseReadiness,
     releaseSources,
     releaseEvidence,
+    releaseKits,
     scheduledPosts,
     senja,
     settingsPlatform,

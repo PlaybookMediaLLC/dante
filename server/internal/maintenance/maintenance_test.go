@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -513,6 +514,16 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 		exec(t, s.DB, `INSERT INTO platform_release_claim(id,"organizationId","releaseId") VALUES($1,$2,$3)`, "claim-"+org, org, "release-"+org)
 		exec(t, s.DB, `INSERT INTO platform_release_claim_version(id,"organizationId","releaseId","claimId",version,text,qualifiers,"contentSha256",origin,"authorId") VALUES($1,$2,$3,$4,1,'Exact claim','{}',repeat('a',64),'HUMAN','user')`, "claim-version-"+org, org, "release-"+org, "claim-"+org)
 		exec(t, s.DB, `UPDATE platform_release_claim SET "currentVersionId"=$1 WHERE id=$2`, "claim-version-"+org, "claim-"+org)
+
+		exec(t, s.DB, `INSERT INTO platform_release_kit(id,"organizationId","releaseId") VALUES($1,$2,$3)`, "kit-"+org, org, "release-"+org)
+		exec(t, s.DB, `INSERT INTO platform_release_kit_revision(id,"organizationId","releaseId","kitId",version,"qualificationRevisionId","approverUserId","requestedByUserId",manifest) VALUES($1,$2,$3,$4,1,$5,'user','user','{}')`, "kit-revision-"+org, org, "release-"+org, "kit-"+org, "facts-"+org)
+		exec(t, s.DB, `UPDATE platform_release_kit SET "currentRevisionId"=$1,"approvedRevisionId"=$1 WHERE id=$2`, "kit-revision-"+org, "kit-"+org)
+		exec(t, s.DB, `INSERT INTO platform_kit_artifact_revision(id,"organizationId","releaseId",kind,"audienceId",classification,snapshot,"snapshotSha256","claimLinks","claimMapSha256","outputKey","outputSha256","outputBytes") VALUES($1,$2,$3,'FACT_SHEET','sales','INTERNAL_MATERIAL','{}',repeat('a',64),'[]',repeat('b',64),$4,repeat('c',64),5)`, "kit-artifact-"+org, org, "release-"+org, "org/"+org+"/kit-artifact")
+		exec(t, s.DB, `INSERT INTO platform_kit_member(id,"organizationId","releaseId","kitRevisionId","artifactRevisionId","audienceId","requirementId","displayOrder") VALUES($1,$2,$3,$4,$5,'sales','sales:FACT_SHEET',0)`, "kit-member-"+org, org, "release-"+org, "kit-revision-"+org, "kit-artifact-"+org)
+		exec(t, s.DB, `INSERT INTO platform_kit_artifact_claim(id,"organizationId","releaseId","artifactRevisionId","nodeId","claimId","claimVersionId") VALUES($1,$2,$3,$4,'fact',$5,$6)`, "kit-claim-"+org, org, "release-"+org, "kit-artifact-"+org, "claim-"+org, "claim-version-"+org)
+		exec(t, s.DB, `INSERT INTO platform_kit_source_pin(id,"organizationId","releaseId","kitRevisionId","sourceId","acknowledgedSequence","evidenceVersionIds") VALUES($1,$2,$3,$4,$5,2,jsonb_build_array($6::text))`, "kit-pin-"+org, org, "release-"+org, "kit-revision-"+org, "evidence-source-"+org, "evidence-version-"+org)
+		exec(t, s.DB, `INSERT INTO platform_kit_review_decision(id,"organizationId","releaseId","kitRevisionId","reviewType",decision,"manifestSha256","dependencyToken","policyVersion","humanUserId","sessionId",reason) VALUES($1,$2,$3,$4,'CONTENT_COVERAGE','REJECT',repeat('a',64),repeat('b',64),1,'user','session','Retained review')`, "kit-review-"+org, org, "release-"+org, "kit-revision-"+org)
+		exec(t, s.DB, `INSERT INTO platform_kit_export(id,"organizationId","releaseId","kitRevisionId","audienceIds","audienceScope","requestedByUserId","objectKey",sha256,bytes,"fileIndex") VALUES($1,$2,$3,$4,'["sales"]',repeat('a',64),'user',$5,repeat('b',64),5,'{}')`, "kit-export-"+org, org, "release-"+org, "kit-revision-"+org, "org/"+org+"/kit-export")
 		exec(t, s.DB, `INSERT INTO launch_run(id,"organizationId",kind) VALUES($1,$2,'agent')`, "run-"+org, org)
 		exec(t, s.DB, `INSERT INTO launch_run_step(id,"organizationId","runId","index",kind,status) VALUES($1,$2,$3,0,'model','SUCCEEDED')`, "step-"+org, org, "run-"+org)
 		exec(t, s.DB, `INSERT INTO conversation(id,"organizationId",title) VALUES($1,$2,'Launch')`, "conversation-"+org, org)
@@ -542,7 +553,7 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
 		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
 	}
-	for _, table := range []string{"platform_evidence_source", "platform_evidence_version", "platform_release_evidence", "platform_release_claim", "platform_release_claim_version"} {
+	for _, table := range []string{"platform_release_kit", "platform_release_kit_revision", "platform_kit_member", "platform_kit_artifact_revision", "platform_kit_artifact_claim", "platform_kit_source_pin", "platform_kit_review_decision", "platform_kit_export", "platform_evidence_source", "platform_evidence_version", "platform_release_evidence", "platform_release_claim", "platform_release_claim_version"} {
 		expect(t, s.DB, 0, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='a'`)
 		expect(t, s.DB, 1, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
 	}
@@ -554,7 +565,7 @@ func TestWorkspaceCleanupKeepsAuditAndOtherTenants(t *testing.T) {
 		}
 		expect(t, s.DB, want, `SELECT count(*) FROM "`+table+`" WHERE "organizationId"='b'`)
 	}
-	if len(o.deleted) != 1 || o.deleted[0] != "org/a/asset-a" {
+	if len(o.deleted) != 3 || !slices.Contains(o.deleted, "org/a/asset-a") || !slices.Contains(o.deleted, "org/a/kit-artifact") || !slices.Contains(o.deleted, "org/a/kit-export") {
 		t.Fatalf("deleted: %v", o.deleted)
 	}
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   qualificationErrorDetailsSchema,
+  kitReadinessErrorDetailsSchema,
   sourceSelectionErrorDetailsSchema,
 } from 'screenshot-studio-backend-sdk'
 import { API_DOCS_URL, type ApiErrorCode } from '@/lib/api/errors'
@@ -60,7 +61,11 @@ export const platformErrorBodySchema = z
     message: z.string().describe('Human-readable error message, same value as `error`.'),
     status: z.int().describe('HTTP status code, repeated in the body.'),
     details: z
-      .union([qualificationErrorDetailsSchema, sourceSelectionErrorDetailsSchema])
+      .union([
+        kitReadinessErrorDetailsSchema,
+        qualificationErrorDetailsSchema,
+        sourceSelectionErrorDetailsSchema,
+      ])
       .optional()
       .describe('Release qualification or source selection conflict and repair details.'),
   })
@@ -336,7 +341,11 @@ function getQualificationFailure(error: unknown): ApiFailure | null {
       message: z.string(),
       status: z.literal([403, 409, 503]),
       details: z.object({
-        details: z.union([qualificationErrorDetailsSchema, sourceSelectionErrorDetailsSchema]),
+        details: z.union([
+          kitReadinessErrorDetailsSchema,
+          qualificationErrorDetailsSchema,
+          sourceSelectionErrorDetailsSchema,
+        ]),
       }),
     })
     .safeParse(error)

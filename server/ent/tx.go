@@ -144,6 +144,20 @@ type Tx struct {
 	IntegrationConnection *IntegrationConnectionClient
 	// Invitation is the client for interacting with the Invitation builders.
 	Invitation *InvitationClient
+	// KitArtifactClaim is the client for interacting with the KitArtifactClaim builders.
+	KitArtifactClaim *KitArtifactClaimClient
+	// KitArtifactRevision is the client for interacting with the KitArtifactRevision builders.
+	KitArtifactRevision *KitArtifactRevisionClient
+	// KitExport is the client for interacting with the KitExport builders.
+	KitExport *KitExportClient
+	// KitMember is the client for interacting with the KitMember builders.
+	KitMember *KitMemberClient
+	// KitReviewDecision is the client for interacting with the KitReviewDecision builders.
+	KitReviewDecision *KitReviewDecisionClient
+	// KitRevision is the client for interacting with the KitRevision builders.
+	KitRevision *KitRevisionClient
+	// KitSourcePin is the client for interacting with the KitSourcePin builders.
+	KitSourcePin *KitSourcePinClient
 	// LaunchRun is the client for interacting with the LaunchRun builders.
 	LaunchRun *LaunchRunClient
 	// LaunchRunStep is the client for interacting with the LaunchRunStep builders.
@@ -266,6 +280,8 @@ type Tx struct {
 	ReleaseDocument *ReleaseDocumentClient
 	// ReleaseEvidence is the client for interacting with the ReleaseEvidence builders.
 	ReleaseEvidence *ReleaseEvidenceClient
+	// ReleaseKit is the client for interacting with the ReleaseKit builders.
+	ReleaseKit *ReleaseKitClient
 	// ReleaseLineage is the client for interacting with the ReleaseLineage builders.
 	ReleaseLineage *ReleaseLineageClient
 	// ReleaseLineageBinding is the client for interacting with the ReleaseLineageBinding builders.
@@ -547,6 +563,13 @@ func (tx *Tx) init() {
 	tx.IdealCustomerProfile = NewIdealCustomerProfileClient(tx.config)
 	tx.IntegrationConnection = NewIntegrationConnectionClient(tx.config)
 	tx.Invitation = NewInvitationClient(tx.config)
+	tx.KitArtifactClaim = NewKitArtifactClaimClient(tx.config)
+	tx.KitArtifactRevision = NewKitArtifactRevisionClient(tx.config)
+	tx.KitExport = NewKitExportClient(tx.config)
+	tx.KitMember = NewKitMemberClient(tx.config)
+	tx.KitReviewDecision = NewKitReviewDecisionClient(tx.config)
+	tx.KitRevision = NewKitRevisionClient(tx.config)
+	tx.KitSourcePin = NewKitSourcePinClient(tx.config)
 	tx.LaunchRun = NewLaunchRunClient(tx.config)
 	tx.LaunchRunStep = NewLaunchRunStepClient(tx.config)
 	tx.Member = NewMemberClient(tx.config)
@@ -608,6 +631,7 @@ func (tx *Tx) init() {
 	tx.ReleaseClaimVersion = NewReleaseClaimVersionClient(tx.config)
 	tx.ReleaseDocument = NewReleaseDocumentClient(tx.config)
 	tx.ReleaseEvidence = NewReleaseEvidenceClient(tx.config)
+	tx.ReleaseKit = NewReleaseKitClient(tx.config)
 	tx.ReleaseLineage = NewReleaseLineageClient(tx.config)
 	tx.ReleaseLineageBinding = NewReleaseLineageBindingClient(tx.config)
 	tx.ReleaseQualification = NewReleaseQualificationClient(tx.config)

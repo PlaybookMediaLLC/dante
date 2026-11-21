@@ -36,6 +36,7 @@ import { TimePicker } from '@/components/ui/time-picker'
 import { useUnsavedSettings } from '@/components/settings/useUnsavedSettings'
 import { SettingsRequestError, settingsErrorMessage, settingsRequest } from '@/lib/settings/client'
 import { ReleaseEvidencePicker } from './ReleaseEvidencePicker'
+import { ReleaseKitReview } from './ReleaseKitReview'
 import { ReleaseClaimReview } from './ReleaseClaimReview'
 import { ReleaseGrouping } from './ReleaseGrouping'
 import { ReleaseSourceSelection, ReleaseSourceSnapshot } from './ReleaseSourceSelection'
@@ -342,6 +343,7 @@ export function ReleaseQualification({
   const [stale, setStale] = useState(false)
   const [sourceEditing, setSourceEditing] = useState(false)
   const [materialsEditing, setMaterialsEditing] = useState(false)
+  const [kitEditing, setKitEditing] = useState(false)
   const [groupingEditing, setGroupingEditing] = useState(false)
   const [picker, setPicker] = useState(false)
   const [sources, setSources] = useState(initial?.current?.sourceAssets ?? [])
@@ -365,6 +367,7 @@ export function ReleaseQualification({
     !busy &&
     !sourceEditing &&
     !materialsEditing &&
+    !kitEditing &&
     !groupingEditing &&
     !pending &&
     !stale &&
@@ -379,6 +382,7 @@ export function ReleaseQualification({
     !busy &&
     !sourceEditing &&
     !materialsEditing &&
+    !kitEditing &&
     !groupingEditing &&
     !pending &&
     !stale &&
@@ -555,7 +559,15 @@ export function ReleaseQualification({
           release={{ id: releaseId, revision: data.revision }}
           enabled={data.enabled && data.canonicalState === 'ACTIVE' && !inactive}
           canEdit={
-            canEdit && !dirty && !pending && !busy && !stale && !reason.trim() && !groupingEditing
+            canEdit &&
+            !dirty &&
+            !pending &&
+            !busy &&
+            !stale &&
+            !reason.trim() &&
+            !groupingEditing &&
+            !materialsEditing &&
+            !kitEditing
           }
           onEditingChange={setSourceEditing}
           onSelected={async () =>
@@ -575,6 +587,8 @@ export function ReleaseQualification({
             !busy &&
             !stale &&
             !reason.trim() &&
+            !materialsEditing &&
+            !kitEditing &&
             !sourceEditing
           }
           onEditingChange={setGroupingEditing}
@@ -1112,6 +1126,7 @@ export function ReleaseQualification({
             dirty ||
             reason.trim().length > 0 ||
             sourceEditing ||
+            kitEditing ||
             groupingEditing
           }
           onRevision={(revision) =>
@@ -1119,6 +1134,34 @@ export function ReleaseQualification({
           }
           onReload={replaceDraft}
           onEditing={setMaterialsEditing}
+        />
+      ) : null}
+      {data ? (
+        <ReleaseKitReview
+          releaseId={releaseId}
+          workspaceId={workspaceId}
+          userId={userId}
+          qualification={data}
+          members={members}
+          canEdit={canEdit}
+          canDecide={canDecide}
+          disabled={
+            inactive ||
+            busy ||
+            pending !== null ||
+            stale ||
+            dirty ||
+            reason.trim().length > 0 ||
+            sourceEditing ||
+            groupingEditing ||
+            materialsEditing ||
+            membersUnavailable
+          }
+          onRevision={(revision) =>
+            setData((current) => (current ? { ...current, revision } : current))
+          }
+          onReload={replaceDraft}
+          onEditing={setKitEditing}
         />
       ) : null}
     </>
