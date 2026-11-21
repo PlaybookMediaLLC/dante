@@ -13,8 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/asset"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/ent/kitrevision"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/publishing"
+	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasefacts"
 	"github.com/PlaybookMediaLLC/screenshot-studio/services/internal/releasekits"
 	"github.com/google/uuid"
 	"github.com/lucsky/cuid"
@@ -192,6 +194,73 @@ func TestReleaseKitReviewRejectReviseApproveExportAndSourceFence(t *testing.T) {
 	}
 }
 
+func TestReleaseKitClearanceRevocationBlocksApprovedExport(t *testing.T) {
+	w, id, input, _ := kitFixture(t)
+	claims, err := w.repo.ListReleaseClaims(w.ctx, w.owner, id, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	claim := claims.Items[0]
+	support := claim.Supports[0]
+	access := ChangeEvidenceAccessInput{ExpectedRevision: "6", EvidenceVersionID: support.EvidenceVersionID, ExpectedSourceSequence: "1", Action: "CLEAR_FOR_AUDIENCE", AudienceIDs: []string{"sales"}, Reason: "Reviewed for the sales audience."}
+	if _, err := w.repo.ChangeEvidenceAccess(w.ctx, w.owner, id, "clear-for-kit", access); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := w.repo.SetClaimSupports(w.ctx, w.owner, id, claim.ID, "cleared-support", SetClaimSupportsInput{ExpectedRevision: "7", ClaimVersionID: claim.VersionID, Supports: []ClaimSupportInput{{EvidenceVersionID: support.EvidenceVersionID, ExpectedSourceSequence: "2", Relation: support.Relation, Selector: support.Selector}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set := w.db.Client.ClaimSupportSet.GetX(w.ctx, updated.ID)
+	if _, err := w.repo.VerifyReleaseClaim(w.ctx, w.owner, id, claim.ID, "verify-cleared", VerifyReleaseClaimInput{ExpectedRevision: "8", ClaimVersionID: claim.VersionID, ClaimSHA256: claim.SHA256, SupportSetID: set.ID, SupportSHA256: set.SupportSha256, Decision: "SUPPORTED", Reason: "Verified the cleared evidence and its exact qualifiers."}); err != nil {
+		t.Fatal(err)
+	}
+	input.ExpectedRevision = "9"
+	for i := range input.Artifacts {
+		input.Artifacts[i].Classification = "CUSTOMER_CLEARED"
+	}
+	created, err := w.repo.CreateReleaseKitRevision(w.ctx, w.owner, id, "cleared-kit", input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail := prepareKitFixture(t, w, id, created.ID)
+	detail = decideKitFixture(t, w, id, detail, "CONTENT_COVERAGE", "APPROVE")
+	detail = decideKitFixture(t, w, id, detail, "FINAL_APPROVAL", "APPROVE")
+	exported, err := w.repo.RequestKitExport(w.ctx, w.owner, id, detail.ID, "cleared-export", RequestKitExportInput{ExpectedRevision: detail.Readiness.AggregateRevision, ManifestSHA256: *detail.Readiness.ManifestHash, AudienceIDs: []string{"sales"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := w.repo.processKitExport(w.ctx, w.org, exported.ID); err != nil {
+		t.Fatal(err)
+	}
+	result, err := w.repo.GetKitExport(w.ctx, w.owner, id, exported.ID, true)
+	if err != nil || result.DownloadURL == nil {
+		t.Fatalf("approved export=%+v %v", result, err)
+	}
+	url, err := url.Parse(*result.DownloadURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	detail, err = w.repo.GetReleaseKit(w.ctx, w.owner, id, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	access.ExpectedRevision, access.ExpectedSourceSequence = detail.Readiness.AggregateRevision, "2"
+	access.Action, access.AudienceIDs = "REVOKE_CLEARANCE", []string{}
+	if _, err := w.repo.ChangeEvidenceAccess(w.ctx, w.owner, id, "revoke-kit-clearance", access); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.repo.GetKitExport(w.ctx, w.owner, id, exported.ID, true); err == nil {
+		t.Fatal("revoked evidence allowed a new approved download")
+	}
+	if body, err := w.repo.ReadKitExportDownload(w.ctx, id, exported.ID, url.Query().Get("downloadToken"), "revoked-clearance"); err == nil || len(body) != 0 {
+		t.Fatalf("old grant bypassed clearance revocation: %v", err)
+	}
+	var clearances, revocations int
+	if err := w.db.SQL.QueryRowContext(w.ctx, `SELECT count(*),count(*) FILTER (WHERE "audienceIds"='[]') FROM platform_evidence_clearance WHERE "organizationId"=$1`, w.org).Scan(&clearances, &revocations); err != nil || clearances != 2 || revocations != 1 {
+		t.Fatalf("immutable clearance history=%d/%d %v", clearances, revocations, err)
+	}
+}
+
 func TestReleaseKitAuthorityPartialRenderAndTenantBoundary(t *testing.T) {
 	w, id, input, objects := kitFixture(t)
 	for _, kind := range []string{"api_key", "service", "support", "webhook"} {
@@ -275,7 +344,7 @@ func (r *kitDraftRenderer) RenderKit(_ context.Context, request KitRenderRequest
 }
 
 func TestReleaseKitFreezesCurrentSavedDraftAndRejectsConcurrentSave(t *testing.T) {
-	w, id, input, _ := kitFixture(t)
+	w, id, input, objects := kitFixture(t)
 	draft, err := w.repo.CreateContentDraft(w.ctx, w.owner, ContentDraftInput{Title: "Kit notes", Body: []any{map[string]any{"id": "fact", "type": "p", "children": []any{map[string]any{"text": "Earlier draft"}}}}, PlainText: "Earlier draft"})
 	if err != nil {
 		t.Fatal(err)
@@ -292,6 +361,25 @@ func TestReleaseKitFreezesCurrentSavedDraftAndRejectsConcurrentSave(t *testing.T
 		t.Fatalf("stale saved revision=%v", err)
 	}
 	input.Artifacts[0].ExpectedNativeRevision = "2"
+	assetIDs := []string{uuid.NewString(), uuid.NewString()}
+	assetBody := []byte("retained image fixture")
+	for _, assetID := range assetIDs {
+		key := "org/" + w.org + "/image/" + assetID
+		w.exec(t, `INSERT INTO asset(id,"organizationId","objectKey","mediaType",bytes,sha256,status,"updatedAt") VALUES($1,$2,$3,'image/png',$4,$5,'UPLOADED',now())`, assetID, w.org, key, len(assetBody), releasefacts.ByteHash(assetBody))
+		objects.files[key] = assetBody
+	}
+	if err := w.db.Client.ContentDraft.UpdateOneID(draft.ID).SetAssetIds(append(assetIDs, assetIDs[0])).Exec(w.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.db.Client.Asset.UpdateOneID(assetIDs[1]).SetStatus(asset.StatusPENDING).Exec(w.ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.repo.CreateReleaseKitRevision(w.ctx, w.owner, id, "unfinished-assets", input); !errors.Is(err, publishing.ErrNotFound) {
+		t.Fatalf("partial asset set=%v", err)
+	}
+	if err := w.db.Client.Asset.UpdateOneID(assetIDs[1]).SetStatus(asset.StatusUPLOADED).Exec(w.ctx); err != nil {
+		t.Fatal(err)
+	}
 	created, err := w.repo.CreateReleaseKitRevision(w.ctx, w.owner, id, "current-draft", input)
 	if err != nil {
 		t.Fatal(err)
@@ -322,6 +410,14 @@ func TestReleaseKitFreezesCurrentSavedDraftAndRejectsConcurrentSave(t *testing.T
 	prepared := prepareKitFixture(t, w, id, created.ID)
 	if renderer.snapshot.Revision != "2" || !strings.Contains(renderer.snapshot.Document, "Current saved facts") {
 		t.Fatalf("renderer used a live pointer: %+v", renderer.snapshot)
+	}
+	if len(renderer.snapshot.Assets) != 2 || !slices.IsSortedFunc(renderer.snapshot.Assets, func(a, b releasekits.AssetPin) int { return strings.Compare(a.ID, b.ID) }) {
+		t.Fatalf("asset pins were not unique and ordered: %+v", renderer.snapshot.Assets)
+	}
+	for _, pin := range renderer.snapshot.Assets {
+		if pin.SHA256 != releasefacts.ByteHash(assetBody) || pin.ByteLength != int64(len(assetBody)) {
+			t.Fatalf("asset pin lost retained identity: %+v", pin)
+		}
 	}
 	if err := w.db.Client.ContentDraft.UpdateOneID(draft.ID).SetVersion(3).SetPlainText("Unrelated scratch edit").Exec(w.ctx); err != nil {
 		t.Fatal(err)

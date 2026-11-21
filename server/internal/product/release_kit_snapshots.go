@@ -150,21 +150,30 @@ func kitNativeSnapshot(ctx context.Context, tx *ent.Tx, actor Actor, input KitAr
 	for id := range refs {
 		assetIDs = append(assetIDs, id)
 	}
-	if len(sortedUnique(assetIDs)) > 100 {
+	assetIDs = sortedUnique(assetIDs)
+	if len(assetIDs) > 100 {
 		return s, ErrInvalidInput
 	}
-	var assetBytes int64
-	for _, id := range sortedUnique(assetIDs) {
-		if _, err := tx.PlatformExec(ctx, `SELECT id FROM asset WHERE "organizationId"=$1 AND id=$2 FOR SHARE`, actor.OrganizationID, id); err != nil {
+	for _, id := range assetIDs {
+		if !qualificationID(id) {
+			return s, ErrInvalidInput
+		}
+	}
+	var rows []*ent.Asset
+	if len(assetIDs) > 0 {
+		if _, err := tx.PlatformExec(ctx, `SELECT id FROM asset WHERE "organizationId"=$1 AND id=ANY($2::text[]) ORDER BY id FOR SHARE`, actor.OrganizationID, "{"+strings.Join(assetIDs, ",")+"}"); err != nil {
 			return s, err
 		}
-		row, err := tx.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID), asset.ID(id), asset.StatusEQ(asset.StatusUPLOADED)).Only(ctx)
-		if ent.IsNotFound(err) {
-			return s, publishing.ErrNotFound
-		}
+		rows, err = tx.Asset.Query().Where(asset.OrganizationID(actor.OrganizationID), asset.IDIn(assetIDs...), asset.StatusEQ(asset.StatusUPLOADED)).Order(ent.Asc(asset.FieldID)).All(ctx)
 		if err != nil {
 			return s, err
 		}
+		if len(rows) != len(assetIDs) {
+			return s, publishing.ErrNotFound
+		}
+	}
+	var assetBytes int64
+	for _, row := range rows {
 		if row.Sha256 == nil || row.Bytes <= 0 {
 			return s, invalid("Finish uploading every asset before preparing a kit.")
 		}

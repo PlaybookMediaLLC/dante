@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { test } from 'node:test'
+import { NextRequest } from 'next/server'
 import sharp from 'sharp'
+import { POST } from '../app/api/internal/kit-renders/route'
+import { kitRenderContract } from '../lib/api/contracts/internal'
 import { kitRenderRequestSchema } from '../lib/releases/kit-render-schema'
 import { renderKitSnapshot } from '../lib/releases/kit-render'
 import { watermarkKitPreview } from '../lib/releases/kit-preview'
@@ -22,6 +25,39 @@ const request = (document: unknown) =>
     assets: {},
     assetPaths: {},
   })
+
+test('signed native kit requests use their explicit byte budget', async (t) => {
+  t.mock.method(console, 'info', () => undefined)
+  const original = process.env.PLATFORM_WORKFLOW_RENDER_KEY
+  const key = 'kit-render-request-budget-test-key'
+  process.env.PLATFORM_WORKFLOW_RENDER_KEY = key
+  t.after(() => {
+    if (original === undefined) delete process.env.PLATFORM_WORKFLOW_RENDER_KEY
+    else process.env.PLATFORM_WORKFLOW_RENDER_KEY = original
+  })
+  const body =
+    JSON.stringify(request([{ type: 'p', children: [{ text: 'Frozen facts' }] }])) +
+    ' '.repeat(33 << 20)
+  const stamp = Math.floor(Date.now() / 1000)
+  const signature = `t=${stamp},v1=${createHmac('sha256', key).update(`${stamp}.${body}`).digest('hex')}`
+  const invoke = (headers: Record<string, string>, content = body) =>
+    POST(
+      new NextRequest('http://localhost/api/internal/kit-renders', {
+        method: 'POST',
+        headers,
+        body: content,
+      }),
+      { params: Promise.resolve({}) }
+    )
+  const accepted = await invoke({ 'x-shots-signature': signature })
+  assert.equal(accepted.status, 200)
+  assert.match(Buffer.from((await accepted.json()).body, 'base64').toString(), /Frozen facts/)
+  assert.equal((await invoke({ 'x-shots-signature': 'invalid' })).status, 401)
+  assert.equal(
+    (await invoke({ 'content-length': String(kitRenderContract.maxBodyBytes + 1) }, '{}')).status,
+    413
+  )
+})
 
 test('frozen Write output preserves qualifiers, marks, tables, links and post separation', async () => {
   const input = request([

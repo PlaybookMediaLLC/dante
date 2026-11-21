@@ -72,6 +72,7 @@ export const workflowCanvasContract = defineContract({
 export const kitRenderContract = defineContract({
   body: z.string().max(140 << 20),
   bodyFormat: 'text',
+  maxBodyBytes: 140 << 20,
   method: 'POST',
   name: 'release-kits.renders.create',
   output: kitRenderOutputSchema,

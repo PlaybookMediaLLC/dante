@@ -78,12 +78,25 @@ func TestReleaseEvidenceReadRedactionClearanceAndErasure(t *testing.T) {
 	if err != nil || page.Items[0].SourceSequence != "2" || page.Items[0].AccessClass != "CUSTOMER_CLEARED" {
 		t.Fatalf("clearance=%+v err=%v", page, err)
 	}
-	access.ExpectedRevision, access.ExpectedSourceSequence, access.Action, access.AudienceIDs = "3", "2", "TOMBSTONE", []string{}
+	access.ExpectedRevision, access.ExpectedSourceSequence, access.Action, access.AudienceIDs = "3", "2", "REVOKE_CLEARANCE", []string{}
+	revoked, err := w.repo.ChangeEvidenceAccess(w.ctx, w.owner, id, "revoke", access)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay, err := w.repo.ChangeEvidenceAccess(w.ctx, w.owner, id, "revoke", access)
+	if err != nil || replay.Created || replay.ID != revoked.ID {
+		t.Fatalf("revocation replay=%+v %v", replay, err)
+	}
+	page, err = w.repo.ListReleaseEvidence(w.ctx, w.owner, id, "")
+	if err != nil || page.Items[0].SourceSequence != "3" || page.Items[0].AccessClass != "PRIVATE_SOURCE" {
+		t.Fatalf("revocation=%+v err=%v", page, err)
+	}
+	access.ExpectedRevision, access.ExpectedSourceSequence, access.Action = "4", "3", "TOMBSTONE"
 	if _, err := w.repo.ChangeEvidenceAccess(w.ctx, w.owner, id, "erase", access); err != nil {
 		t.Fatal(err)
 	}
 	page, err = w.repo.ListReleaseEvidence(w.ctx, w.owner, id, "")
-	if err != nil || page.Items[0].Text != nil || page.Items[0].SourceURL != nil || page.Items[0].Available || page.Items[0].TombstonedAt == nil || page.Items[0].SourceSequence != "3" {
+	if err != nil || page.Items[0].Text != nil || page.Items[0].SourceURL != nil || page.Items[0].Available || page.Items[0].TombstonedAt == nil || page.Items[0].SourceSequence != "4" {
 		t.Fatalf("tombstone=%+v err=%v", page, err)
 	}
 	if _, err := w.repo.ListReleaseEvidence(w.ctx, w.owner, id, "bad-cursor"); !errors.Is(err, ErrInvalidInput) {
